@@ -1,0 +1,29 @@
+<p>
+When configuring the CEF to Archer mapping (cef_mapping), include the following...
+</p>
+<br>
+<ul>
+    <li>The name of the application (e.g. Incidents)</li>
+    <li>The name of the tracking ID field (e.g. Incident ID)</li>
+    <li>Separate entries for each field that should go into the CEF of an artifact.</li>
+</ul>
+</p>
+When done, your mapping will take the names of Archer fields and map them into the CEF of an artifact. It should look something like the following...
+</p>
+
+<pre>
+{
+    "application": "Incidents",
+    "tracking": "Incident ID",
+    "Status": "status",
+    "Category": "category",
+    "Details": "details",
+    "Archer field name": "CEF name"
+    ...
+}
+</pre>
+<br>
+<p>Where Status, Category, Details, etc. are fields that exist in your Archer Application that you would like to import. <br>
+Certain field types and attachements from Archer are not currently supported.
+
+If a field is specified both in the cef_mapping and in the excluded fields list, the field will be excluded and not ingested.
