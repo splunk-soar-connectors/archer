@@ -1,7 +1,7 @@
 {
     "appid": "c4492201-fd2c-49d8-b38f-805b0967032f",
     "name": "RSA Archer",
-    "description": "This app allows you to create and update RSA Archer GRC tickets",
+    "description": "This app implements ticket management actions on RSA Archer GRC.",
     "publisher": "Phantom",
     "package_name": "phantom_archer",
     "type": "ticketing",
@@ -12,7 +12,7 @@
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "1.2.265",
+    "min_phantom_version": "2.1.467",
     "logo": "rsa-logo.png",
     "configuration": {
 
