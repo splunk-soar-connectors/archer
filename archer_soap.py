@@ -175,7 +175,12 @@ class ArcherSOAP(object):
 
     def plain_field(self, field, parent):
         f = etree.SubElement(parent, 'Field')
-        f.set('value', str(field['value']))
+
+        try:
+            f.set('value', str(field['value']))
+        except:
+            f.set('value', field['value'])
+
         f.set('id', str(field['id']))
 
     def mv_field(self, field, parent):
