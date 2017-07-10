@@ -1,7 +1,7 @@
 # --
 # File: archer_connector.py
 #
-# Copyright (c) Phantom Cyber Corporation, 2014-2017
+# Copyright (c) Phantom Cyber Corporation, 2014-2016
 #
 # This unpublished material is proprietary to Phantom Cyber.
 # All rights reserved. The methods and
@@ -23,7 +23,6 @@ import json
 import fcntl
 import requests
 import archer_utils
-
 
 class ArcherConnector(BaseConnector):
     """A subclass of `phantom.base_connector.BaseConnector`, which implements
@@ -52,6 +51,41 @@ class ArcherConnector(BaseConnector):
             except (ValueError, TypeError) as e:
                 pass
 
+    def _load_state(self):
+
+        # get the directory of the class
+        dirpath = os.path.dirname(os.path.abspath(__file__))
+        asset_id = self.get_asset_id()
+        self._state_file_path = "{0}/{1}_serialized_data.json".format(dirpath, asset_id)
+
+        state = {}
+        try:
+            with open(self._state_file_path, 'r') as f:
+                in_json = f.read()
+                state = json.loads(in_json)
+        except Exception as e:
+            self.debug_print("In _load_state: Exception: {0}".format(str(e)))
+
+        self.debug_print("Loaded state: ", state)
+
+        return state
+
+    def _save_state(self, state):
+
+        self.debug_print("Saving state: ", state)
+
+        if (not self._state_file_path):
+            self.debug_print("_state_file_path is None in _save_state")
+            return phantom.APP_SUCCESS
+
+        try:
+            with open(self._state_file_path, 'w+') as f:
+                f.write(json.dumps(state))
+        except Exception as e:
+            self.debug_print("In _save_state: Exception: {0}".format(str(e)))
+
+        return phantom.APP_SUCCESS
+
     def _handle_on_poll(self, param):
         """Handles 'on_poll' ingest actions"""
 
@@ -76,7 +110,7 @@ class ArcherConnector(BaseConnector):
 
         application = cef_mapping.pop('application')
 
-        whole_state = self.load_state()
+        whole_state = self._load_state()
         state = whole_state.get(application, {})
         max_content_id = state.get('max_content_id', -1)
         last_page = state.get('last_page', 1)
@@ -103,7 +137,7 @@ class ArcherConnector(BaseConnector):
                 content_id = int(rec['@contentId'])
                 if content_id <= max_content_id:
                     continue
-                self.send_progress('On record {}/{}...'.format(i + 1, nrecs))
+                self.send_progress('On record {}/{}...'.format(i+1, nrecs))
                 record_name = 'Record Name not found'
 
                 cef = {}
@@ -170,8 +204,8 @@ class ArcherConnector(BaseConnector):
                 last_page += 1
 
         self.save_progress('Ingested {} records'.format(completed_records))
-        whole_state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
-        self.save_state(whole_state)
+        whole_state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page} 
+        self._save_state(whole_state)
         self.save_progress('Import complete.')
         action_result.set_status(phantom.APP_SUCCESS, 'Import complete')
         return action_result.get_status()
@@ -397,7 +431,7 @@ class ArcherConnector(BaseConnector):
                 action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
                 self.add_action_result(action_result)
                 return action_result.get_status()
-
+                
         action_result.update_summary({'content_id': cid})
         record = proxy.get_record_by_id(app, cid)
 
@@ -459,7 +493,6 @@ class ArcherConnector(BaseConnector):
         elif (action_id == 'on_poll'):
             return self._handle_on_poll(param)
         return phantom.APP_SUCCESS
-
 
 if __name__ == '__main__':
     import sys
