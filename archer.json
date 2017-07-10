@@ -5,7 +5,7 @@
     "publisher": "Phantom",
     "package_name": "phantom_archer",
     "type": "ticketing",
-    "license": "Copyright (c) Phantom Cyber Corporation 2016",
+    "license": "Copyright (c) Phantom Cyber Corporation 2016-2017",
     "main_module" : "archer_connector.pyc",
     "app_version": "1.0.37",
     "utctime_updated": "2017-06-30T17:31:05.000000Z",
