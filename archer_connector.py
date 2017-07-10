@@ -51,15 +51,6 @@ class ArcherConnector(BaseConnector):
                 self.latest_time = float(self.latest_time)
             except (ValueError, TypeError) as e:
                 pass
-        self._state = {}
-
-    def initialize(self):
-        self._state = self.load_state()
-        return phantom.APP_SUCCESS
-
-    def finalize(self):
-        self.save_state(self._state)
-        return phantom.APP_SUCCESS
 
     def _handle_on_poll(self, param):
         """Handles 'on_poll' ingest actions"""
@@ -85,7 +76,8 @@ class ArcherConnector(BaseConnector):
 
         application = cef_mapping.pop('application')
 
-        state = self._state.get(application, {})
+        whole_state = self.load_state()
+        state = whole_state.get(application, {})
         max_content_id = state.get('max_content_id', -1)
         last_page = state.get('last_page', 1)
         max_records = min(self.POLLING_PAGE_SIZE, param['container_count'])
@@ -178,7 +170,8 @@ class ArcherConnector(BaseConnector):
                 last_page += 1
 
         self.save_progress('Ingested {} records'.format(completed_records))
-        self._state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
+        whole_state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
+        self.save_state(whole_state)
         self.save_progress('Import complete.')
         action_result.set_status(phantom.APP_SUCCESS, 'Import complete')
         return action_result.get_status()
@@ -311,6 +304,7 @@ class ArcherConnector(BaseConnector):
         self.add_action_result(action_result)
 
         json_string = param.get(u'json_string', '')
+        maps = None
         try:
             mapping = json.loads(json_string)
         except (ValueError, TypeError) as e:
@@ -354,7 +348,7 @@ class ArcherConnector(BaseConnector):
         """Handles 'update_ticket' actions"""
         self.save_progress('Updating Archer record...')
         app = param.get('application')
-        cid = param.get('content_id')
+        cid = orig_cid = param.get('content_id')
         nfid = param.get('name_field')
         nfv = param.get('name_value')
         fid = orig_fid = param.get('field_id')
