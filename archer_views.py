@@ -34,6 +34,7 @@ def get_ticket(provides, all_results, context):
 
     return 'get_ticket.html'
 
+
 def list_tickets(provides, all_results, context):
 
     headers = ['application', 'content id']
@@ -55,7 +56,6 @@ def list_tickets(provides, all_results, context):
     start = int(context['QS']['start'][0])
     length = int(context['QS'].get('length', ['5'])[0])
     end = start + length
-    cur_pos = 0
     rows = []
     total = 0
     dyn_headers = headers[2:]
@@ -71,7 +71,7 @@ def list_tickets(provides, all_results, context):
                 name_value = {}
                 for f in item.get('Field', []):
                     name_value[f['@name']] = f.get('#text')
-                
+
                 for h in dyn_headers:
                     row.append({ 'value': name_value.get(h, '') })
                 rows.append(row)

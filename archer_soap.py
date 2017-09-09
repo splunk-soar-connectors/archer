@@ -22,6 +22,7 @@ ALL_NS_MAP['dummy'] = ARCHERNS
 
 DEBUG = False
 
+
 class ArcherSOAP(object):
     def __init__(self, host, username, password, instance, session=None, verify_cert=True):
         self.base_uri = host + '/ws'
@@ -145,14 +146,13 @@ class ArcherSOAP(object):
 
         so.text = etree.tostring(report_doc, pretty_print=True)
 
-
         resp_doc = self._do_request(self.base_uri + '/search.asmx', doc)
 
         resp_root = resp_doc.getroot()
         result = resp_root.xpath('/soap:Envelope/soap:Body/dummy:ExecuteSearchResponse/dummy:ExecuteSearchResult', namespaces=ALL_NS_MAP)
         if not result:
             return []
-        
+
         r_io = StringIO(result[0].text.encode('UTF8'))
         xmlp = etree.XMLParser(encoding='utf-8')
         search_result = etree.parse(r_io, parser=xmlp)
@@ -197,7 +197,7 @@ class ArcherSOAP(object):
         if o:
             f.set('othertext', str(o))
         # add this when we have proper multi value support.
-        #for v in values[1:]:
+        # for v in values[1:]:
         #    mv = etree.SubElement(f, 'MultiValue')
         #    mv.set('value', str(v))
 

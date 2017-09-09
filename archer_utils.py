@@ -18,15 +18,12 @@
 """
 
 import sys
-import time
 import json
 import functools
-import collections
 import osa
 import xmltodict
 import requests
 from lxml import etree
-from cStringIO import StringIO
 
 from archer_soap import ArcherSOAP
 
@@ -37,9 +34,9 @@ last_message_length = 0
 def W(msg):
     """Console-based status updater."""
     global last_message_length
-    sys.stderr.write(u'\b'*last_message_length)
-    sys.stderr.write(u' '*last_message_length)
-    sys.stderr.write(u'\b'*last_message_length)
+    sys.stderr.write(u'\b' * last_message_length)
+    sys.stderr.write(u' ' * last_message_length)
+    sys.stderr.write(u'\b' * last_message_length)
     msg = u'--[ {}'.format(msg.strip())
     last_message_length = len(msg)
     sys.stderr.write(msg)
@@ -82,7 +79,6 @@ class ArcherAPISession(object):
     sessionTimeout = 60  # Generate a new token after this much time unused
     BLACKLIST_TYPES = (24, 25)
 
-
     def __init__(self, base_url, userName, password, instanceName):
         """Initializes an API session.
 
@@ -117,7 +113,7 @@ class ArcherAPISession(object):
             for tname in [x for x in dir(cl.types) if x[0] != '_']:
                 if tname.endswith('Response'):
                     continue
-                t = cl.types.__getattribute__(tname)()
+                t = cl.types.__getattribute__(tname)()  # pylint: disable=E1101
                 args = [x for x in dir(t)
                         if x[0] != '_' and
                         isinstance(t.__getattribute__(x), type(None))]
@@ -175,7 +171,7 @@ class ArcherAPISession(object):
         W('Getting fieldId for {} in module {}'.format(mid, fname))
         try:
             mid = int(mid)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             mid = self.get_levelId_for_app(mid)
             W('Got level id: {}'.format(mid))
             flds = self.get_fields_for_level(mid)
@@ -202,7 +198,7 @@ class ArcherAPISession(object):
         """Returns the name of the given module."""
         try:
             int(mid)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             if self.get_moduleid(mid):
                 return mid
             else:
@@ -242,7 +238,7 @@ class ArcherAPISession(object):
         """
         try:
             mid = int(name)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             mid = self.get_moduleid(name)
         if mid is None:
             return None
@@ -320,7 +316,7 @@ class ArcherAPISession(object):
         W('Valufying "{}" as cross-reference field {}'.format(value, fld))
         try:
             value = int(value)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             W('Cross-reference values must be integers: {}'.format(value))
             return None
         # refrecs = self.get_referenced_records(fld.get('ReferencedFieldId'))
@@ -460,9 +456,10 @@ class ArcherAPISession(object):
             records = asoap.find_records(mid, app, fid, field_name, value, filter_type='text', max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
         if not records:
             try:
-                records = asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric', max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
+                records = asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric',
+                        max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
             except (TypeError, ValueError) as e:
-                pass # Not looking up numerically
+                pass  # Not looking up numerically
 
         recs = etree.Element('Records')
         document = etree.ElementTree(recs)
@@ -597,7 +594,7 @@ class ArcherAPISession(object):
         try:
             fieldId = int(fieldId)
             W('fieldId is integer, using as-is: {}'.format(fieldId))
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             newId = self.get_fieldId_for_app_and_name(app, fieldId)
             W('Got fieldId from app_and_name: {}'.format(newId))
             if newId is None:
@@ -623,4 +620,3 @@ class ArcherAPISession(object):
         data = asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)
-

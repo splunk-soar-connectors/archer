@@ -49,7 +49,7 @@ class ArcherConnector(BaseConnector):
                 fcntl.flock(fi, fcntl.LOCK_UN)
             try:
                 self.latest_time = float(self.latest_time)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 pass
         self._state = {}
 
@@ -336,8 +336,7 @@ class ArcherConnector(BaseConnector):
         try:
             cid = proxy.create_record(app, mapping)
         except Exception as e:
-            action_result.set_status(phantom.APP_ERROR, u'Failed to create Archer record')
-            return action_result.get_status()
+            return action_result.set_status(phantom.APP_ERROR, u'Failed to create Archer record. Error: {0}'.format(str(e)))
 
         if cid:
             self.save_progress(u'Created Archer record {}'.format(cid))
@@ -373,7 +372,7 @@ class ArcherConnector(BaseConnector):
 
         try:
             fid = int(fid)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             fid = proxy.get_fieldId_for_app_and_name(app, fid)
 
         if not fid or type(fid) != int:
