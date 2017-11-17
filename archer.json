@@ -7,7 +7,7 @@
     "type": "ticketing",
     "license": "Copyright (c) Phantom Cyber Corporation 2016-2017",
     "main_module": "archer_connector.pyc",
-    "app_version": "1.0.40",
+    "app_version": "1.0.41",
     "utctime_updated": "2017-09-28T18:30:37.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
