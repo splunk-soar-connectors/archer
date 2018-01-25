@@ -1,4 +1,16 @@
-#!/usr/bin/env python
+# --
+# File: xmltodict.py
+#
+# Copyright (c) Phantom Cyber Corporation, 2018
+#
+# This unpublished material is proprietary to Phantom Cyber.
+# All rights reserved. The methods and
+# techniques described herein are considered trade secrets
+# and/or confidential. Reproduction or distribution, in whole
+# or in part, is forbidden except by express written permission
+# of Phantom Cyber.
+#
+# --#!/usr/bin/env python
 "Makes working with XML feel like you are working with JSON"
 
 try:
