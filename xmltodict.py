@@ -10,7 +10,10 @@
 # or in part, is forbidden except by express written permission
 # of Phantom Cyber.
 #
-# --#!/usr/bin/env python
+# --
+
+#!/usr/bin/env python
+
 "Makes working with XML feel like you are working with JSON"
 
 try:

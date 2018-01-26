@@ -10,7 +10,9 @@
 # or in part, is forbidden except by express written permission
 # of Phantom Cyber.
 #
-# --import requests
+# --
+
+import requests
 from lxml import etree
 from cStringIO import StringIO
 
