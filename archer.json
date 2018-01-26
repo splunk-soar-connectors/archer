@@ -8,7 +8,7 @@
     "license": "Copyright (c) Phantom Cyber Corporation, 2016-2018",
     "main_module": "archer_connector.pyc",
     "app_version": "1.0.43",
-    "utctime_updated": "2018-01-25T03:02:34.000000Z",
+    "utctime_updated": "2018-01-26T00:47:19.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
