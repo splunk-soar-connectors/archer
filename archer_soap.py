@@ -1,3 +1,17 @@
+# --
+# File: archer_soap.py
+#
+# Copyright (c) Phantom Cyber Corporation, 2018
+#
+# This unpublished material is proprietary to Phantom Cyber.
+# All rights reserved. The methods and
+# techniques described herein are considered trade secrets
+# and/or confidential. Reproduction or distribution, in whole
+# or in part, is forbidden except by express written permission
+# of Phantom Cyber.
+#
+# --
+
 import requests
 from lxml import etree
 from cStringIO import StringIO
