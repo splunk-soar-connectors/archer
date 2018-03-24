@@ -64,6 +64,8 @@ class ArcherConnector(BaseConnector):
     def _handle_on_poll(self, param):
         """Handles 'on_poll' ingest actions"""
 
+        self.save_progress('State location {} '.format(self. get_state_file_path()))
+
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
 
@@ -126,7 +128,7 @@ class ArcherConnector(BaseConnector):
                     if name.lower() in cef_mapping:
                         cef[cef_mapping.get(name.lower(), name)] = content
                     if name == tracking_id_field:
-                        record_num = int(field.get('#text'))
+                        record_num = str(field.get('#text'))
                         record_name = '{} - {}'.format(application, record_num)
 
                 c = {
