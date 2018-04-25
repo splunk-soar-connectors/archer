@@ -15,6 +15,7 @@
 import requests
 from lxml import etree
 from cStringIO import StringIO
+from bs4 import UnicodeDammit
 
 SOAPNS = 'http://schemas.xmlsoap.org/soap/envelope/'
 XSINS = 'http://www.w3.org/2001/XMLSchema-instance'
@@ -122,7 +123,7 @@ class ArcherSOAP(object):
         for field_id, field_name in fields.iteritems():
             df = etree.SubElement(dfs, 'DisplayField')
             df.text = str(field_id)
-            df.set('name', str(field_name))
+            df.set('name', UnicodeDammit(field_name).unicode_markup.encode('ascii', 'xmlcharrefreplace'))
 
         cr = etree.SubElement(sr, 'Criteria')
         if not comparison:
