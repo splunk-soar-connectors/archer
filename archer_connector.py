@@ -69,14 +69,16 @@ class ArcherConnector(BaseConnector):
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
 
-        try:
-            cef_mapping = json.loads(self.get_config().get('cef_mapping'))
-        except Exception as e:
-            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(str(e)))
+        config = self.get_config()
+
+        if 'cef_mapping' not in config:
+            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping is required for ingestion. Please add CEF mapping to the asset config.')
             return action_result.get_status()
 
-        if not cef_mapping:
-            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping is required for ingestion. Please add CEF mapping to the asset config.')
+        try:
+            cef_mapping = json.loads(config.get('cef_mapping'))
+        except Exception as e:
+            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(str(e)))
             return action_result.get_status()
 
         cef_mapping = dict( [ (k.lower(), v) for k, v in cef_mapping.iteritems() ])
@@ -102,7 +104,7 @@ class ArcherConnector(BaseConnector):
 
         completed_records = 0
         max_ingested_id = max_content_id
-        proxy.excluded_fields = [ x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',') ]
+        proxy.excluded_fields = [ x.lower().strip() for x in config.get('exclude_fields', '').split(',') ]
         while completed_records < max_records:
             records = proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort='Ascending', page=last_page)
             nrecs = len(records)
