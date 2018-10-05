@@ -440,8 +440,40 @@ class ArcherAPISession(object):
                 W('Failed to parse: {}: {}'.format(f, str(e)))
         return fields
 
+    def get_records(self, app, field_name, value, max_count, mid, fid, fields, comparison=None, sort=None, page=1):
+        records = []
+
+        num_iterations = max_count / 1000
+        rem_count = max_count % 1000
+        if rem_count != 0:
+            num_iterations = num_iterations + 1
+
+        for iter_count in range(num_iterations):
+            records_req = 1000
+            if rem_count != 0 and iter_count == num_iterations - 1:
+                records_req = rem_count
+
+            if comparison is None:
+                lst_records = self.asoap.find_records(mid, app, fid, field_name, value, filter_type='text',
+                            max_count=records_req, fields=fields, comparison=comparison, sort=sort, page=page)
+                if lst_records:
+                    records.extend(lst_records)
+            if not lst_records:
+                try:
+                    lst_inter_records = self.asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric',
+                            max_count=records_req, fields=fields, comparison=comparison, sort=sort, page=page)
+                    if lst_inter_records:
+                        records.extend(lst_inter_records)
+                    else:
+                        break
+                except (TypeError, ValueError):
+                    pass  # Not looking up numerically
+
+        return records
+
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
+
         try:
             fid = int(field_name)
         except (ValueError, TypeError) as e:
@@ -456,15 +488,10 @@ class ArcherAPISession(object):
 
         if not self.asoap:
             self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(), verify_cert=self.verifySSL)
-        records = []
-        if comparison is None:
-            records = self.asoap.find_records(mid, app, fid, field_name, value, filter_type='text', max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
+
+        records = self.get_records(app, field_name, value, max_count, mid, fid, fields, comparison, sort, page)
         if not records:
-            try:
-                records = self.asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric',
-                        max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
-            except (TypeError, ValueError) as e:
-                pass  # Not looking up numerically
+            return records
 
         recs = etree.Element('Records')
         document = etree.ElementTree(recs)

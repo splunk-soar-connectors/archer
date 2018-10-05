@@ -454,12 +454,17 @@ class ArcherConnector(BaseConnector):
         """Handles 'list_tickets' actions"""
         self.save_progress('Get Archer record...')
         app = param.get('application')
-        max_count = param.get('', 100)
+        max_count = param.get('max_results', 100)
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
-
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
+
+        try:
+            max_count = int(max_count)
+        except:
+            return action_result.set_status(phantom.APP_ERROR, 'Please provide a valid integer max_results value')
+
         if (search_field_name or search_value) and not (search_field_name and search_value):
             action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')
             return action_result.get_status()

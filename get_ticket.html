@@ -29,15 +29,25 @@ a:hover {
   text-decoration:underline;
 }
 
-
-.agt-table-vertical {
-  width: initial;
-  font-size: 12px;
+.agt-table-vertical .dataTable td {
+    vertical-align: top;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
 }
 
-.agt-table-vertical td {
-  padding: 5px;
-  border: 1px solid;
+.agt-table-vertical {
+    width: initial;
+    font-size: 12px;
+}
+
+.agt-table-vertical td{
+    padding: 5px;
+    border: 1px solid !important;
+}
+
+.agt-table-vertical tr td:first-child {
+    font-weight: bold;
 }
 
 .agt-table-horizontal {
@@ -86,8 +96,8 @@ a:hover {
 <tr>
   <td><b>Application</b></td>
   <td>
-    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer application'], 'value':'{{ result.param.application }}' }], 0, {{ container.id }}, null, false);">
-    {{ result.param.application }}
+    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer application'], 'value':'{{ result.parameters.application }}' }], 0, {{ container.id }}, null, false);">
+    {{ result.parameters.application }}
     &nbsp;<span class="fa fa-caret-down" style="font-size: smaller;"></span>
     </a>
   </td>
