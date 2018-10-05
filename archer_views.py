@@ -24,12 +24,13 @@ def get_ticket(provides, all_results, context):
             parameters = result.get_param()
             if 'context' in parameters:
                 del parameters['context']
-            rec = { 'parameters': parameters }
+            rec = {'parameters': parameters}
             data = result.get_data()
             if data:
                 data = data[0]['Record']['Field']
             rec['record'] = sorted(data, key=lambda x: x['@name'])
-            rec['content_id'] = result.get_summary().get('content_id', 'Not provided')
+            rec['content_id'] = result.get_summary().get(
+                'content_id', 'Not provided')
             results.append(rec)
 
     return 'get_ticket.html'
@@ -43,7 +44,8 @@ def list_tickets(provides, all_results, context):
     for summary, action_results in all_results:
         for result in action_results:
             for record in result.get_data():
-                headers_set.update([ f.get('@name', '').strip() for f in record.get('Field', []) ])
+                headers_set.update([f.get('@name', '').strip()
+                                    for f in record.get('Field', [])])
     if not headers_set:
         headers_set.update(headers)
     headers.extend(sorted(headers_set))
@@ -66,19 +68,25 @@ def list_tickets(provides, all_results, context):
             total += len(data)
             for item in data:
                 row = []
-                row.append({'value': param.get('application'), 'contains': ['archer application']})
-                row.append({'value': item.get('@contentId'), 'contains': ['archer content id']})
+                row.append({'value': param.get('application'),
+                            'contains': ['archer application']})
+                row.append({'value': item.get('@contentId'),
+                            'contains': ['archer content id']})
                 name_value = {}
                 for f in item.get('Field', []):
                     name_value[f['@name']] = f.get('#text')
 
                 for h in dyn_headers:
-                    row.append({ 'value': name_value.get(h, '') })
+                    if h == 'IP Address':
+                        row.append({'value': name_value.get(h, ''),
+                                    'contains': ['ip']})
+                    else:
+                        row.append({'value': name_value.get(h, '')})
                 rows.append(row)
 
     content = {
-      "data": rows[start:end],
-      "recordsTotal": total,
-      "recordsFiltered": total,
+        "data": rows[start:end],
+        "recordsTotal": total,
+        "recordsFiltered": total,
     }
     return HttpResponse(json.dumps(content), content_type='text/javascript')

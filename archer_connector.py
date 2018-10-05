@@ -212,23 +212,28 @@ class ArcherConnector(BaseConnector):
             ep, user, pwd, instance = self._get_proxy_args()
             verify = self.get_config().get('verify_ssl')
             self.debug_print('New Archer API session at ep:{}, user:{}, '
-                             'verify:{}'.format(ep, user, verify))
+                             'verify:{}, instance:{}'.format(ep, user, verify, instance))
             self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance)
             self.proxy.verifySSL = verify
             archer_utils.W = self.debug_print
+            self.debug_print('dddddddd..........')
+            self.debug_print('ProxySSL:{}, Proxy:{}'.format(self.proxy.verifySSL, self.proxy))
         return self.proxy
 
     def _handle_test_connectivity(self, param):
         """Tests Archer connectivity and App config by attempting to log in."""
-        self.send_progress('Archer login test...')
+        self.send_progress('Archer login test initiated...')
+        action_result = self.add_action_result(ActionResult(dict(param)))
         try:
             p = self._get_proxy()
-            p.get_token()
+            self.debug_print('bbbbbbb.......')
+            self.debug_print(p.get_token())
+            self.debug_print('ccccccc.......')
         except Exception as e:
             self.debug_print('Exception during archer test: {}'.format(e))
-            self.set_status(phantom.APP_ERROR, 'Archer login failed', e)
-            self.append_to_message('Connectivity test failed')
-            return self.get_status()
+            self.save_progress('Archer login test failed')
+            self.save_progress('Please provide correct URL and credentials')
+            return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed.')
         self.send_progress('Archer login test... SUCCESS')
         msg = 'Archer configuration test SUCCESS'
         return self.set_status_save_progress(phantom.APP_SUCCESS, msg)
@@ -365,8 +370,23 @@ class ArcherConnector(BaseConnector):
         proxy = self._get_proxy()
 
         action_result = ActionResult(dict(param))
+
+        # Raise an exception if invalid numeric value is provided in content ID parameter
+        try:
+            if str(cid) and not str(cid) == 'None' and (not str(cid).isdigit() or str(cid) == '0'):
+                raise ValueError
+        except:
+            action_result.set_status(phantom.APP_ERROR, 'Please provide a valid content ID')
+            self.add_action_result(action_result)
+            return action_result.get_status()
+
         if not cid:
-            cid = proxy.get_content_id(app, nfid, nfv)
+            if nfid and nfv:
+                cid = proxy.get_content_id(app, nfid, nfv)
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
+                self.add_action_result(action_result)
+                return action_result.get_status()
         action_result.update_summary({'content_id': cid})
 
         if not cid and nfv:
@@ -400,8 +420,23 @@ class ArcherConnector(BaseConnector):
         proxy = self._get_proxy()
 
         action_result = ActionResult(dict(param))
+
+        # Raise an exception if invalid numeric value is provided in content ID parameter
+        try:
+            if str(cid) and not str(cid) == 'None' and (not str(cid).isdigit() or str(cid) == '0'):
+                raise ValueError
+        except:
+            action_result.set_status(phantom.APP_ERROR, 'Please provide a valid content ID')
+            self.add_action_result(action_result)
+            return action_result.get_status()
+
         if not cid:
-            cid = proxy.get_content_id(app, nfid, nfv)
+            if nfid and nfv:
+                cid = proxy.get_content_id(app, nfid, nfv)
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
+                self.add_action_result(action_result)
+                return action_result.get_status()
             if not cid:
                 action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
                 self.add_action_result(action_result)

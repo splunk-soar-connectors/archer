@@ -82,13 +82,21 @@ a:hover {
 
 <!------------------- For each Result ---------------------->
 
-<h3 class="agt-h3-style">{{ result.param.application }}</h3>
 <table class="agt-table-vertical">
-{% if result.parameters.name_value %}
+<tr>
+  <td><b>Application</b></td>
+  <td>
+    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer application'], 'value':'{{ result.param.application }}' }], 0, {{ container.id }}, null, false);">
+    {{ result.param.application }}
+    &nbsp;<span class="fa fa-caret-down" style="font-size: smaller;"></span>
+    </a>
+  </td>
+</tr>
+{% if result.parameters.name_value and result.parameters.name_field %}
 <tr>
   <td><b>{{ result.parameters.name_field }}</b></td>
   <td>
-    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer application'], 'value': '{{ result.parameters.application }}'}, {'contains':['archer content id'], 'value':'{{ result.content_id }}'}, {'contains': ['archer user-friendly id'], 'value': '{{ result.parameters.name_value }}' }], 2, {{ container.id }}, null, false);">
+    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer user-friendly id'], 'value':'{{ result.parameters.name_value }}' }], 0, {{ container.id }}, null, false);">
     {{ result.parameters.name_value }}
     &nbsp;<span class="fa fa-caret-down" style="font-size: smaller;"></span>
     </a>
@@ -98,7 +106,7 @@ a:hover {
 <tr>
   <td><b>Content ID</b></td>
   <td>
-    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer application'], 'value': '{{ result.parameters.application }}'}, {'contains':['archer content id'], 'value':'{{ result.content_id }}'}, {'contains': ['archer user-friendly id'], 'value': '{{ result.parameters.name_value }}' }], 2, {{ container.id }}, null, false);">
+    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer content id'], 'value':'{{ result.content_id }}' }], 0, {{ container.id }}, null, false);">
     {{ result.content_id }}
     &nbsp;<span class="fa fa-caret-down" style="font-size: smaller;"></span>
     </a>
