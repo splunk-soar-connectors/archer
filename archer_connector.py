@@ -212,12 +212,10 @@ class ArcherConnector(BaseConnector):
             ep, user, pwd, instance = self._get_proxy_args()
             verify = self.get_config().get('verify_ssl')
             self.debug_print('New Archer API session at ep:{}, user:{}, '
-                             'verify:{}, instance:{}'.format(ep, user, verify, instance))
+                             'verify:{}'.format(ep, user, verify))
             self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance)
             self.proxy.verifySSL = verify
             archer_utils.W = self.debug_print
-            self.debug_print('dddddddd..........')
-            self.debug_print('ProxySSL:{}, Proxy:{}'.format(self.proxy.verifySSL, self.proxy))
         return self.proxy
 
     def _handle_test_connectivity(self, param):
@@ -226,9 +224,7 @@ class ArcherConnector(BaseConnector):
         action_result = self.add_action_result(ActionResult(dict(param)))
         try:
             p = self._get_proxy()
-            self.debug_print('bbbbbbb.......')
-            self.debug_print(p.get_token())
-            self.debug_print('ccccccc.......')
+            p.get_token()
         except Exception as e:
             self.debug_print('Exception during archer test: {}'.format(e))
             self.save_progress('Archer login test failed')
