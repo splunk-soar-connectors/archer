@@ -53,13 +53,10 @@ class ArcherConnector(BaseConnector):
         self.save_state(self._state)
         return phantom.APP_SUCCESS
 
-    def _handle_on_poll(self, param):
+    def _handle_on_poll(self, action_result, param):
         """Handles 'on_poll' ingest actions"""
 
         self.save_progress('State location {} '.format(self. get_state_file_path()))
-
-        action_result = ActionResult(dict(param))
-        self.add_action_result(action_result)
 
         config = self.get_config()
 
@@ -210,10 +207,10 @@ class ArcherConnector(BaseConnector):
             archer_utils.W = self.debug_print
         return self.proxy
 
-    def _handle_test_connectivity(self, param):
+    def _handle_test_connectivity(self, action_result, param):
         """Tests Archer connectivity and App config by attempting to log in."""
         self.send_progress('Archer login test initiated...')
-        action_result = self.add_action_result(ActionResult(dict(param)))
+
         try:
             p = self._get_proxy()
             p.get_token()
@@ -276,7 +273,7 @@ class ArcherConnector(BaseConnector):
             page += 1
         return [{x: ', '.join(m[x]) for x in m} for m in maps]
 
-    def _handle_create_ticket(self, param):
+    def _handle_create_ticket(self, action_result, param):
         """Handles 'create_ticket' actions.
 
             Takes one param.
@@ -304,8 +301,6 @@ class ArcherConnector(BaseConnector):
                 updated appropriately.
         """
         self.save_progress(u'Processing data parameter...')
-        action_result = ActionResult(dict(param))
-        self.add_action_result(action_result)
 
         json_string = param.get(u'json_string', '')
         try:
@@ -346,7 +341,7 @@ class ArcherConnector(BaseConnector):
             return action_result.get_status()
         return action_result.get_status()
 
-    def _handle_update_ticket(self, param):
+    def _handle_update_ticket(self, action_result, param):
         """Handles 'update_ticket' actions"""
         self.save_progress('Updating Archer record...')
         app = param.get('application')
@@ -357,15 +352,12 @@ class ArcherConnector(BaseConnector):
         value = param.get('value')
         proxy = self._get_proxy()
 
-        action_result = ActionResult(dict(param))
-
         # Raise an exception if invalid numeric value is provided in content ID parameter
         try:
             if str(cid) and not str(cid) == 'None' and (not str(cid).isdigit() or str(cid) == '0'):
                 raise ValueError
         except:
             action_result.set_status(phantom.APP_ERROR, 'Please provide a valid content ID')
-            self.add_action_result(action_result)
             return action_result.get_status()
 
         if not cid:
@@ -373,13 +365,11 @@ class ArcherConnector(BaseConnector):
                 cid = proxy.get_content_id(app, nfid, nfv)
             else:
                 action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
-                self.add_action_result(action_result)
                 return action_result.get_status()
         action_result.update_summary({'content_id': cid})
 
         if not cid and nfv:
             action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
-            self.add_action_result(action_result)
             return action_result.get_status()
 
         try:
@@ -395,10 +385,9 @@ class ArcherConnector(BaseConnector):
             else:
                 action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
 
-        self.add_action_result(action_result)
         return action_result.get_status()
 
-    def _handle_get_ticket(self, param):
+    def _handle_get_ticket(self, action_result, param):
         """Handles 'get_ticket' actions"""
         self.save_progress('Get Archer record...')
         app = param.get('application')
@@ -407,15 +396,12 @@ class ArcherConnector(BaseConnector):
         nfv = param.get('name_value')
         proxy = self._get_proxy()
 
-        action_result = ActionResult(dict(param))
-
         # Raise an exception if invalid numeric value is provided in content ID parameter
         try:
             if str(cid) and not str(cid) == 'None' and (not str(cid).isdigit() or str(cid) == '0'):
                 raise ValueError
         except:
             action_result.set_status(phantom.APP_ERROR, 'Please provide a valid content ID')
-            self.add_action_result(action_result)
             return action_result.get_status()
 
         if not cid:
@@ -423,11 +409,9 @@ class ArcherConnector(BaseConnector):
                 cid = proxy.get_content_id(app, nfid, nfv)
             else:
                 action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
-                self.add_action_result(action_result)
                 return action_result.get_status()
             if not cid:
                 action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
-                self.add_action_result(action_result)
                 return action_result.get_status()
 
         action_result.update_summary({'content_id': cid})
@@ -439,18 +423,15 @@ class ArcherConnector(BaseConnector):
         else:
             action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket')
 
-        self.add_action_result(action_result)
         return action_result.get_status()
 
-    def _handle_list_tickets(self, param):
+    def _handle_list_tickets(self, action_result, param):
         """Handles 'list_tickets' actions"""
         self.save_progress('Get Archer record...')
         app = param.get('application')
         max_count = param.get('max_results', 100)
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
-        action_result = ActionResult(dict(param))
-        self.add_action_result(action_result)
 
         try:
             max_count = int(max_count)
@@ -483,19 +464,26 @@ class ArcherConnector(BaseConnector):
         """Dispatches actions."""
         action_id = self.get_action_identifier()
         self.debug_print('action_id', action_id)
-        if (action_id == 'create_ticket'):
-            return self._handle_create_ticket(param)
-        elif (action_id == 'update_ticket'):
-            return self._handle_update_ticket(param)
-        elif (action_id == 'get_ticket'):
-            return self._handle_get_ticket(param)
-        elif (action_id == 'list_tickets'):
-            return self._handle_list_tickets(param)
-        elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
-            return self._handle_test_connectivity(param)
-        elif (action_id == 'on_poll'):
-            return self._handle_on_poll(param)
-        return phantom.APP_SUCCESS
+        action_result = ActionResult(dict(param))
+        self.add_action_result(action_result)
+        try:
+            if (action_id == 'create_ticket'):
+                return self._handle_create_ticket(action_result, param)
+            elif (action_id == 'update_ticket'):
+                return self._handle_update_ticket(action_result, param)
+            elif (action_id == 'get_ticket'):
+                return self._handle_get_ticket(action_result, param)
+            elif (action_id == 'list_tickets'):
+                return self._handle_list_tickets(action_result, param)
+            elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
+                return self._handle_test_connectivity(action_result, param)
+            elif (action_id == 'on_poll'):
+                return self._handle_on_poll(action_result, param)
+            return phantom.APP_SUCCESS
+        except Exception as e:
+            error_message = 'Exception during execution of archer action: {} and the error is: {}'.format(action_id, e)
+            self.debug_print(error_message)
+            return action_result.set_status(phantom.APP_ERROR, error_message)
 
 
 if __name__ == '__main__':
