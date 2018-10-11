@@ -1,18 +1,18 @@
 {
     "appid": "c4492201-fd2c-49d8-b38f-805b0967032f",
     "name": "RSA Archer",
-    "description": "This app implements ticket management actions on RSA Archer GRC.",
+    "description": "This app implements ticket management actions on RSA Archer GRC",
     "publisher": "Phantom",
     "package_name": "phantom_archer",
     "type": "ticketing",
-    "license": "Copyright (c) Phantom Cyber Corporation, 2016-2018",
+    "license": "Copyright (c) 2016-2018 Splunk Inc.",
     "main_module": "archer_connector.pyc",
     "app_version": "1.0.47",
     "utctime_updated": "2018-06-14T18:46:05.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "2.1.467",
+    "min_phantom_version": "3.5.210",
     "logo": "logo_rsa.svg",
     "logo_dark": "logo_rsa_dark.svg",
     "configuration": {
@@ -38,7 +38,7 @@
             "description": "Password",
             "data_type": "password",
             "order": 4,
-            "required": false
+            "required": true
         },
         "verify_ssl": {
             "description": "Verify server certificate",
@@ -62,7 +62,7 @@
     "actions": [
         {
             "action": "test connectivity",
-            "description": "Validate the asset configuration for connectivity and field mapping.",
+            "description": "Validate the asset configuration for connectivity and field mapping",
             "type": "test",
             "identifier": "test_asset_connectivity",
             "read_only": true,
@@ -72,8 +72,8 @@
         },
         {
             "action": "create ticket",
-            "description": "Create a new ticket.",
-            "verbose": "<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ \"Incident Summary\": \"test incident summary data\", \"Incident Owner\": \"susan\" }</code></pre>",
+            "description": "Create a new ticket",
+            "verbose": "<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ \"Incident Summary\": \"test incident summary data\", \"Incident Owner\": \"susan\" }</code></pre><br><p>Parameter application is case-sensitive</p>",
             "type": "generic",
             "identifier": "create_ticket",
             "read_only": false,
@@ -83,6 +83,7 @@
                     "order": 1,
                     "description": "Application/Module name (e.g. Incidents)",
                     "required": true,
+                    "primary": true,
                     "contains": [
                         "archer application"
                     ]
@@ -96,12 +97,11 @@
             },
             "output": [
                 {
-                    "column_name": "New Content ID",
-                    "column_order": 0,
-                    "data_path": "action_result.summary.content_id",
-                    "data_type": "numeric",
-                    "contains": [
-                        "archer content id"
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
                     ]
                 },
                 {
@@ -111,6 +111,16 @@
                     "data_type": "string",
                     "contains": [
                         "archer application"
+                    ],
+                    "example_values": [
+                        "Incidents"
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.json_string",
+                    "data_type": "string",
+                    "example_values": [
+                        "{ \"Incident Summary\": \"Final test incident summary data\" }"
                     ]
                 },
                 {
@@ -118,31 +128,43 @@
                     "data_type": "numeric",
                     "contains": [
                         "archer content id"
+                    ],
+                    "example_values": [
+                        210036
                     ]
                 },
                 {
-                    "data_path": "action_result.status",
-                    "data_type": "string"
+                    "column_name": "New Content ID",
+                    "column_order": 0,
+                    "data_path": "action_result.summary.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "example_values": [
+                        210036
+                    ]
                 },
                 {
                     "data_path": "action_result.message",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.summary",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.parameter.json_string",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        "Created ticket"
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
@@ -155,8 +177,8 @@
         },
         {
             "action": "update ticket",
-            "description": "Update the value of a field of a record.",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value).",
+            "description": "Update the value of a field of a record",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.",
             "type": "generic",
             "identifier": "update_ticket",
             "read_only": false,
@@ -166,6 +188,7 @@
                     "order": 0,
                     "description": "Application/Module name (e.g. Incidents)",
                     "required": true,
+                    "primary": true,
                     "contains": [
                         "archer application"
                     ]
@@ -211,10 +234,11 @@
             },
             "output": [
                 {
-                    "data_path": "action_result.parameter.content_id",
-                    "data_type": "numeric",
-                    "contains": [
-                        "archer content id"
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
                     ]
                 },
                 {
@@ -224,7 +248,59 @@
                     "data_type": "numeric",
                     "contains": [
                         "archer application"
+                    ],
+                    "example_values": [
+                        "Incidents"
                     ]
+                },
+                {
+                    "data_path": "action_result.parameter.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "example_values": [
+                        210035
+                    ]
+                },
+                {
+                    "column_name": "Field Name",
+                    "column_order": 2,
+                    "data_path": "action_result.parameter.field_id",
+                    "data_type": "string",
+                    "example_values": [
+                        "Incident Summary"
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "example_values": [
+                        "Incident ID"
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user-friendly id"
+                    ],
+                    "example_values": [
+                        "10009"
+                    ]
+                },
+                {
+                    "column_name": "Field Value",
+                    "column_order": 3,
+                    "data_path": "action_result.parameter.value",
+                    "data_type": "string",
+                    "example_values": [
+                        "Hello Test Summary 1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data",
+                    "data_type": "string"
                 },
                 {
                     "column_name": "Content ID",
@@ -233,50 +309,31 @@
                     "data_type": "numeric",
                     "contains": [
                         "archer content id"
+                    ],
+                    "example_values": [
+                        210035
                     ]
                 },
                 {
-                    "column_name": "Field Name",
-                    "column_order": 2,
-                    "data_path": "action_result.parameter.field_id",
-                    "data_type": "string"
-                },
-                {
-                    "column_name": "Field Value",
-                    "column_order": 3,
-                    "data_path": "action_result.parameter.value",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.status",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data",
-                    "data_type": "string"
-                },
-                {
                     "data_path": "action_result.message",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.parameter.name_field",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.parameter.name_value",
                     "data_type": "string",
-                    "contains": [
-                        "archer user-friendly id"
+                    "example_values": [
+                        "Updated ticket"
                     ]
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
@@ -289,8 +346,8 @@
         },
         {
             "action": "get ticket",
-            "description": "Get ticket information.",
-            "verbose": "There are multiple ways of locating a ticket. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value).<br><br>Unlike \"list tickets\" a field that allows multiple values may not show a \"multi_value\" attribute if there are one or zero values currently selected.",
+            "description": "Get ticket information",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.",
             "type": "generic",
             "identifier": "get_ticket",
             "read_only": true,
@@ -302,7 +359,8 @@
                     "contains": [
                         "archer application"
                     ],
-                    "required": true
+                    "required": true,
+                    "primary": true
                 },
                 "content_id": {
                     "data_type": "numeric",
@@ -333,124 +391,11 @@
             },
             "output": [
                 {
-                    "data_path": "action_result.parameter.content_id",
-                    "data_type": "numeric",
-                    "contains": [
-                        "archer content id"
-                    ]
-                },
-                {
-                    "data_path": "action_result.data.*.Record.@id",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@id",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@name",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@type",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@value",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.multi_value",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@valueID",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@parentId",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@id",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@desc",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@name",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@updateDate",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@updateLogin",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@updateDate",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@updateLogin",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@width",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@height",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.@moduleId",
-                    "data_type": "numeric"
-                },
-                {
-                    "data_path": "action_result.data.*.@contentId",
-                    "data_type": "string",
-                    "contains": [
-                        "archer content id"
-                    ]
-                },
-                {
-                    "data_path": "action_result.data.*.Record.@updateDate",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.@updateLogin",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Record.@sequentialId",
-                    "data_type": "string"
-                },
-                {
                     "data_path": "action_result.status",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.summary",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.message",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.parameter.name_field",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.parameter.name_value",
                     "data_type": "string",
-                    "contains": [
-                        "archer user-friendly id"
+                    "example_values": [
+                        "success",
+                        "failed"
                     ]
                 },
                 {
@@ -458,15 +403,414 @@
                     "data_type": "string",
                     "contains": [
                         "archer application"
+                    ],
+                    "example_values": [
+                        "Incidents"
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "example_values": [
+                        210035
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "example_values": [
+                        "Incident ID"
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user-friendly id"
+                    ],
+                    "example_values": [
+                        "INC-10009"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@contentId",
+                    "data_type": "string",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "example_values": [
+                        210035
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@moduleId",
+                    "data_type": "numeric",
+                    "example_values": [
+                        75
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "210035"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.@sequentialId",
+                    "data_type": "string",
+                    "example_values": [
+                        "10000"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "10/1/2018 8:04:28 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@height",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "206"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@name",
+                    "data_type": "string",
+                    "example_values": [
+                        "Incident ID"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@parentId",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@type",
+                    "data_type": "string",
+                    "example_values": [
+                        "6"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "10/1/2018 6:57:46 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@value",
+                    "data_type": "string",
+                    "example_values": [
+                        "10000"
+                    ],
+                    "contains": [
+                        "ip"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@valueID",
+                    "data_type": "string",
+                    "example_values": [
+                        "409"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@width",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@desc",
+                    "data_type": "string",
+                    "example_values": [
+                        "This group is the default for users with the IM: Solution Admin role."
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "50"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@name",
+                    "data_type": "string",
+                    "example_values": [
+                        "IM: Admin"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "7/01/2009 10:12:52 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "200049"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.@levelId",
+                    "data_type": "string",
+                    "example_values": [
+                        "60"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "206"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@parentId",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@type",
+                    "data_type": "string",
+                    "example_values": [
+                        "6"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@value",
+                    "data_type": "string",
+                    "example_values": [
+                        "1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@valueID",
+                    "data_type": "string",
+                    "example_values": [
+                        "406"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@firstName",
+                    "data_type": "string",
+                    "example_values": [
+                        "test"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "190"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@lastName",
+                    "data_type": "string",
+                    "example_values": [
+                        "user"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@middleName",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "6/01/2016 12:58:55 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "190"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "210033"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.@levelId",
+                    "data_type": "string",
+                    "example_values": [
+                        "60"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "607"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.@type",
+                    "data_type": "string",
+                    "example_values": [
+                        "1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.@value",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.Field.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "120"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.Field.@type",
+                    "data_type": "string",
+                    "example_values": [
+                        "1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Record.Field.@value",
+                    "data_type": "string",
+                    "example_values": [
+                        "Phoenix PD"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.@firstName",
+                    "data_type": "string",
+                    "example_values": [
+                        "System"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.@lastName",
+                    "data_type": "string",
+                    "example_values": [
+                        "Administrator"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.@middleName",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "10/1/2018 8:46:55 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.multi_value",
+                    "data_type": "string",
+                    "example_values": [
+                        ""
+                    ]
+                },
+                {
+                    "data_path": "action_result.summary.content_id",
+                    "data_type": "numeric",
+                    "example_values": [
+                        210035
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string",
+                    "example_values": [
+                        "Ticket retrieved"
                     ]
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
@@ -480,8 +824,8 @@
         },
         {
             "action": "list tickets",
-            "description": "Get a list of tickets in an application.",
-            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. You may also provide neither to get an unfiltered list",
+            "description": "Get a list of tickets in an application",
+            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
             "type": "generic",
             "identifier": "list_tickets",
             "read_only": true,
@@ -491,6 +835,7 @@
                     "order": 1,
                     "description": "Application/Module name (e.g. Incidents)",
                     "required": true,
+                    "primary": true,
                     "contains": [
                         "archer application"
                     ]
@@ -517,94 +862,182 @@
             },
             "output": [
                 {
-                    "data_path": "action_result.data.*.Field.*.@id",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.#text",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.multi_value",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.@guid",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.@name",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.@type",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.@xmlConvertedValue",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.@levelId",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.@moduleId",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.@parentId",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.data.*.@contentId",
-                    "data_type": "string",
-                    "contains": [
-                        "archer content id"
-                    ]
-                },
-                {
-                    "data_path": "action_result.data.*.@levelGuid",
-                    "data_type": "string"
-                },
-                {
                     "data_path": "action_result.status",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.message",
-                    "data_type": "string"
-                },
-                {
-                    "data_path": "action_result.summary.records_found",
-                    "data_type": "numeric"
-                },
-                {
-                    "data_path": "action_result.parameter.name_field",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.application",
                     "data_type": "string",
                     "contains": [
                         "archer application"
+                    ],
+                    "example_values": [
+                        "Incidents"
                     ]
                 },
                 {
                     "data_path": "action_result.parameter.max_results",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        100
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "example_values": [
+                        "Incident ID"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.search_value",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        "10000"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@contentId",
+                    "data_type": "string",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "example_values": [
+                        "210035"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@levelGuid",
+                    "data_type": "string",
+                    "example_values": [
+                        "b0c2da91-167c-4fee-ad91-4b4e7b098b4b"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@levelId",
+                    "data_type": "string",
+                    "example_values": [
+                        "60"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@moduleId",
+                    "data_type": "string",
+                    "example_values": [
+                        "70"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.@parentId",
+                    "data_type": "string",
+                    "example_values": [
+                        "0"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.#text",
+                    "data_type": "string",
+                    "example_values": [
+                        "<p>Testing address</p>"
+                    ],
+                    "contains": [
+                        "ip"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.@guid",
+                    "data_type": "string",
+                    "example_values": [
+                        "d00ae4c0-c75f-4eac-8900-81cf93cb4e21"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "1600"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.@name",
+                    "data_type": "string",
+                    "example_values": [
+                        "Address"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.@type",
+                    "data_type": "string",
+                    "example_values": [
+                        "1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.@xmlConvertedValue",
+                    "data_type": "string",
+                    "example_values": [
+                        "2018-10-01T06:59:00Z"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.ListValues.ListValue.#text",
+                    "data_type": "string",
+                    "example_values": [
+                        "California"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.ListValues.ListValue.@displayName",
+                    "data_type": "string",
+                    "example_values": [
+                        "California"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.ListValues.ListValue.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "91"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.multi_value",
+                    "data_type": "string",
+                    "example_values": [
+                        "No"
+                    ]
+                },
+                {
+                    "data_path": "action_result.summary.records_found",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string",
+                    "example_values": [
+                        "Tickets retrieved"
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
@@ -618,8 +1051,8 @@
         },
         {
             "action": "on poll",
-            "description": "Callback action for the on_poll ingest functionality.",
-            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any sucessfully processed record.  It uses this to pull all records created since then, and creates a Phantom container for each.  Records are pulled by referencing that 'poll_report' key of each cef_mapping entry.  If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
+            "description": "Callback action for the on_poll ingest functionality",
+            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then, and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
             "type": "ingest",
             "identifier": "on_poll",
             "read_only": true,
@@ -627,7 +1060,7 @@
                 "start_time": {
                     "data_type": "numeric",
                     "order": 1,
-                    "description": "Start of time range, in epoch time (milliseconds)  If not specified, the default is the past_days setting of the App."
+                    "description": "Start of time range, in epoch time (milliseconds). If not specified, the default is the past_days setting of the App."
                 },
                 "end_time": {
                     "data_type": "numeric",
@@ -637,12 +1070,12 @@
                 "container_count": {
                     "data_type": "numeric",
                     "order": 3,
-                    "description": "Maximum number of container records to query for."
+                    "description": "Maximum number of container records to query for"
                 },
                 "artifact_count": {
                     "data_type": "numeric",
                     "order": 4,
-                    "description": "Maximum number of artifact records to query for."
+                    "description": "Maximum number of artifact records to query for"
                 }
             },
             "output": [],

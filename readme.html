@@ -1,14 +1,8 @@
-<!--
-    File: readme.html
+<!-- File: readme.html
+  Copyright (c) 2016-2018 Splunk Inc.
 
-    Copyright (c) Phantom Cyber Corporation, 2018
-
-    This unpublished material is proprietary to Phantom Cyber.
-    All rights reserved. The methods and
-    techniques described herein are considered trade secrets
-    and/or confidential. Reproduction or distribution, in whole
-    or in part, is forbidden except by express written permission
-    of Phantom Cyber.
+  SPLUNK CONFIDENTIAL – Use or disclosure of this material in whole or in part
+  without a valid written license from Splunk Inc. is PROHIBITED.
 -->
 
 <p>
@@ -18,7 +12,7 @@ When configuring the CEF to Archer mapping (cef_mapping), include the following.
 <ul>
     <li>The name of the application (e.g. Incidents)</li>
     <li>The name of the tracking ID field (e.g. Incident ID)</li>
-    <li>Separate entries for each field that should go into the CEF of an artifact.</li>
+    <li>Separate entries for each field that should go into the CEF of an artifact</li>
 </ul>
 </p>
 When done, your mapping will take the names of Archer fields and map them into the CEF of an artifact. It should look something like the following...
@@ -37,6 +31,6 @@ When done, your mapping will take the names of Archer fields and map them into t
 </pre>
 <br>
 <p>Where Status, Category, Details, etc. are fields that exist in your Archer Application that you would like to import. <br>
-Certain field types and attachements from Archer are not currently supported.
+Certain field types and attachments from Archer are not currently supported.
 
 If a field is specified both in the cef_mapping and in the excluded fields list, the field will be excluded and not ingested.
