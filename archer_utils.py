@@ -12,7 +12,6 @@
 import sys
 import json
 import functools
-import osa
 import xmltodict
 import requests
 from lxml import etree
@@ -93,26 +92,6 @@ class ArcherAPISession(object):
                                   'q=0.9,*/*;q=0.8',
                         'Content-Type': 'application/json'}
         self.asoap = None
-
-    def get_wsclient(self, wsdl):
-        """Load a SOAP WSDL."""
-        return osa.Client('{}/ws/{}.asmx?WSDL'.format(self.base_url, wsdl))
-
-    def print_WSAPI(self):
-        """Print a summary of available SOAP endpoints and functs for each."""
-        for wsdl in ('accesscontrol', 'accessrole', 'field', 'general',
-                     'module', 'record', 'search', 'technology'):
-            cl = self.get_wsclient(wsdl)
-            for tname in [x for x in dir(cl.types) if x[0] != '_']:
-                if tname.endswith('Response'):
-                    continue
-                t = cl.types.__getattribute__(tname)()  # pylint: disable=E1101
-                args = [x for x in dir(t)
-                        if x[0] != '_' and
-                        isinstance(t.__getattribute__(x), type(None))]
-                if 'sessionToken' not in args:
-                    continue
-                print('{}.{}: {}'.format(wsdl, tname, ', '.join(args)))
 
     def get_token(self):
         if not self.asoap:
@@ -381,22 +360,6 @@ class ArcherAPISession(object):
         W('No valueslistvalue found for vlid:{} and value:{}'.format(
                 vlid, value))
         return None, None
-
-    @memoize
-    def get_report_guid(self, rpt_name, sessionToken, cl=None):
-        """Returns the GUID of the named report."""
-        cl = cl or self.get_wsclient("search")
-        msg = cl.types.GetReports()
-        msg.sessionToken = sessionToken
-        data = xmltodict.parse(cl.service.GetReports(msg))
-        rpts = [x for x in data['ReportValues']['ReportValue']
-                if rpt_name == x['ReportName']]
-        if not rpts:
-            W("Found no reports named {}".format(rpt_name))
-            return None
-        if len(rpts) > 1:
-            W("Multiple reports named {}, choosing first".format(rpt_name))
-        return rpts[0]['ReportGUID']
 
     def get_content_by_id(self, cid):
         """Returns the full record with the given id."""
