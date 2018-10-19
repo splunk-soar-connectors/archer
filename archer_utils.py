@@ -1,8 +1,10 @@
 # File: archer_utils.py
 # Copyright (c) 2016-2018 Splunk Inc.
 #
-# SPLUNK CONFIDENTIAL – Use or disclosure of this material in whole or in part
+# SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
+#
+# --
 
 """Do things with the RSA Archer APIs.  There are two: a RESTful one and a SOAP
     one.  There are some things that can only be done in one or the other.  So
