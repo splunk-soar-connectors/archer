@@ -1,20 +1,15 @@
-# --
 # File: archer_soap.py
+# Copyright (c) 2016-2018 Splunk Inc.
 #
-# Copyright (c) Phantom Cyber Corporation, 2018
-#
-# This unpublished material is proprietary to Phantom Cyber.
-# All rights reserved. The methods and
-# techniques described herein are considered trade secrets
-# and/or confidential. Reproduction or distribution, in whole
-# or in part, is forbidden except by express written permission
-# of Phantom Cyber.
+# SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
+# without a valid written license from Splunk Inc. is PROHIBITED.
 #
 # --
 
 import requests
 from lxml import etree
 from cStringIO import StringIO
+from bs4 import UnicodeDammit
 
 SOAPNS = 'http://schemas.xmlsoap.org/soap/envelope/'
 XSINS = 'http://www.w3.org/2001/XMLSchema-instance'
@@ -36,6 +31,7 @@ ALL_NS_MAP['dummy'] = ARCHERNS
 
 DEBUG = False
 
+
 class ArcherSOAP(object):
     def __init__(self, host, username, password, instance, session=None, verify_cert=True):
         self.base_uri = host + '/ws'
@@ -49,7 +45,8 @@ class ArcherSOAP(object):
 
     def _authenticate(self):
         doc, body = self._generate_xml_stub()
-        n = etree.SubElement(body, 'CreateUserSessionFromInstance', nsmap=ARCHER_MAP)
+        n = etree.SubElement(
+            body, 'CreateUserSessionFromInstance', nsmap=ARCHER_MAP)
         un = etree.SubElement(n, 'userName')
         un.text = self.username
         inn = etree.SubElement(n, 'instanceName')
@@ -58,7 +55,8 @@ class ArcherSOAP(object):
         p.text = self.password
         sess_doc = self._do_request(self.base_uri + '/general.asmx', doc)
         sess_root = sess_doc.getroot()
-        result = sess_root.xpath('/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
+        result = sess_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
         if result:
             self.session = result[0].text
             return
@@ -75,7 +73,8 @@ class ArcherSOAP(object):
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath('/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name', namespaces=ALL_NS_MAP)
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name', namespaces=ALL_NS_MAP)
         if result:
             for name_ele in result:
                 if name_ele.text == groupname:
@@ -94,7 +93,8 @@ class ArcherSOAP(object):
         u.text = username
         resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath('/soap:Envelope/soap:Body/dummy:LookupUserIdResponse/dummy:LookupUserIdResult', namespaces=ALL_NS_MAP)
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:LookupUserIdResponse/dummy:LookupUserIdResult', namespaces=ALL_NS_MAP)
         if result:
             return int(result[0].text)
         return
@@ -121,7 +121,8 @@ class ArcherSOAP(object):
         for field_id, field_name in fields.iteritems():
             df = etree.SubElement(dfs, 'DisplayField')
             df.text = str(field_id)
-            df.set('name', str(field_name))
+            df.set('name', UnicodeDammit(field_name).unicode_markup.encode(
+                'ascii', 'xmlcharrefreplace'))
 
         cr = etree.SubElement(sr, 'Criteria')
         if not comparison:
@@ -159,14 +160,14 @@ class ArcherSOAP(object):
 
         so.text = etree.tostring(report_doc, pretty_print=True)
 
-
         resp_doc = self._do_request(self.base_uri + '/search.asmx', doc)
 
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath('/soap:Envelope/soap:Body/dummy:ExecuteSearchResponse/dummy:ExecuteSearchResult', namespaces=ALL_NS_MAP)
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:ExecuteSearchResponse/dummy:ExecuteSearchResult', namespaces=ALL_NS_MAP)
         if not result:
             return []
-        
+
         r_io = StringIO(result[0].text.encode('UTF8'))
         xmlp = etree.XMLParser(encoding='utf-8')
         search_result = etree.parse(r_io, parser=xmlp)
@@ -183,7 +184,8 @@ class ArcherSOAP(object):
         ci.text = str(content_id)
         resp_doc = self._do_request(self.base_uri + '/record.asmx', doc)
         resp_root = resp_doc.getroot()
-        rec_xml = resp_root.xpath('/soap:Envelope/soap:Body/dummy:GetRecordByIdResponse/dummy:GetRecordByIdResult', namespaces=ALL_NS_MAP)
+        rec_xml = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:GetRecordByIdResponse/dummy:GetRecordByIdResult', namespaces=ALL_NS_MAP)
 
         return rec_xml[0].text
 
@@ -211,7 +213,7 @@ class ArcherSOAP(object):
         if o:
             f.set('othertext', str(o))
         # add this when we have proper multi value support.
-        #for v in values[1:]:
+        # for v in values[1:]:
         #    mv = etree.SubElement(f, 'MultiValue')
         #    mv.set('value', str(v))
 
@@ -248,7 +250,8 @@ class ArcherSOAP(object):
         resp_doc = self._do_request(self.base_uri + '/record.asmx', doc)
 
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath('/soap:Envelope/soap:Body/dummy:UpdateRecordResponse/dummy:UpdateRecordResult', namespaces=ALL_NS_MAP)
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:UpdateRecordResponse/dummy:UpdateRecordResult', namespaces=ALL_NS_MAP)
         if result and len(result) > 0:
             try:
                 return int(result[0].text)
@@ -279,7 +282,8 @@ class ArcherSOAP(object):
         resp_doc = self._do_request(self.base_uri + '/record.asmx', doc)
 
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath('/soap:Envelope/soap:Body/dummy:CreateRecordResponse/dummy:CreateRecordResult', namespaces=ALL_NS_MAP)
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:CreateRecordResponse/dummy:CreateRecordResult', namespaces=ALL_NS_MAP)
         if result and len(result) > 0:
             try:
                 return int(result[0].text)
@@ -305,7 +309,8 @@ class ArcherSOAP(object):
                 'Content-Type': 'text/xml; charset=utf-8',
                 'SOAPAction': '"http://archer-tech.com/webservices/{}"'.format(api),
             }
-            response = requests.post(uri, data=xml, headers=headers, verify=self.verify_cert)
+            response = requests.post(
+                uri, data=xml, headers=headers, verify=self.verify_cert)
             r_io = StringIO(response.text.encode('UTF8'))
             resp_doc = etree.parse(r_io)
             return resp_doc

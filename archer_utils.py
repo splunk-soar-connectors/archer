@@ -1,14 +1,8 @@
-# --
 # File: archer_utils.py
+# Copyright (c) 2016-2018 Splunk Inc.
 #
-# Copyright (c) Phantom Cyber Corporation, 2014-2018
-#
-# This unpublished material is proprietary to Phantom Cyber.
-# All rights reserved. The methods and
-# techniques described herein are considered trade secrets
-# and/or confidential. Reproduction or distribution, in whole
-# or in part, is forbidden except by express written permission
-# of Phantom Cyber.
+# SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
+# without a valid written license from Splunk Inc. is PROHIBITED.
 #
 # --
 
@@ -18,15 +12,11 @@
 """
 
 import sys
-import time
 import json
 import functools
-import collections
-import osa
 import xmltodict
 import requests
 from lxml import etree
-from cStringIO import StringIO
 
 from archer_soap import ArcherSOAP
 
@@ -37,9 +27,9 @@ last_message_length = 0
 def W(msg):
     """Console-based status updater."""
     global last_message_length
-    sys.stderr.write(u'\b'*last_message_length)
-    sys.stderr.write(u' '*last_message_length)
-    sys.stderr.write(u'\b'*last_message_length)
+    sys.stderr.write(u'\b' * last_message_length)
+    sys.stderr.write(u' ' * last_message_length)
+    sys.stderr.write(u'\b' * last_message_length)
     msg = u'--[ {}'.format(msg.strip())
     last_message_length = len(msg)
     sys.stderr.write(msg)
@@ -82,7 +72,6 @@ class ArcherAPISession(object):
     sessionTimeout = 60  # Generate a new token after this much time unused
     BLACKLIST_TYPES = (24, 25)
 
-
     def __init__(self, base_url, userName, password, instanceName):
         """Initializes an API session.
 
@@ -104,30 +93,12 @@ class ArcherAPISession(object):
                                   'application/xhtml+xml,application/xml;'
                                   'q=0.9,*/*;q=0.8',
                         'Content-Type': 'application/json'}
-
-    def get_wsclient(self, wsdl):
-        """Load a SOAP WSDL."""
-        return osa.Client('{}/ws/{}.asmx?WSDL'.format(self.base_url, wsdl))
-
-    def print_WSAPI(self):
-        """Print a summary of available SOAP endpoints and functs for each."""
-        for wsdl in ('accesscontrol', 'accessrole', 'field', 'general',
-                     'module', 'record', 'search', 'technology'):
-            cl = self.get_wsclient(wsdl)
-            for tname in [x for x in dir(cl.types) if x[0] != '_']:
-                if tname.endswith('Response'):
-                    continue
-                t = cl.types.__getattribute__(tname)()
-                args = [x for x in dir(t)
-                        if x[0] != '_' and
-                        isinstance(t.__getattribute__(x), type(None))]
-                if 'sessionToken' not in args:
-                    continue
-                print('{}.{}: {}'.format(wsdl, tname, ', '.join(args)))
+        self.asoap = None
 
     def get_token(self):
-        asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
-        return asoap.session
+        if not self.asoap:
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+        return self.asoap.session
 
     def _rest_call(self, ep, meth='GET', data={}):
         """Utility to make a REST API call."""
@@ -175,7 +146,7 @@ class ArcherAPISession(object):
         W('Getting fieldId for {} in module {}'.format(mid, fname))
         try:
             mid = int(mid)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             mid = self.get_levelId_for_app(mid)
             W('Got level id: {}'.format(mid))
             flds = self.get_fields_for_level(mid)
@@ -202,7 +173,7 @@ class ArcherAPISession(object):
         """Returns the name of the given module."""
         try:
             int(mid)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             if self.get_moduleid(mid):
                 return mid
             else:
@@ -242,7 +213,7 @@ class ArcherAPISession(object):
         """
         try:
             mid = int(name)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             mid = self.get_moduleid(name)
         if mid is None:
             return None
@@ -276,8 +247,9 @@ class ArcherAPISession(object):
             return None
         fv = int(fv)
 
-        asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
-        records = asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
+        if not self.asoap:
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
+        records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
         # should only get one
         if records:
             return records[0].get('contentId')
@@ -312,15 +284,16 @@ class ArcherAPISession(object):
                                 'vlid:{}/val:{}'.format(vlid, value))
             return {'value_id': vlval, 'other_text': othertext}
         if fld['Type'] == 8:
-            asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
-            uid = asoap.find_user(value)
+            if not self.asoap:
+                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
+            uid = self.asoap.find_user(value)
             if not uid:
                 raise Exception('Failed to find user "{}"'.format(value))
             return uid
         W('Valufying "{}" as cross-reference field {}'.format(value, fld))
         try:
             value = int(value)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             W('Cross-reference values must be integers: {}'.format(value))
             return None
         # refrecs = self.get_referenced_records(fld.get('ReferencedFieldId'))
@@ -390,22 +363,6 @@ class ArcherAPISession(object):
                 vlid, value))
         return None, None
 
-    @memoize
-    def get_report_guid(self, rpt_name, sessionToken, cl=None):
-        """Returns the GUID of the named report."""
-        cl = cl or self.get_wsclient("search")
-        msg = cl.types.GetReports()
-        msg.sessionToken = sessionToken
-        data = xmltodict.parse(cl.service.GetReports(msg))
-        rpts = [x for x in data['ReportValues']['ReportValue']
-                if rpt_name == x['ReportName']]
-        if not rpts:
-            W("Found no reports named {}".format(rpt_name))
-            return None
-        if len(rpts) > 1:
-            W("Multiple reports named {}, choosing first".format(rpt_name))
-        return rpts[0]['ReportGUID']
-
     def get_content_by_id(self, cid):
         """Returns the full record with the given id."""
         j = json.loads(self._rest_call('/api/core/content/{}'.format(cid),
@@ -440,8 +397,40 @@ class ArcherAPISession(object):
                 W('Failed to parse: {}: {}'.format(f, str(e)))
         return fields
 
+    def get_records(self, app, field_name, value, max_count, mid, fid, fields, comparison=None, sort=None, page=1):
+        records = []
+
+        num_iterations = max_count / 1000
+        rem_count = max_count % 1000
+        if rem_count != 0:
+            num_iterations = num_iterations + 1
+
+        for iter_count in range(num_iterations):
+            records_req = 1000
+            if rem_count != 0 and iter_count == num_iterations - 1:
+                records_req = rem_count
+
+            if comparison is None:
+                lst_records = self.asoap.find_records(mid, app, fid, field_name, value, filter_type='text',
+                            max_count=records_req, fields=fields, comparison=comparison, sort=sort, page=page)
+                if lst_records:
+                    records.extend(lst_records)
+            if not lst_records:
+                try:
+                    lst_inter_records = self.asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric',
+                            max_count=records_req, fields=fields, comparison=comparison, sort=sort, page=page)
+                    if lst_inter_records:
+                        records.extend(lst_inter_records)
+                    else:
+                        break
+                except (TypeError, ValueError):
+                    pass  # Not looking up numerically
+
+        return records
+
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
+
         try:
             fid = int(field_name)
         except (ValueError, TypeError) as e:
@@ -454,15 +443,12 @@ class ArcherAPISession(object):
         mid = self.get_moduleid(app)
         fields = self._get_field_id_map(app)
 
-        asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
-        records = []
-        if comparison is None:
-            records = asoap.find_records(mid, app, fid, field_name, value, filter_type='text', max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
+        if not self.asoap:
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(), verify_cert=self.verifySSL)
+
+        records = self.get_records(app, field_name, value, max_count, mid, fid, fields, comparison, sort, page)
         if not records:
-            try:
-                records = asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric', max_count=max_count, fields=fields, comparison=comparison, sort=sort, page=page)
-            except (TypeError, ValueError) as e:
-                pass # Not looking up numerically
+            return records
 
         recs = etree.Element('Records')
         document = etree.ElementTree(recs)
@@ -514,8 +500,9 @@ class ArcherAPISession(object):
         fields = self._get_field_id_map(app)
         moduleId = self.get_moduleid(app)
 
-        asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
-        data = asoap.get_record(contentId, moduleId)
+        if not self.asoap:
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+        data = self.asoap.get_record(contentId, moduleId)
 
         rec_dict = xmltodict.parse(data) or {}
 
@@ -571,8 +558,10 @@ class ArcherAPISession(object):
             field = { 'value': value, }
             field.update(fd)
             fields.append(field)
-        asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
-        cid = asoap.create_record(moduleId, fields)
+
+        if not self.asoap:
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+        cid = self.asoap.create_record(moduleId, fields)
         return cid
 
     def update_record(self, app, contentId, fieldId, value, doit=True):
@@ -597,7 +586,7 @@ class ArcherAPISession(object):
         try:
             fieldId = int(fieldId)
             W('fieldId is integer, using as-is: {}'.format(fieldId))
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             newId = self.get_fieldId_for_app_and_name(app, fieldId)
             W('Got fieldId from app_and_name: {}'.format(newId))
             if newId is None:
@@ -613,14 +602,14 @@ class ArcherAPISession(object):
         value = self.get_valuesetvalue_of_field(fieldId, value)
         moduleId = self.get_moduleid(app)
 
-        asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
+        if not self.asoap:
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
         field = {
            'id': fieldId,
            'type': fieldType,
-           'value': value,
+           'value': value
         }
         W(u'Updating to value: {}'.format(value))
-        data = asoap.update_record(contentId, moduleId, [field])
+        data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)
-
