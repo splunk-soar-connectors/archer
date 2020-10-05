@@ -57,6 +57,12 @@
             "data_type": "string",
             "order": 7,
             "required": false
+        },
+        "domain": {
+            "description": "User's Domain",
+            "data_type": "string",
+            "order": 8,
+            "required": false
         }
     },
     "actions": [
@@ -348,7 +354,7 @@
             "action": "get ticket",
             "description": "Get ticket information",
             "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.",
-            "type": "generic",
+            "type": "investigate",
             "identifier": "get_ticket",
             "read_only": true,
             "parameters": {
@@ -826,7 +832,7 @@
             "action": "list tickets",
             "description": "Get a list of tickets in an application",
             "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
-            "type": "generic",
+            "type": "investigate",
             "identifier": "list_tickets",
             "read_only": true,
             "parameters": {

@@ -35,18 +35,23 @@ DEBUG = False
 
 
 class ArcherSOAP(object):
-    def __init__(self, host, username, password, instance, session=None, verify_cert=True):
+    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None):
         self.base_uri = host + '/ws'
         self.username = username
         self.password = password
         self.instance = instance
         self.session = session
         self.verify_cert = verify_cert
+        self.users_domain = usersDomain
         if not session:
             self._authenticate()
 
     def _authenticate(self):
         doc, body = self._generate_xml_stub()
+
+        if self.users_domain:
+            return self._domain_user_authenticate()
+
         n = etree.SubElement(
             body, 'CreateUserSessionFromInstance', nsmap=ARCHER_MAP)
         un = etree.SubElement(n, 'userName')
@@ -59,6 +64,28 @@ class ArcherSOAP(object):
         sess_root = sess_doc.getroot()
         result = sess_root.xpath(
             '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
+        if result:
+            self.session = result[0].text
+            return
+        raise Exception('Failed to authenticate to Archer web services')
+
+    def _domain_user_authenticate(self):
+        doc, body = self._generate_xml_stub()
+
+        n = etree.SubElement(
+            body, 'CreateDomainUserSessionFromInstance', nsmap=ARCHER_MAP)
+        un = etree.SubElement(n, 'userName')
+        un.text = self.username
+        inn = etree.SubElement(n, 'instanceName')
+        inn.text = self.instance
+        p = etree.SubElement(n, 'password')
+        p.text = self.password
+        p = etree.SubElement(n, 'usersDomain')
+        p.text = self.users_domain
+        sess_doc = self._do_request(self.base_uri + '/general.asmx', doc)
+        sess_root = sess_doc.getroot()
+        result = sess_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:CreateDomainUserSessionFromInstanceResponse/dummy:CreateDomainUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
         if result:
             self.session = result[0].text
             return
@@ -97,6 +124,25 @@ class ArcherSOAP(object):
         resp_root = resp_doc.getroot()
         result = resp_root.xpath(
             '/soap:Envelope/soap:Body/dummy:LookupUserIdResponse/dummy:LookupUserIdResult', namespaces=ALL_NS_MAP)
+        if result:
+            return int(result[0].text)
+        return
+
+    def find_domain_user(self, username):
+        if not self.session:
+            raise Exception('No session')
+        doc, body = self._generate_xml_stub()
+        lu = etree.SubElement(body, 'LookupDomainUserId', nsmap=ARCHER_MAP)
+        to = etree.SubElement(lu, 'sessionToken')
+        to.text = self.session
+        u = etree.SubElement(lu, 'username')
+        u.text = username
+        u = etree.SubElement(lu, 'usersDomain')
+        u.text = self.users_domain
+        resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
+        resp_root = resp_doc.getroot()
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:LookupDomainUserIdResponse/dummy:LookupDomainUserIdResult', namespaces=ALL_NS_MAP)
         if result:
             return int(result[0].text)
         return

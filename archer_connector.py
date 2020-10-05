@@ -14,11 +14,13 @@ import phantom.app as phantom
 from phantom.base_connector import BaseConnector
 from phantom.action_result import ActionResult
 
+import sys
 import os
 import json
 import fcntl
 import requests
 import archer_utils
+from bs4 import UnicodeDammit
 
 
 class ArcherConnector(BaseConnector):
@@ -51,11 +53,65 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
+
+        # Fetching the Python major version
+        try:
+            self._python_version = int(sys.version_info[0])
+        except:
+            return self.set_status(phantom.APP_ERROR, "Error occurred while getting the Phantom server's Python major version.")
+
         return phantom.APP_SUCCESS
 
     def finalize(self):
         self.save_state(self._state)
         return phantom.APP_SUCCESS
+
+    def _handle_py_ver_compat_for_input_str(self, input_str):
+        """
+        This method returns the encoded|original string based on the Python version.
+        :param input_str: Input string to be processed
+        :return: input_str (Processed input string based on following logic 'input_str - Python 3; encoded input_str - Python 2')
+        """
+
+        try:
+            if input_str and self._python_version == 2:
+                input_str = UnicodeDammit(input_str).unicode_markup.encode('utf-8')
+        except:
+            self.debug_print("Error occurred while handling python 2to3 compatibility for the input string")
+
+        return input_str
+
+    def _get_error_message_from_exception(self, e):
+        """ This method is used to get appropriate error message from the exception.
+        :param e: Exception object
+        :return: error message
+        """
+
+        try:
+            if e.args:
+                if len(e.args) > 1:
+                    error_code = e.args[0]
+                    error_msg = e.args[1]
+                elif len(e.args) == 1:
+                    error_code = "Error code unavailable"
+                    error_msg = e.args[0]
+            else:
+                error_code = "Error code unavailable"
+                error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+        except:
+            error_code = "Error code unavailable"
+            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+
+        try:
+            error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
+        except TypeError:
+            error_msg = "Error occurred while connecting to the EWS server. Please check the asset configuration and|or the action parameters."
+        except:
+            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+
+        error_text = "Error Code:{0}. Error Message:{1}".format(error_code, error_msg)
+
+        return error_text
 
     def _handle_on_poll(self, action_result, param):
         """Handles 'on_poll' ingest actions"""
@@ -71,7 +127,8 @@ class ArcherConnector(BaseConnector):
         try:
             cef_mapping = json.loads(config.get('cef_mapping'))
         except Exception as e:
-            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(str(e)))
+            err = self._get_error_message_from_exception(e)
+            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(err))
             return action_result.get_status()
 
         cef_mapping = dict( [ (k.lower(), v) for k, v in cef_mapping.iteritems() ])
@@ -197,16 +254,17 @@ class ArcherConnector(BaseConnector):
         return (self.get_config().get('endpoint_url'),
                 self.get_config().get('username'),
                 self.get_config().get('password'),
-                self.get_config().get('instance_name'))
+                self.get_config().get('instance_name'),
+                self.get_config().get('domain'))
 
     def _get_proxy(self):
         """Returns an archer_utils.ArcherAPISession object."""
         if not self.proxy:
-            ep, user, pwd, instance = self._get_proxy_args()
+            ep, user, pwd, instance, users_domain = self._get_proxy_args()
             verify = self.get_config().get('verify_ssl')
             self.debug_print('New Archer API session at ep:{}, user:{}, '
                              'verify:{}'.format(ep, user, verify))
-            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance)
+            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, self._python_version, users_domain)
             self.proxy.verifySSL = verify
             archer_utils.W = self.debug_print
         return self.proxy
@@ -219,7 +277,8 @@ class ArcherConnector(BaseConnector):
             p = self._get_proxy()
             p.get_token()
         except Exception as e:
-            self.debug_print('Exception during archer test: {}'.format(e))
+            err = self._get_error_message_from_exception(e)
+            self.debug_print('Exception during archer test: {}'.format(err))
             self.save_progress('Archer login test failed')
             self.save_progress('Please provide correct URL and credentials')
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed.')
@@ -304,44 +363,45 @@ class ArcherConnector(BaseConnector):
                 creation process will proceed even if some fields could not be
                 updated appropriately.
         """
-        self.save_progress(u'Processing data parameter...')
+        self.save_progress('Processing data parameter...')
 
-        json_string = param.get(u'json_string', '')
+        json_string = param.get('json_string', '')
         try:
             mapping = json.loads(json_string)
         except (ValueError, TypeError) as e:
-            msg = u'JSON field does not contain a valid JSON value'
+            msg = 'JSON field does not contain a valid JSON value'
             self.debug_print(msg)
             action_result.set_status(phantom.APP_ERROR, msg, e)
             return action_result.get_status()
         if not isinstance(mapping, dict):
-            action_result.set_status(phantom.APP_ERROR, u'Invalid JSON string. Must be a dictionary containing key value pairs')
+            action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key value pairs')
             return action_result.get_status()
 
-        self.debug_print(u'Parsed data: {}'.format(mapping))
+        self.debug_print('Parsed data: {}'.format(mapping))
         proxy = self._get_proxy()
         if not isinstance(mapping, dict):
-            msg = u'Non-dict map: {}'.format(mapping)
+            msg = 'Non-dict map: {}'.format(mapping)
             self.debug_print(msg)
             action_result.set_status(phantom.APP_ERROR, msg, e)
             return action_result.get_status()
 
         app = param.get('application')
 
-        self.save_progress(u'Creating Archer record')
+        self.save_progress('Creating Archer record')
         try:
             cid = proxy.create_record(app, mapping)
         except Exception as e:
-            return action_result.set_status(phantom.APP_ERROR, u'Failed to create Archer record. Error: {0}'.format(str(e)))
+            err = self._get_error_message_from_exception(e)
+            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record. Error: {0}'.format(err))
 
         if cid:
-            self.save_progress(u'Created Archer record {}'.format(cid))
+            self.save_progress('Created Archer record {}'.format(cid))
             d = {'content_id': cid}
             action_result.add_data(d)
             action_result.update_summary(d)
             action_result.set_status(phantom.APP_SUCCESS, 'Created ticket')
         else:
-            action_result.set_status(phantom.APP_ERROR, u'Failed to create Archer record')
+            action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record')
             return action_result.get_status()
         return action_result.get_status()
 
@@ -485,7 +545,8 @@ class ArcherConnector(BaseConnector):
                 return self._handle_on_poll(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
-            error_message = 'Exception during execution of archer action: {} and the error is: {}'.format(action_id, e)
+            err = self._get_error_message_from_exception(e)
+            error_message = 'Exception during execution of archer action: {} and the error is: {}'.format(action_id, err)
             self.debug_print(error_message)
             return action_result.set_status(phantom.APP_ERROR, error_message)
 
@@ -496,7 +557,7 @@ if __name__ == '__main__':
     from traceback import format_exc
     pudb.set_trace()
     if (len(sys.argv) < 2):
-        print 'No test json specified as input'
+        print('No test json specified as input')
         exit(0)
     with open(sys.argv[1]) as f:
         in_json = f.read()
@@ -507,6 +568,6 @@ if __name__ == '__main__':
         try:
             ret_val = connector._handle_action(json.dumps(in_json), None)
         except:
-            print format_exc()
-        print (json.dumps(json.loads(ret_val), indent=4))
+            print(format_exc())
+        print(json.dumps(json.loads(ret_val), indent=4))
     exit(0)
