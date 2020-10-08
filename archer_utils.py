@@ -143,13 +143,17 @@ class ArcherAPISession(object):
         except:
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
-        error_text = "Error Code:{0}. Error Message:{1}".format(error_code, error_msg)
+        if error_code in "Error code unavailable":
+            error_text = "Error Message: {0}".format(error_msg)
+        else:
+            error_text = "Error Code: {0}. Error Message: {1}".format(error_code, error_msg)
 
         return error_text
 
     def get_token(self):
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL, usersDomain=self.users_domain)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
+                         usersDomain=self.users_domain, pythonVersion=self.python_version)
         return self.asoap.session
 
     def _rest_call(self, ep, meth='GET', data={}):
@@ -174,8 +178,7 @@ class ArcherAPISession(object):
         """
         W('Getting fieldId for {} in record {}'.format(fname, cid))
         j = json.loads(self._rest_call('/api/core/content/{}'.format(cid)))
-        if not('RequestedObject' in j and
-               'FieldContents' in j['RequestedObject']):
+        if not('RequestedObject' in j and 'FieldContents' in j['RequestedObject']):
             return None
         for fid in j['RequestedObject']['FieldContents']:
             j2 = json.loads(self._rest_call(
@@ -301,7 +304,8 @@ class ArcherAPISession(object):
         fv = int(fv)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL, usersDomain=self.users_domain)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
         # should only get one
         if records:
@@ -338,7 +342,8 @@ class ArcherAPISession(object):
             return {'value_id': vlval, 'other_text': othertext}
         if fld['Type'] == 8:
             if not self.asoap:
-                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL, usersDomain=self.users_domain)
+                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
+                         verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
             uid = self.asoap.find_user(value)
             if not uid:
                 W("User not found in local user search")
@@ -348,6 +353,7 @@ class ArcherAPISession(object):
                     raise Exception('Failed to find user "{}"'.format(value))
                 W("Domain User ID: {}".format(duid))
                 return duid
+            W("User ID: {}".format(uid))
             return uid
         W('Valufying "{}" as cross-reference field {}'.format(value, fld))
         try:
@@ -490,6 +496,7 @@ class ArcherAPISession(object):
 
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
+        err = ""
 
         try:
             fid = int(field_name)
@@ -497,14 +504,16 @@ class ArcherAPISession(object):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
             except Exception as e:
+                err = self._get_error_message_from_exception(e)
                 pass
         if field_name and value and not fid:
-            raise Exception('Failed to find field "{}" in "{}": {}'.format(field_name, app, str(e)))
+            raise Exception('Failed to find field "{}" in "{}": {}'.format(field_name, app, err))
         mid = self.get_moduleid(app)
         fields = self._get_field_id_map(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(), verify_cert=self.verifySSL, usersDomain=self.users_domain)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(),
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
 
         records = self.get_records(app, field_name, value, max_count, mid, fid, fields, comparison, sort, page)
         if not records:
@@ -562,7 +571,8 @@ class ArcherAPISession(object):
         moduleId = self.get_moduleid(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL, usersDomain=self.users_domain)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         data = self.asoap.get_record(contentId, moduleId)
 
         rec_dict = xmltodict.parse(data) or {}
@@ -623,7 +633,8 @@ class ArcherAPISession(object):
             fields.append(field)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL, usersDomain=self.users_domain)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         cid = self.asoap.create_record(moduleId, fields)
         return cid
 
@@ -666,7 +677,8 @@ class ArcherAPISession(object):
         moduleId = self.get_moduleid(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
+                     pythonVersion=self.python_version)
         field = {
            'id': fieldId,
            'type': fieldType,

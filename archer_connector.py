@@ -109,7 +109,10 @@ class ArcherConnector(BaseConnector):
         except:
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
-        error_text = "Error Code:{0}. Error Message:{1}".format(error_code, error_msg)
+        if error_code in "Error code unavailable":
+            error_text = "Error Message: {0}".format(error_msg)
+        else:
+            error_text = "Error Code: {0}. Error Message: {1}".format(error_code, error_msg)
 
         return error_text
 
@@ -371,7 +374,8 @@ class ArcherConnector(BaseConnector):
         except (ValueError, TypeError) as e:
             msg = 'JSON field does not contain a valid JSON value'
             self.debug_print(msg)
-            action_result.set_status(phantom.APP_ERROR, msg, e)
+            err = self._get_error_message_from_exception(e)
+            action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
         if not isinstance(mapping, dict):
             action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key value pairs')
@@ -382,7 +386,7 @@ class ArcherConnector(BaseConnector):
         if not isinstance(mapping, dict):
             msg = 'Non-dict map: {}'.format(mapping)
             self.debug_print(msg)
-            action_result.set_status(phantom.APP_ERROR, msg, e)
+            action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
 
         app = param.get('application')
@@ -392,7 +396,7 @@ class ArcherConnector(BaseConnector):
             cid = proxy.create_record(app, mapping)
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record. Error: {0}'.format(err))
+            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record. {0}'.format(err))
 
         if cid:
             self.save_progress('Created Archer record {}'.format(cid))
@@ -552,7 +556,6 @@ class ArcherConnector(BaseConnector):
 
 
 if __name__ == '__main__':
-    import sys
     import pudb
     from traceback import format_exc
     pudb.set_trace()

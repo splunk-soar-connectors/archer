@@ -12,7 +12,7 @@
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "3.5.210",
+    "min_phantom_version": "4.8.24304",
     "logo": "logo_rsa.svg",
     "logo_dark": "logo_rsa_dark.svg",
     "configuration": {
@@ -222,7 +222,7 @@
                     "required": false,
                     "primary": true,
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ]
                 },
                 "field_id": {
@@ -289,7 +289,7 @@
                     "data_path": "action_result.parameter.name_value",
                     "data_type": "string",
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ],
                     "example_values": [
                         "10009"
@@ -391,7 +391,7 @@
                     "required": false,
                     "primary": true,
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ]
                 }
             },
@@ -435,7 +435,7 @@
                     "data_path": "action_result.parameter.name_value",
                     "data_type": "string",
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ],
                     "example_values": [
                         "INC-10009"

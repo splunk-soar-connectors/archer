@@ -10,7 +10,10 @@
 
 import requests
 from lxml import etree
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except:
+    from io import StringIO
 from bs4 import UnicodeDammit
 
 SOAPNS = 'http://schemas.xmlsoap.org/soap/envelope/'
@@ -35,7 +38,7 @@ DEBUG = False
 
 
 class ArcherSOAP(object):
-    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None):
+    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None, pythonVersion=2):
         self.base_uri = host + '/ws'
         self.username = username
         self.password = password
@@ -43,6 +46,7 @@ class ArcherSOAP(object):
         self.session = session
         self.verify_cert = verify_cert
         self.users_domain = usersDomain
+        self.python_version = pythonVersion
         if not session:
             self._authenticate()
 
@@ -265,12 +269,21 @@ class ArcherSOAP(object):
         #    mv = etree.SubElement(f, 'MultiValue')
         #    mv.set('value', str(v))
 
+    def user_field(self, field, parent):
+        f = etree.SubElement(parent, 'Field')
+        f.set('id', str(field['id']))
+        u = etree.SubElement(f, 'Users')
+        uid = etree.SubElement(u, 'User')
+        uid.set('id', str(field['value']))
+
     def get_field_map(self):
         type_formatter_map = {}
         for i in (1, 2, 3, 19):
             type_formatter_map[i] = self.plain_field
         for i in (4, 9, 18):
             type_formatter_map[i] = self.mv_field
+        for i in (8,):
+            type_formatter_map[i] = self.user_field
         return type_formatter_map
 
     def update_record(self, content_id, module_id, fields):
