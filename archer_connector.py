@@ -105,7 +105,7 @@ class ArcherConnector(BaseConnector):
         try:
             error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
         except TypeError:
-            error_msg = "Error occurred while connecting to the EWS server. Please check the asset configuration and|or the action parameters."
+            error_msg = "Error occurred while connecting to the Archer Server. Please check the asset configuration and|or the action parameters."
         except:
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
@@ -134,7 +134,7 @@ class ArcherConnector(BaseConnector):
             action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(err))
             return action_result.get_status()
 
-        cef_mapping = dict( [ (k.lower(), v) for k, v in cef_mapping.iteritems() ])
+        cef_mapping = dict([(k.lower(), v) for k, v in list(cef_mapping.items())])
 
         if not cef_mapping.get('application'):
             action_result.set_status(phantom.APP_ERROR, 'Application not provided in CEF Mapping (use key: "application")')

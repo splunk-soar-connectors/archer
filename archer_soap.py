@@ -170,7 +170,7 @@ class ArcherSOAP(object):
         ps = etree.SubElement(sr, 'PageSize')
         ps.text = str(max_count)
         dfs = etree.SubElement(sr, 'DisplayFields')
-        for field_id, field_name in fields.iteritems():
+        for field_id, field_name in list(fields.items()):
             df = etree.SubElement(dfs, 'DisplayField')
             df.text = str(field_id)
             df.set('name', UnicodeDammit(field_name).unicode_markup.encode(

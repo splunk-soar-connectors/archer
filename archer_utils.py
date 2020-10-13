@@ -30,10 +30,10 @@ last_message_length = 0
 def W(msg):
     """Console-based status updater."""
     global last_message_length
-    sys.stderr.write(u'\b' * last_message_length)
-    sys.stderr.write(u' ' * last_message_length)
-    sys.stderr.write(u'\b' * last_message_length)
-    msg = u'--[ {}'.format(msg.strip())
+    sys.stderr.write('\b' * last_message_length)
+    sys.stderr.write(' ' * last_message_length)
+    sys.stderr.write('\b' * last_message_length)
+    msg = '--[ {}'.format(msg.strip())
     last_message_length = len(msg)
     sys.stderr.write(msg)
 
@@ -139,7 +139,7 @@ class ArcherAPISession(object):
         try:
             error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
         except TypeError:
-            error_msg = "Error occurred while connecting to the EWS server. Please check the asset configuration and|or the action parameters."
+            error_msg = "Error occurred while connecting to the Archer server. Please check the asset configuration and|or the action parameters."
         except:
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
@@ -622,7 +622,7 @@ class ArcherAPISession(object):
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
                 W('Failed to parse: {}: {}'.format(f, err))
-        for field, value in data.items():
+        for field, value in list(data.items()):
             fd = field_data.get(field)
             if not fd:
                 raise Exception('Could not identify field {}'.format(field))
@@ -656,7 +656,7 @@ class ArcherAPISession(object):
 
             TODO: accept multiple field/value pairs for efficiency
         """
-        W(u'In update_record({}, {}, {})'.format(contentId, fieldId, value))
+        W('In update_record({}, {}, {})'.format(contentId, fieldId, value))
         try:
             fieldId = int(fieldId)
             W('fieldId is integer, using as-is: {}'.format(fieldId))
@@ -684,9 +684,9 @@ class ArcherAPISession(object):
            'type': fieldType,
            'value': value
         }
-        W(u'Updating to value: {}'.format(value))
-        W(u'Updating to id: {}'.format(fieldId))
-        W(u'Updating to type: {}'.format(fieldType))
+        W('Updating to value: {}'.format(value))
+        W('Updating to id: {}'.format(fieldId))
+        W('Updating to type: {}'.format(fieldType))
         data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)

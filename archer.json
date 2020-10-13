@@ -43,26 +43,22 @@
         "verify_ssl": {
             "description": "Verify server certificate",
             "data_type": "boolean",
-            "order": 5,
-            "required": false
+            "order": 5
         },
         "cef_mapping": {
             "description": "CEF to Archer mapping",
             "data_type": "string",
-            "order": 6,
-            "required": false
+            "order": 6
         },
         "exclude_fields": {
             "description": "Fields to exclude (comma separated)",
             "data_type": "string",
-            "order": 7,
-            "required": false
+            "order": 7
         },
         "domain": {
             "description": "User's Domain",
             "data_type": "string",
-            "order": 8,
-            "required": false
+            "order": 8
         }
     },
     "actions": [
@@ -203,7 +199,6 @@
                     "data_type": "numeric",
                     "order": 1,
                     "description": "Content ID (Identifies the specific record)",
-                    "required": false,
                     "primary": true,
                     "contains": [
                         "archer content id"
@@ -212,14 +207,12 @@
                 "name_field": {
                     "data_type": "string",
                     "order": 2,
-                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
-                    "required": false
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")"
                 },
                 "name_value": {
                     "data_type": "string",
                     "order": 3,
                     "description": "Name of record (e.g. \"INC-1234\")",
-                    "required": false,
                     "primary": true,
                     "contains": [
                         "archer user friendly id"
@@ -372,7 +365,6 @@
                     "data_type": "numeric",
                     "order": 2,
                     "description": "Content ID (Identifies the specific record)",
-                    "required": false,
                     "primary": true,
                     "contains": [
                         "archer content id"
@@ -381,14 +373,12 @@
                 "name_field": {
                     "data_type": "string",
                     "order": 3,
-                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
-                    "required": false
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")"
                 },
                 "name_value": {
                     "data_type": "string",
                     "order": 4,
                     "description": "Name of record (e.g. \"INC-1234\")",
-                    "required": false,
                     "primary": true,
                     "contains": [
                         "archer user friendly id"
@@ -488,10 +478,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@height",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@id",
@@ -509,10 +496,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@parentId",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@type",
@@ -554,10 +538,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@width",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@desc",
@@ -617,10 +598,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@parentId",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@type",
@@ -666,10 +644,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@middleName",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@updateDate",
@@ -715,10 +690,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.@value",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.Field.@id",
@@ -764,10 +736,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Users.User.@middleName",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Users.User.@updateDate",
@@ -785,10 +754,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.multi_value",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.summary.content_id",
@@ -856,14 +822,12 @@
                 "name_field": {
                     "data_type": "string",
                     "order": 3,
-                    "description": "Name of field to search in (e.g. \"Incident ID\")",
-                    "required": false
+                    "description": "Name of field to search in (e.g. \"Incident ID\")"
                 },
                 "search_value": {
                     "data_type": "string",
                     "order": 4,
-                    "description": "Value to search for in this application",
-                    "required": false
+                    "description": "Value to search for in this application"
                 }
             },
             "output": [
@@ -1066,7 +1030,7 @@
                 "start_time": {
                     "data_type": "numeric",
                     "order": 1,
-                    "description": "Start of time range, in epoch time (milliseconds). If not specified, the default is the past_days setting of the App."
+                    "description": "Start of time range, in epoch time (milliseconds). If not specified, the default is the past_days setting of the App"
                 },
                 "end_time": {
                     "data_type": "numeric",
