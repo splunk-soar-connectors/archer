@@ -36,3 +36,10 @@ When done, your mapping will take the names of Archer fields and map them into t
 Certain field types and attachments from Archer are not currently supported.
 
 If a field is specified both in the cef_mapping and in the excluded fields list, the field will be excluded and not ingested.
+
+<h3> Explanation of the <b>[User's Domain]</b> asset configuration parameter</h3>
+<ul>
+    <li>This asset configuration parameter affects [test connectivity] and all the other actions of the application.</li>
+    <li>When the value of this asset parameter is specified, the application will consider the user specified in the asset parameter [username] as the domain user of a given domain, and all the actions will be executed with the domain user session token created while running the action.</li>
+    <li>The user will be considered as a local user when the value of this parameter is not present. And if the local user attempts to change/add any of the field value(fields that expect the username value) with the domain user, then the action will fail because it requires a domain user session token to look up the domain user. And this token is generated only if the test connectivity is successfully run by the domain user.</li>
+</ul>
