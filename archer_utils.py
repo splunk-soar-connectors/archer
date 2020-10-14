@@ -288,7 +288,7 @@ class ArcherAPISession(object):
     def get_content_id(self, app, field_name, field_value):
         try:
             fid = int(field_name)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
             except Exception as e:
@@ -415,13 +415,13 @@ class ArcherAPISession(object):
         lval = str(value).lower()
         for v in values:
             W('Comparing {} and {}'.format(lval, v))
-            if lval in (unicode(v[x]).lower() for x in match_flds if v[x]):
+            if lval in (UnicodeDammit(v[x]).unicode_markup.lower() for x in match_flds if v[x]):
                 return v['Id'], None
         if ':' in value:
             vname, vval = value.split(':', 1)
             vname = vname.lower()
             for other in (x for x in values if x['EnableOtherText']):
-                if vname in (unicode(other[x]).lower() for x in match_flds
+                if vname in (UnicodeDammit(other[x]).unicode_markup.lower() for x in match_flds
                              if other[x]):
                     return other['Id'], vval
         W('No valueslistvalue found for vlid:{} and value:{}'.format(
@@ -466,7 +466,7 @@ class ArcherAPISession(object):
     def get_records(self, app, field_name, value, max_count, mid, fid, fields, comparison=None, sort=None, page=1):
         records = []
 
-        num_iterations = max_count / 1000
+        num_iterations = max_count // 1000
         rem_count = max_count % 1000
         if rem_count != 0:
             num_iterations = num_iterations + 1
@@ -500,7 +500,7 @@ class ArcherAPISession(object):
 
         try:
             fid = int(field_name)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
             except Exception as e:

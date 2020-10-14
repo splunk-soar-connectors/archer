@@ -10,10 +10,7 @@
 
 import requests
 from lxml import etree
-try:
-    from cStringIO import StringIO
-except:
-    from io import StringIO
+from io import BytesIO
 from bs4 import UnicodeDammit
 
 SOAPNS = 'http://schemas.xmlsoap.org/soap/envelope/'
@@ -220,7 +217,7 @@ class ArcherSOAP(object):
         if not result:
             return []
 
-        r_io = StringIO(result[0].text.encode('UTF8'))
+        r_io = BytesIO(result[0].text.encode('UTF8'))
         xmlp = etree.XMLParser(encoding='utf-8')
         search_result = etree.parse(r_io, parser=xmlp)
         return search_result.xpath('/Records/Record')
@@ -372,7 +369,7 @@ class ArcherSOAP(object):
             }
             response = requests.post(
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            r_io = StringIO(response.text.encode('UTF8'))
+            r_io = BytesIO(response.text.encode('UTF8'))
             resp_doc = etree.parse(r_io)
             return resp_doc
         raise ValueError('Invalid Method')
