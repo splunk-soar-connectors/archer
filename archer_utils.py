@@ -278,6 +278,12 @@ class ArcherAPISession(object):
             return None
         return j['RequestedObject']['Id']
 
+    def concatenate_list_data(self, fv_list):
+        result = ''
+        for element in fv_list:
+            result += str(element)
+        return result
+
     @memoize
     def get_field_details(self, fieldId):
         """Returns details about the field with the given ID."""
@@ -299,6 +305,8 @@ class ArcherAPISession(object):
         if not field_value:
             raise TypeError('Either content id or Tracking ID field and record name are required')
         fv = filter(lambda x: x.isdigit(), field_value)
+        if self.python_version == 3:
+            fv = self.concatenate_list_data(list(fv))
         if not fv:
             return None
         fv = int(fv)
