@@ -493,6 +493,21 @@ class ArcherConnector(BaseConnector):
 
         return action_result.get_status()
 
+    def _validate_integer(self, action_result, parameter, key, allow_zero=False):
+        """Handles non integer values and set appropriate status"""
+        if parameter is not None:
+            try:
+                if not float(parameter).is_integer():
+                    return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
+                parameter = int(parameter)
+            except:
+                return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
+            if parameter < 0:
+                return action_result.set_status(phantom.APP_ERROR, "Please provide a valid non-negative integer value in the {}".format(key)), None
+            if not allow_zero and parameter == 0:
+                return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
+        return phantom.APP_SUCCESS, parameter
+
     def _handle_list_tickets(self, action_result, param):
         """Handles 'list_tickets' actions"""
         self.save_progress('Get Archer record...')
@@ -501,10 +516,9 @@ class ArcherConnector(BaseConnector):
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
 
-        try:
-            max_count = int(max_count)
-        except:
-            return action_result.set_status(phantom.APP_ERROR, 'Please provide a valid integer max_results value')
+        status, max_result = self._validate_integer(action_result, max_count, "max_result", False)
+        if (phantom.is_fail(status)):
+            return action_result.get_status()
 
         if (search_field_name or search_value) and not (search_field_name and search_value):
             action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')

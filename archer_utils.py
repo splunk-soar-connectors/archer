@@ -279,6 +279,7 @@ class ArcherAPISession(object):
         return j['RequestedObject']['Id']
 
     def concatenate_list_data(self, fv_list):
+        """Concatenates list values and create string"""
         result = ''
         for element in fv_list:
             result += str(element)
