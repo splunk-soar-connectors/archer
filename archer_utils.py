@@ -409,6 +409,14 @@ class ArcherAPISession(object):
             return None
         return [x['RequestedObject'] for x in j]
 
+    def get_value(self, value):
+        """
+        Returns value as per the returned datatype
+        """
+        if isinstance(value, int):
+            return value
+        return UnicodeDammit(value).unicode_markup.lower()
+
     def get_valueslistvalue_id(self, vlid, value):
         """Returns (ValueId,OtherText) for the given value in the given
             valuelist, matched by Name/Alias/NumericValue/Description/ID.  If
@@ -424,13 +432,13 @@ class ArcherAPISession(object):
         lval = str(value).lower()
         for v in values:
             W('Comparing {} and {}'.format(lval, v))
-            if lval in (UnicodeDammit(v[x]).unicode_markup.lower() for x in match_flds if v[x]):
+            if lval in (self.get_value(v[x]) for x in match_flds if v[x]):
                 return v['Id'], None
         if ':' in value:
             vname, vval = value.split(':', 1)
             vname = vname.lower()
             for other in (x for x in values if x['EnableOtherText']):
-                if vname in (UnicodeDammit(other[x]).unicode_markup.lower() for x in match_flds
+                if vname in (self.get_value(other[x]) for x in match_flds
                              if other[x]):
                     return other['Id'], vval
         W('No valueslistvalue found for vlid:{} and value:{}'.format(
