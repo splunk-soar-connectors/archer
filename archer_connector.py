@@ -483,13 +483,16 @@ class ArcherConnector(BaseConnector):
                 return action_result.get_status()
 
         action_result.update_summary({'content_id': cid})
-        record = proxy.get_record_by_id(app, cid)
 
-        if record:
-            action_result.add_data(record)
-            action_result.set_status(phantom.APP_SUCCESS, 'Ticket retrieved')
-        else:
-            action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket')
+        try:
+            record = proxy.get_record_by_id(app, cid)
+            if record:
+                action_result.add_data(record)
+                action_result.set_status(phantom.APP_SUCCESS, 'Ticket retrieved')
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket')
+        except:
+            action_result.set_status(phantom.APP_ERROR, 'Given content_id not found in \'{}\' application'.format(app))
 
         return action_result.get_status()
 

@@ -588,10 +588,13 @@ class ArcherAPISession(object):
 
         rec_dict['@moduleId'] = moduleId
         rec_dict['@contentId'] = contentId
+        empty_name_count = 0
         for i, field in enumerate(rec_dict['Record']['Field']):
             try:
                 field_type = int(field.get('@type'))
                 field['@name'] = fields.get(int(field.get('@id')))
+                if field['@name'] is None:
+                    empty_name_count += 1
                 if field.get('@value', '').startswith('<p>'):
                     field['@value'] = field['@value'][3:-4]
                 if field_type in self.BLACKLIST_TYPES:
@@ -606,6 +609,10 @@ class ArcherAPISession(object):
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
                 W('Failed to parse {}: {}'.format(field, err))
+        # All name fields should not be None for valid record
+        if empty_name_count == len(rec_dict['Record']['Field']):
+            W('Failed to get name field. Check input parameters')
+            raise Exception('Failed to get name field. Check input parameters')
         return rec_dict
 
     def create_record(self, app, data={}):
