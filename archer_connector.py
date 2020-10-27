@@ -440,18 +440,21 @@ class ArcherConnector(BaseConnector):
             action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
             return action_result.get_status()
 
-        try:
-            fid = int(fid)
-        except (ValueError, TypeError):
-            fid = proxy.get_fieldId_for_app_and_name(app, fid)
-
-        if not fid or type(fid) != int:
-            action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}.'.format(orig_fid))
+        if proxy.get_levelId_for_app(app) is None:
+            action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify application \'{}\''.format(app))
         else:
-            if proxy.update_record(app, cid, fid, value):
-                action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
+            try:
+                fid = int(fid)
+            except (ValueError, TypeError):
+                fid = proxy.get_fieldId_for_app_and_name(app, fid)
+
+            if not fid or type(fid) != int:
+                action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}.'.format(orig_fid))
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
+                if proxy.update_record(app, cid, fid, value):
+                    action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
+                else:
+                    action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
 
         return action_result.get_status()
 
