@@ -503,7 +503,7 @@ class ArcherConnector(BaseConnector):
         """Handles non integer values and set appropriate status"""
         if parameter is not None:
             try:
-                if not float(parameter).is_integer():
+                if not float(parameter).is_integer() or isinstance(parameter, float):
                     return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
                 parameter = int(parameter)
             except:
