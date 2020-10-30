@@ -24,7 +24,7 @@ def get_ticket(provides, all_results, context):
             data = result.get_data()
             if data:
                 data = data[0]['Record']['Field']
-            rec['record'] = sorted(data, key=lambda x: x['@name'])
+            rec['record'] = sorted(data, key=lambda x: (x['@name'] is not None, x['@name']))
             rec['content_id'] = result.get_summary().get(
                 'content_id', 'Not provided')
             results.append(rec)
