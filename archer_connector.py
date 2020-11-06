@@ -145,7 +145,15 @@ class ArcherConnector(BaseConnector):
         state = self._state.get(application, {})
         max_content_id = state.get('max_content_id', -1)
         last_page = state.get('last_page', 1)
-        max_records = min(self.POLLING_PAGE_SIZE, param['container_count'])
+        max_records = self.POLLING_PAGE_SIZE
+        sort_type = 'Ascending'
+
+        if self.is_poll_now():
+            max_content_id = 0
+            last_page = 1
+            max_records = param['container_count']
+            sort_type = 'Descending'
+
         self.save_progress('Polling Archer for {} new records after {}...'.format(
                max_records, max_content_id))
         proxy = self._get_proxy()
@@ -159,7 +167,7 @@ class ArcherConnector(BaseConnector):
         max_ingested_id = max_content_id
         proxy.excluded_fields = [ x.lower().strip() for x in config.get('exclude_fields', '').split(',') ]
         while completed_records < max_records:
-            records = proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort='Ascending', page=last_page)
+            records = proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort=sort_type, page=last_page)
             nrecs = len(records)
             if not records:
                 break
@@ -231,11 +239,17 @@ class ArcherConnector(BaseConnector):
                 completed_records += 1
                 if completed_records >= max_records:
                     break
-            if completed_records < max_records:
+
+            if nrecs < self.POLLING_PAGE_SIZE:
+                break
+            else:
                 last_page += 1
 
         self.save_progress('Ingested {} records'.format(completed_records))
-        self._state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
+        
+        if not self.is_poll_now():
+            self._state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
+            
         self.save_progress('Import complete.')
         action_result.set_status(phantom.APP_SUCCESS, 'Import complete')
         return action_result.get_status()
