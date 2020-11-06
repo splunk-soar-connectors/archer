@@ -246,10 +246,8 @@ class ArcherConnector(BaseConnector):
                 last_page += 1
 
         self.save_progress('Ingested {} records'.format(completed_records))
-        
         if not self.is_poll_now():
             self._state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
-            
         self.save_progress('Import complete.')
         action_result.set_status(phantom.APP_SUCCESS, 'Import complete')
         return action_result.get_status()
