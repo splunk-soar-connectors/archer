@@ -302,9 +302,9 @@ class ArcherConnector(BaseConnector):
         return self.set_status_save_progress(phantom.APP_SUCCESS, msg)
 
     def _container_to_archer(self, cid):
-        """Reads CEF fields from a container, returns a list of dicts with
+        """Reads CEF fields from a container, returns a list of dictionaries with
             key/value pairs to populate a new Archer record, where the
-            'module' key of each dict names the module/app within which to
+            'module' key of each dictionary names the module/app within which to
             create a new record.
         """
         self.save_progress('Fetching data for container {}'.format(cid))
@@ -358,11 +358,11 @@ class ArcherConnector(BaseConnector):
 
             If it's an integer, then it's a container_id.  Use the Phantom
                 REST API to get CEF fields from the container.  Each asset
-                must have a config param mapping CEF<->Archer fields, and the
+                must have a config param mapping CEF<->Archer fields and the
                 new record is created with the data from the CEF fields of the
                 given container, populated into the appropriate Archer fields.
-                This mapping may be a list of JSON dicts instead of a single
-                dict, so that multiple 'module' keys may be specified and
+                This mapping may be a list of JSON dictionaries instead of a single
+                dictionary, so that multiple 'module' keys may be specified and
                 mapped to.
 
             Otherwise, if it's a native or JSON list, each item in the list is

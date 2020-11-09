@@ -2,12 +2,15 @@
     "appid": "c4492201-fd2c-49d8-b38f-805b0967032f",
     "name": "RSA Archer",
     "description": "This app implements ticket management actions on RSA Archer GRC",
-    "publisher": "Phantom",
+    "publisher": "Splunk",
     "package_name": "phantom_archer",
     "type": "ticketing",
     "license": "Copyright (c) 2016-2020 Splunk Inc.",
     "main_module": "archer_connector.py",
     "app_version": "2.0.0",
+    "latest_tested_versions": [
+        "On-premise RSA Archer v6.8, API version v5.5"
+    ],
     "utctime_updated": "2018-12-07T01:46:49.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
@@ -181,7 +184,7 @@
         {
             "action": "update ticket",
             "description": "Update the value of a field of a record",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.",
             "type": "generic",
             "identifier": "update_ticket",
             "read_only": false,
@@ -347,7 +350,7 @@
         {
             "action": "get ticket",
             "description": "Get ticket information",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.",
             "type": "investigate",
             "identifier": "get_ticket",
             "read_only": true,
@@ -798,7 +801,7 @@
         {
             "action": "list tickets",
             "description": "Get a list of tickets in an application",
-            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
+            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
             "type": "investigate",
             "identifier": "list_tickets",
             "read_only": true,
@@ -1023,7 +1026,7 @@
         {
             "action": "on poll",
             "description": "Callback action for the on_poll ingest functionality",
-            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then, and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
+            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
             "type": "ingest",
             "identifier": "on_poll",
             "read_only": true,
