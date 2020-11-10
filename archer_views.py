@@ -8,9 +8,6 @@
 #
 # --
 
-from django.http import HttpResponse
-import json
-
 
 def get_ticket(provides, all_results, context):
 
@@ -35,6 +32,7 @@ def get_ticket(provides, all_results, context):
 def list_tickets(provides, all_results, context):
 
     headers = ['application', 'content id']
+    context['results'] = results = []
 
     headers_set = set()
     for summary, action_results in all_results:
@@ -46,22 +44,13 @@ def list_tickets(provides, all_results, context):
         headers_set.update(headers)
     headers.extend(sorted(headers_set))
 
-    context['ajax'] = True
-    if 'start' not in context['QS']:
-        context['headers'] = headers
-        return '/widgets/generic_table.html'
+    final_result = {'headers': headers, 'data': []}
 
-    start = int(context['QS']['start'][0])
-    length = int(context['QS'].get('length', ['5'])[0])
-    end = start + length
-    rows = []
-    total = 0
     dyn_headers = headers[2:]
     for summary, action_results in all_results:
         for result in action_results:
             data = result.get_data()
             param = result.get_param()
-            total += len(data)
             for item in data:
                 row = []
                 row.append({'value': param.get('application'),
@@ -78,11 +67,7 @@ def list_tickets(provides, all_results, context):
                                     'contains': ['ip']})
                     else:
                         row.append({'value': name_value.get(h, '')})
-                rows.append(row)
+                final_result['data'].append(row)
 
-    content = {
-        "data": rows[start:end],
-        "recordsTotal": total,
-        "recordsFiltered": total,
-    }
-    return HttpResponse(json.dumps(content), content_type='text/javascript')
+    results.append(final_result)
+    return 'list_tickets.html'
