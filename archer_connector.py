@@ -58,7 +58,7 @@ class ArcherConnector(BaseConnector):
         try:
             self._python_version = int(sys.version_info[0])
         except:
-            return self.set_status(phantom.APP_ERROR, "Error occurred while getting the Phantom server's Python major version.")
+            return self.set_status(phantom.APP_ERROR, "Error occurred while getting the Phantom server's Python major version")
 
         return phantom.APP_SUCCESS
 
@@ -137,7 +137,7 @@ class ArcherConnector(BaseConnector):
         cef_mapping = dict([(k.lower(), v) for k, v in list(cef_mapping.items())])
 
         if not cef_mapping.get('application'):
-            action_result.set_status(phantom.APP_ERROR, 'Application not provided in CEF Mapping (use key: "application")')
+            action_result.set_status(phantom.APP_ERROR, 'Application is not provided in CEF Mapping (use key: "application")')
             return action_result.get_status()
 
         application = cef_mapping.pop('application')
@@ -296,10 +296,12 @@ class ArcherConnector(BaseConnector):
             self.debug_print('Exception during archer test: {}'.format(err))
             self.save_progress('Archer login test failed')
             self.save_progress('Please provide correct URL and credentials')
-            return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed.')
+            return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
         msg = 'Archer configuration test SUCCESS'
-        return self.set_status_save_progress(phantom.APP_SUCCESS, msg)
+        self.save_progress("Test connectivity passed")
+
+        return action_result.set_status(phantom.APP_SUCCESS, msg)
 
     def _container_to_archer(self, cid):
         """Reads CEF fields from a container, returns a list of dictionaries with
@@ -390,7 +392,7 @@ class ArcherConnector(BaseConnector):
             action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
         if not isinstance(mapping, dict):
-            action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key value pairs')
+            action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
             return action_result.get_status()
 
         self.debug_print('Parsed data: {}'.format(mapping))
@@ -408,7 +410,7 @@ class ArcherConnector(BaseConnector):
             cid = proxy.create_record(app, mapping)
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record. {0}'.format(err))
+            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record {0}'.format(err))
 
         if cid:
             self.save_progress('Created Archer record {}'.format(cid))

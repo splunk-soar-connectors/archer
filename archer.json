@@ -248,7 +248,7 @@
                     "column_name": "Archer Application",
                     "column_order": 0,
                     "data_path": "action_result.parameter.application",
-                    "data_type": "numeric",
+                    "data_type": "string",
                     "contains": [
                         "archer application"
                     ],
@@ -309,7 +309,7 @@
                     "column_name": "Content ID",
                     "column_order": 1,
                     "data_path": "action_result.summary.content_id",
-                    "data_type": "numeric",
+                    "data_type": "string",
                     "contains": [
                         "archer content id"
                     ],
@@ -580,6 +580,41 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@desc",
+                    "data_type": "string",
+                    "example_values": [
+                        "This group is the default for users with the IM: Solution Admin role."
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@name",
+                    "data_type": "string",
+                    "example_values": [
+                        "IM: Admin"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "1/18/2006 4:28:14 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.@id",
                     "data_type": "string",
                     "example_values": [
@@ -718,6 +753,45 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@firstName",
+                    "data_type": "string",
+                    "example_values": [
+                        "System"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "206"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@lastName",
+                    "data_type": "string",
+                    "example_values": [
+                        "Administrator"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@middleName",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "10/6/2020 12:57:15 PM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "207"
+                    ]
+                },
+                {
                     "data_path": "action_result.data.*.Record.Field.*.Users.User.@firstName",
                     "data_type": "string",
                     "example_values": [
@@ -762,7 +836,7 @@
                 },
                 {
                     "data_path": "action_result.summary.content_id",
-                    "data_type": "numeric",
+                    "data_type": "string",
                     "example_values": [
                         210035
                     ]
@@ -855,7 +929,7 @@
                 },
                 {
                     "data_path": "action_result.parameter.max_results",
-                    "data_type": "string",
+                    "data_type": "numeric",
                     "example_values": [
                         100
                     ]
@@ -876,7 +950,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.@contentId",
-                    "data_type": "string",
+                    "data_type": "numeric",
                     "contains": [
                         "archer content id"
                     ],
