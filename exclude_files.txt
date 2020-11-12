@@ -7,3 +7,4 @@ archer/archer_utils.py
 .git*
 archer/phantom_views.py
 .gitlab-ci.yml
+whitesource-results
