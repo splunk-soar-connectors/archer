@@ -14,6 +14,9 @@ import phantom.app as phantom
 from phantom.base_connector import BaseConnector
 from phantom.action_result import ActionResult
 
+# Imports local to this App
+import archer_consts as consts
+
 import sys
 import os
 import json
@@ -35,7 +38,7 @@ class ArcherConnector(BaseConnector):
             time.)
         """
         super(ArcherConnector, self).__init__()
-        self.file_ = 'last_record_{}.txt'.format(self.get_asset_id())
+        self.file_ = consts.ARCHER_LAST_RECORD_FILE.format(self.get_asset_id())
         self.latest_time = 0
         self.proxy = None
         if isinstance(self.get_app_config(), dict):
@@ -58,7 +61,7 @@ class ArcherConnector(BaseConnector):
         try:
             self._python_version = int(sys.version_info[0])
         except:
-            return self.set_status(phantom.APP_ERROR, "Error occurred while getting the Phantom server's Python major version")
+            return self.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_PYTHON_MAJOR_VERSION)
 
         return phantom.APP_SUCCESS
 
@@ -93,26 +96,26 @@ class ArcherConnector(BaseConnector):
                     error_code = e.args[0]
                     error_msg = e.args[1]
                 elif len(e.args) == 1:
-                    error_code = "Error code unavailable"
+                    error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
                     error_msg = e.args[0]
             else:
-                error_code = "Error code unavailable"
-                error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+                error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
+                error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
         except:
-            error_code = "Error code unavailable"
-            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+            error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
+            error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
 
         try:
             error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
         except TypeError:
-            error_msg = "Error occurred while connecting to the Archer Server. Please check the asset configuration and|or the action parameters."
+            error_msg = consts.ARCHER_UNICODE_DAMMIT_TYPE_ERR_MESSAGE
         except:
-            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+            error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
 
-        if error_code in "Error code unavailable":
-            error_text = "Error Message: {0}".format(error_msg)
+        if error_code in consts.ARCHER_ERR_CODE_UNAVAILABLE:
+            error_text = consts.ARCHER_ERR_MESSAGE.format(error_msg)
         else:
-            error_text = "Error Code: {0}. Error Message: {1}".format(error_code, error_msg)
+            error_text = consts.ARCHER_ERR_CODE_MESSAGE.format(error_code, error_msg)
 
         return error_text
 
@@ -124,7 +127,7 @@ class ArcherConnector(BaseConnector):
         config = self.get_config()
 
         if 'cef_mapping' not in config:
-            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping is required for ingestion. Please add CEF mapping to the asset config.')
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_CEF_MAPPING_REQUIRED)
             return action_result.get_status()
 
         try:
@@ -137,7 +140,7 @@ class ArcherConnector(BaseConnector):
         cef_mapping = dict([(k.lower(), v) for k, v in list(cef_mapping.items())])
 
         if not cef_mapping.get('application'):
-            action_result.set_status(phantom.APP_ERROR, 'Application is not provided in CEF Mapping (use key: "application")')
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_APPLICATION_NOT_PROVIDED)
             return action_result.get_status()
 
         application = cef_mapping.pop('application')
@@ -146,20 +149,20 @@ class ArcherConnector(BaseConnector):
         max_content_id = state.get('max_content_id', -1)
         last_page = state.get('last_page', 1)
         max_records = self.POLLING_PAGE_SIZE
-        sort_type = 'Ascending'
+        sort_type = consts.ARCHER_SORT_TYPE_ASCENDING
 
         if self.is_poll_now():
             max_content_id = 0
             last_page = 1
             max_records = param['container_count']
-            sort_type = 'Descending'
+            sort_type = consts.ARCHER_SORT_TYPE_DESCENDING
 
         self.save_progress('Polling Archer for {} new records after {}...'.format(
                max_records, max_content_id))
         proxy = self._get_proxy()
 
         if not cef_mapping.get('tracking'):
-            action_result.set_status(phantom.APP_ERROR, 'Tracking ID Field name not provided in CEF Mapping (use key: "tracking")')
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_TRACKING_ID_NOT_PROVIDED)
             return action_result.get_status()
         tracking_id_field = cef_mapping.pop('tracking')
 
@@ -177,7 +180,7 @@ class ArcherConnector(BaseConnector):
                 if content_id <= max_content_id:
                     continue
                 self.send_progress('On record {}/{}...'.format(i + 1, nrecs))
-                record_name = 'Record Name not found'
+                record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
 
                 cef = {}
                 for field in rec.get('Field', []):
@@ -298,7 +301,7 @@ class ArcherConnector(BaseConnector):
             self.save_progress('Please provide correct URL and credentials')
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
-        msg = 'Archer configuration test SUCCESS'
+        msg = consts.ARCHER_SUCC_CONFIGURATION
         self.save_progress("Test connectivity passed")
 
         return action_result.set_status(phantom.APP_SUCCESS, msg)
@@ -314,7 +317,7 @@ class ArcherConnector(BaseConnector):
         if isinstance(c2as, dict):
             c2as = (c2as,)
         maps = [{'module': (c2a['module'],)} for c2a in c2as]
-        url = 'http://127.0.0.1/rest/container/{}'.format(cid)
+        url = consts.ARCHER_URL_FETCH_CONTAINER.format(cid)
         c = requests.get(url, verify=False).json()
         if 'failed' in c and c['failed']:
             raise Exception('Failed to get container: {}'.format(
@@ -328,14 +331,14 @@ class ArcherConnector(BaseConnector):
                     c2a[cfld], m.get(c2a[cfld], []), c[cfld]))
             m[c2a[cfld]] = m.get(c2a[cfld], []) + [c[cfld]]
         self.save_progress('Fetching artifacts for container')
-        url = 'http://127.0.0.1/rest/container/{}/artifacts{}'
+        url = consts.ARCHER_URL_FETCH_ARTIFACT_CONTAINER
         page = 1
         while True:
             get_page = page > 1 and '?page={}'.format(page) or ''
             self.debug_print('URL {}'.format(url.format(cid, get_page)))
             resp = requests.get(url.format(cid, get_page), verify=False).json()
             for r in resp['data']:
-                url2 = 'http://127.0.0.1/rest/artifact/{}'.format(r['id'])
+                url2 = consts.ARCHER_URL_FETCH_ARTIFACT.format(r['id'])
                 self.debug_print('URL {}'.format(url.format(cid, get_page)))
                 c = requests.get(url2, verify=False).json()
                 self.debug_print('Mapping Artifact {}'.format(c))
@@ -386,7 +389,7 @@ class ArcherConnector(BaseConnector):
         try:
             mapping = json.loads(json_string)
         except (ValueError, TypeError) as e:
-            msg = 'JSON field does not contain a valid JSON value'
+            msg = consts.ARCHER_ERR_VALID_JSON
             self.debug_print(msg)
             err = self._get_error_message_from_exception(e)
             action_result.set_status(phantom.APP_ERROR, msg, err)
@@ -398,7 +401,7 @@ class ArcherConnector(BaseConnector):
         self.debug_print('Parsed data: {}'.format(mapping))
         proxy = self._get_proxy()
         if not isinstance(mapping, dict):
-            msg = 'Non-dict map: {}'.format(mapping)
+            msg = consts.ARCHER_ERR_NON_DICT.format(mapping)
             self.debug_print(msg)
             action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
@@ -518,14 +521,14 @@ class ArcherConnector(BaseConnector):
         if parameter is not None:
             try:
                 if not float(parameter).is_integer() or isinstance(parameter, float):
-                    return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
+                    return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
                 parameter = int(parameter)
             except:
-                return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
             if parameter < 0:
-                return action_result.set_status(phantom.APP_ERROR, "Please provide a valid non-negative integer value in the {}".format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_NON_NEGATIVE.format(key)), None
             if not allow_zero and parameter == 0:
-                return action_result.set_status(phantom.APP_ERROR, "Please provide a valid integer value in the {}".format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
         return phantom.APP_SUCCESS, parameter
 
     def _handle_list_tickets(self, action_result, param):
@@ -536,7 +539,7 @@ class ArcherConnector(BaseConnector):
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
 
-        status, max_result = self._validate_integer(action_result, max_count, "max_result", False)
+        status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
         if (phantom.is_fail(status)):
             return action_result.get_status()
 
@@ -569,22 +572,22 @@ class ArcherConnector(BaseConnector):
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
         try:
-            if (action_id == 'create_ticket'):
+            if (action_id == consts.ARCHER_ACTION_CREATE_TICKET):
                 return self._handle_create_ticket(action_result, param)
-            elif (action_id == 'update_ticket'):
+            elif (action_id == consts.ARCHER_ACTION_UPDATE_TICKET):
                 return self._handle_update_ticket(action_result, param)
-            elif (action_id == 'get_ticket'):
+            elif (action_id == consts.ARCHER_ACTION_GET_TICKET):
                 return self._handle_get_ticket(action_result, param)
-            elif (action_id == 'list_tickets'):
+            elif (action_id == consts.ARCHER_ACTION_LIST_TICKET):
                 return self._handle_list_tickets(action_result, param)
             elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
                 return self._handle_test_connectivity(action_result, param)
-            elif (action_id == 'on_poll'):
+            elif (action_id == consts.ARCHER_ACTION_ON_POLL):
                 return self._handle_on_poll(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            error_message = 'Exception during execution of archer action: {} and the error is: {}'.format(action_id, err)
+            error_message = consts.ARCHER_ERR_ACTION_EXECUTION.format(action_id, err)
             self.debug_print(error_message)
             return action_result.set_status(phantom.APP_ERROR, error_message)
 
