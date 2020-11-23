@@ -1108,12 +1108,12 @@
                 "start_time": {
                     "data_type": "numeric",
                     "order": 1,
-                    "description": "Start of time range, in epoch time (milliseconds). If not specified, the default is the past_days setting of the App"
+                    "description": "Parameter ignored for this app"
                 },
                 "end_time": {
                     "data_type": "numeric",
                     "order": 2,
-                    "description": "End of time range, in epoch time (milliseconds)  If not specified, the default is now"
+                    "description": "Parameter ignored for this app"
                 },
                 "container_count": {
                     "data_type": "numeric",
