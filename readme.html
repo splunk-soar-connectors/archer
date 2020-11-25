@@ -1,7 +1,7 @@
 <!--
 File: readme.html
 
-Copyright (c) 2016-2018 Splunk Inc.
+Copyright (c) 2016-2020 Splunk Inc.
 
 SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 without a valid written license from Splunk Inc. is PROHIBITED.
@@ -36,3 +36,22 @@ When done, your mapping will take the names of Archer fields and map them into t
 Certain field types and attachments from Archer are not currently supported.
 
 If a field is specified both in the cef_mapping and in the excluded fields list, the field will be excluded and not ingested.
+
+<h3>Scheduled | Interval polling</h3>
+    
+<ul>
+    <li>During scheduled | interval polling, for the first run, the app will start from the first record and will ingest a maximum of 100 records per poll. Then it remembers the last page and content id and stores it in the state file against the key 'last_page' & 'max_content_id'. For the following scheduled ingestions, it will consider the last_page stored in the state file and will ingest the next 100 records based on the provided Application.</li>
+</ul>
+
+<h3>Manual polling</h3>
+
+<ul>
+    <li>During manual polling, the app will start from the recently created record and will ingest up to the number of records specified in the 'Maximum containers' parameter.</li>
+</ul>
+
+<h3> Explanation of the <b>[User's Domain]</b> asset configuration parameter</h3>
+<ul>
+    <li>This asset configuration parameter affects [test connectivity] and all the other actions of the application.</li>
+    <li>When the value of this asset parameter is specified, the application will consider the user specified in the asset parameter [username] as the domain user of a given domain, and all the actions will be executed with the domain user session token created while running the action.</li>
+    <li>The user will be considered as a local user when the value of this parameter is not present. And if the local user attempts to change/add any of the field value(fields that expect the username value) with the domain user, then the action will fail because it requires a domain user session token to look up the domain user. And this token is generated only if the test connectivity is successfully run by the domain user.</li>
+</ul>

@@ -1,7 +1,7 @@
 # --
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2018 Splunk Inc.
+# Copyright (c) 2016-2020 Splunk Inc.
 #
 # SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
@@ -10,7 +10,7 @@
 
 import requests
 from lxml import etree
-from cStringIO import StringIO
+from io import BytesIO
 from bs4 import UnicodeDammit
 
 SOAPNS = 'http://schemas.xmlsoap.org/soap/envelope/'
@@ -35,18 +35,24 @@ DEBUG = False
 
 
 class ArcherSOAP(object):
-    def __init__(self, host, username, password, instance, session=None, verify_cert=True):
+    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None, pythonVersion=2):
         self.base_uri = host + '/ws'
         self.username = username
         self.password = password
         self.instance = instance
         self.session = session
         self.verify_cert = verify_cert
+        self.users_domain = usersDomain
+        self.python_version = pythonVersion
         if not session:
             self._authenticate()
 
     def _authenticate(self):
         doc, body = self._generate_xml_stub()
+
+        if self.users_domain:
+            return self._domain_user_authenticate()
+
         n = etree.SubElement(
             body, 'CreateUserSessionFromInstance', nsmap=ARCHER_MAP)
         un = etree.SubElement(n, 'userName')
@@ -59,6 +65,28 @@ class ArcherSOAP(object):
         sess_root = sess_doc.getroot()
         result = sess_root.xpath(
             '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
+        if result:
+            self.session = result[0].text
+            return
+        raise Exception('Failed to authenticate to Archer web services')
+
+    def _domain_user_authenticate(self):
+        doc, body = self._generate_xml_stub()
+
+        n = etree.SubElement(
+            body, 'CreateDomainUserSessionFromInstance', nsmap=ARCHER_MAP)
+        un = etree.SubElement(n, 'userName')
+        un.text = self.username
+        inn = etree.SubElement(n, 'instanceName')
+        inn.text = self.instance
+        p = etree.SubElement(n, 'password')
+        p.text = self.password
+        p = etree.SubElement(n, 'usersDomain')
+        p.text = self.users_domain
+        sess_doc = self._do_request(self.base_uri + '/general.asmx', doc)
+        sess_root = sess_doc.getroot()
+        result = sess_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:CreateDomainUserSessionFromInstanceResponse/dummy:CreateDomainUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
         if result:
             self.session = result[0].text
             return
@@ -101,6 +129,25 @@ class ArcherSOAP(object):
             return int(result[0].text)
         return
 
+    def find_domain_user(self, username):
+        if not self.session:
+            raise Exception('No session')
+        doc, body = self._generate_xml_stub()
+        lu = etree.SubElement(body, 'LookupDomainUserId', nsmap=ARCHER_MAP)
+        to = etree.SubElement(lu, 'sessionToken')
+        to.text = self.session
+        u = etree.SubElement(lu, 'username')
+        u.text = username
+        u = etree.SubElement(lu, 'usersDomain')
+        u.text = self.users_domain
+        resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
+        resp_root = resp_doc.getroot()
+        result = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:LookupDomainUserIdResponse/dummy:LookupDomainUserIdResult', namespaces=ALL_NS_MAP)
+        if result:
+            return int(result[0].text)
+        return
+
     def find_records(self, mod_id, mod_name, key_id, key_name, value, filter_type='text', max_count=1000, fields=None, comparison='Equals', sort=None, page=1):
         if not self.session:
             raise Exception('No session')
@@ -120,7 +167,7 @@ class ArcherSOAP(object):
         ps = etree.SubElement(sr, 'PageSize')
         ps.text = str(max_count)
         dfs = etree.SubElement(sr, 'DisplayFields')
-        for field_id, field_name in fields.iteritems():
+        for field_id, field_name in list(fields.items()):
             df = etree.SubElement(dfs, 'DisplayField')
             df.text = str(field_id)
             df.set('name', UnicodeDammit(field_name).unicode_markup.encode(
@@ -170,7 +217,7 @@ class ArcherSOAP(object):
         if not result:
             return []
 
-        r_io = StringIO(result[0].text.encode('UTF8'))
+        r_io = BytesIO(result[0].text.encode('UTF8'))
         xmlp = etree.XMLParser(encoding='utf-8')
         search_result = etree.parse(r_io, parser=xmlp)
         return search_result.xpath('/Records/Record')
@@ -219,12 +266,21 @@ class ArcherSOAP(object):
         #    mv = etree.SubElement(f, 'MultiValue')
         #    mv.set('value', str(v))
 
+    def user_field(self, field, parent):
+        f = etree.SubElement(parent, 'Field')
+        f.set('id', str(field['id']))
+        u = etree.SubElement(f, 'Users')
+        uid = etree.SubElement(u, 'User')
+        uid.set('id', str(field['value']))
+
     def get_field_map(self):
         type_formatter_map = {}
         for i in (1, 2, 3, 19):
             type_formatter_map[i] = self.plain_field
         for i in (4, 9, 18):
             type_formatter_map[i] = self.mv_field
+        for i in (8,):
+            type_formatter_map[i] = self.user_field
         return type_formatter_map
 
     def update_record(self, content_id, module_id, fields):
@@ -313,7 +369,7 @@ class ArcherSOAP(object):
             }
             response = requests.post(
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            r_io = StringIO(response.text.encode('UTF8'))
+            r_io = BytesIO(response.text.encode('UTF8'))
             resp_doc = etree.parse(r_io)
             return resp_doc
         raise ValueError('Invalid Method')

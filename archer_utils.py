@@ -1,7 +1,7 @@
 # --
 # File: archer_utils.py
 #
-# Copyright (c) 2016-2018 Splunk Inc.
+# Copyright (c) 2016-2020 Splunk Inc.
 #
 # SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
@@ -19,6 +19,7 @@ import functools
 import xmltodict
 import requests
 from lxml import etree
+from bs4 import UnicodeDammit
 
 from archer_soap import ArcherSOAP
 
@@ -29,10 +30,10 @@ last_message_length = 0
 def W(msg):
     """Console-based status updater."""
     global last_message_length
-    sys.stderr.write(u'\b' * last_message_length)
-    sys.stderr.write(u' ' * last_message_length)
-    sys.stderr.write(u'\b' * last_message_length)
-    msg = u'--[ {}'.format(msg.strip())
+    sys.stderr.write('\b' * last_message_length)
+    sys.stderr.write(' ' * last_message_length)
+    sys.stderr.write('\b' * last_message_length)
+    msg = '--[ {}'.format(msg.strip())
     last_message_length = len(msg)
     sys.stderr.write(msg)
 
@@ -74,7 +75,7 @@ class ArcherAPISession(object):
     sessionTimeout = 60  # Generate a new token after this much time unused
     BLACKLIST_TYPES = (24, 25)
 
-    def __init__(self, base_url, userName, password, instanceName):
+    def __init__(self, base_url, userName, password, instanceName, pythonVerison, usersDomain):
         """Initializes an API session.
 
             base, a string: base endpoint for the Archer APIs.  E.g.,
@@ -96,10 +97,63 @@ class ArcherAPISession(object):
                                   'q=0.9,*/*;q=0.8',
                         'Content-Type': 'application/json'}
         self.asoap = None
+        self.python_version = pythonVerison
+        self.users_domain = usersDomain
+
+    def _handle_py_ver_compat_for_input_str(self, input_str):
+        """
+        This method returns the encoded|original string based on the Python version.
+        :param input_str: Input string to be processed
+        :return: input_str (Processed input string based on following logic 'input_str - Python 3; encoded input_str - Python 2')
+        """
+
+        try:
+            if input_str and self.python_version == 2:
+                input_str = UnicodeDammit(input_str).unicode_markup.encode('utf-8')
+        except:
+            W("Error occurred while handling python 2to3 compatibility for the input string")
+
+        return input_str
+
+    def _get_error_message_from_exception(self, e):
+        """ This method is used to get appropriate error message from the exception.
+        :param e: Exception object
+        :return: error message
+        """
+
+        try:
+            if e.args:
+                if len(e.args) > 1:
+                    error_code = e.args[0]
+                    error_msg = e.args[1]
+                elif len(e.args) == 1:
+                    error_code = "Error code unavailable"
+                    error_msg = e.args[0]
+            else:
+                error_code = "Error code unavailable"
+                error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+        except:
+            error_code = "Error code unavailable"
+            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+
+        try:
+            error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
+        except TypeError:
+            error_msg = "Error occurred while connecting to the Archer server. Please check the asset configuration and|or the action parameters."
+        except:
+            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+
+        if error_code in "Error code unavailable":
+            error_text = "Error Message: {0}".format(error_msg)
+        else:
+            error_text = "Error Code: {0}. Error Message: {1}".format(error_code, error_msg)
+
+        return error_text
 
     def get_token(self):
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
+                         usersDomain=self.users_domain, pythonVersion=self.python_version)
         return self.asoap.session
 
     def _rest_call(self, ep, meth='GET', data={}):
@@ -124,8 +178,7 @@ class ArcherAPISession(object):
         """
         W('Getting fieldId for {} in record {}'.format(fname, cid))
         j = json.loads(self._rest_call('/api/core/content/{}'.format(cid)))
-        if not('RequestedObject' in j and
-               'FieldContents' in j['RequestedObject']):
+        if not('RequestedObject' in j and 'FieldContents' in j['RequestedObject']):
             return None
         for fid in j['RequestedObject']['FieldContents']:
             j2 = json.loads(self._rest_call(
@@ -225,6 +278,13 @@ class ArcherAPISession(object):
             return None
         return j['RequestedObject']['Id']
 
+    def concatenate_list_data(self, fv_list):
+        """Concatenates list values and create string"""
+        result = ''
+        for element in fv_list:
+            result += str(element)
+        return result
+
     @memoize
     def get_field_details(self, fieldId):
         """Returns details about the field with the given ID."""
@@ -235,22 +295,26 @@ class ArcherAPISession(object):
     def get_content_id(self, app, field_name, field_value):
         try:
             fid = int(field_name)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
             except Exception as e:
-                raise Exception('Failed to find field "{}" in "{}": {}'.format(field_name, app, str(e)))
+                err = self._get_error_message_from_exception(e)
+                raise Exception('Failed to find field "{}" in "{}": {}'.format(field_name, app, err))
         modid = self.get_moduleid(app)
 
         if not field_value:
             raise TypeError('Either content id or Tracking ID field and record name are required')
         fv = filter(lambda x: x.isdigit(), field_value)
+        if self.python_version == 3:
+            fv = self.concatenate_list_data(list(fv))
         if not fv:
             return None
         fv = int(fv)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
         # should only get one
         if records:
@@ -287,10 +351,18 @@ class ArcherAPISession(object):
             return {'value_id': vlval, 'other_text': othertext}
         if fld['Type'] == 8:
             if not self.asoap:
-                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken, verify_cert=self.verifySSL)
+                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
+                         verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
             uid = self.asoap.find_user(value)
             if not uid:
-                raise Exception('Failed to find user "{}"'.format(value))
+                W("User not found in local user search")
+                duid = self.asoap.find_domain_user(value)
+                if not duid:
+                    W("User not found in domain user search")
+                    raise Exception('Failed to find user "{}"'.format(value))
+                W("Domain User ID: {}".format(duid))
+                return duid
+            W("User ID: {}".format(uid))
             return uid
         W('Valufying "{}" as cross-reference field {}'.format(value, fld))
         try:
@@ -337,6 +409,14 @@ class ArcherAPISession(object):
             return None
         return [x['RequestedObject'] for x in j]
 
+    def get_value(self, value):
+        """
+        Returns value as per the returned datatype
+        """
+        if isinstance(value, int):
+            return value
+        return UnicodeDammit(value).unicode_markup.lower()
+
     def get_valueslistvalue_id(self, vlid, value):
         """Returns (ValueId,OtherText) for the given value in the given
             valuelist, matched by Name/Alias/NumericValue/Description/ID.  If
@@ -352,13 +432,13 @@ class ArcherAPISession(object):
         lval = str(value).lower()
         for v in values:
             W('Comparing {} and {}'.format(lval, v))
-            if lval in (unicode(v[x]).lower() for x in match_flds if v[x]):
+            if lval in (self.get_value(v[x]) for x in match_flds if v[x]):
                 return v['Id'], None
         if ':' in value:
             vname, vval = value.split(':', 1)
             vname = vname.lower()
             for other in (x for x in values if x['EnableOtherText']):
-                if vname in (unicode(other[x]).lower() for x in match_flds
+                if vname in (self.get_value(other[x]) for x in match_flds
                              if other[x]):
                     return other['Id'], vval
         W('No valueslistvalue found for vlid:{} and value:{}'.format(
@@ -396,13 +476,14 @@ class ArcherAPISession(object):
                 else:
                     W('unable to parse field {}, type {}: {}'.format(f['RequestedObject']['Name'], f['RequestedObject']['Type'], json.dumps(f)))
             except Exception as e:
-                W('Failed to parse: {}: {}'.format(f, str(e)))
+                err = self._get_error_message_from_exception(e)
+                W('Failed to parse: {}: {}'.format(f, err))
         return fields
 
     def get_records(self, app, field_name, value, max_count, mid, fid, fields, comparison=None, sort=None, page=1):
         records = []
 
-        num_iterations = max_count / 1000
+        num_iterations = max_count // 1000
         rem_count = max_count % 1000
         if rem_count != 0:
             num_iterations = num_iterations + 1
@@ -432,21 +513,24 @@ class ArcherAPISession(object):
 
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
+        err = ""
 
         try:
             fid = int(field_name)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
             except Exception as e:
+                err = self._get_error_message_from_exception(e)
                 pass
         if field_name and value and not fid:
-            raise Exception('Failed to find field "{}" in "{}": {}'.format(field_name, app, str(e)))
+            raise Exception('Failed to find field "{}" in "{}": {}'.format(field_name, app, err))
         mid = self.get_moduleid(app)
         fields = self._get_field_id_map(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(), verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(),
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
 
         records = self.get_records(app, field_name, value, max_count, mid, fid, fields, comparison, sort, page)
         if not records:
@@ -492,7 +576,8 @@ class ArcherAPISession(object):
                             f['#text'] = None
                         new_fields.append(f)
                 except Exception as e:
-                    W('Failed to parse {}: {}'.format(f, str(e)))
+                    err = self._get_error_message_from_exception(e)
+                    W('Failed to parse {}: {}'.format(f, err))
             r['Field'] = new_fields
 
         return records
@@ -503,17 +588,21 @@ class ArcherAPISession(object):
         moduleId = self.get_moduleid(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         data = self.asoap.get_record(contentId, moduleId)
 
         rec_dict = xmltodict.parse(data) or {}
 
         rec_dict['@moduleId'] = moduleId
         rec_dict['@contentId'] = contentId
+        empty_name_count = 0
         for i, field in enumerate(rec_dict['Record']['Field']):
             try:
                 field_type = int(field.get('@type'))
                 field['@name'] = fields.get(int(field.get('@id')))
+                if field['@name'] is None:
+                    empty_name_count += 1
                 if field.get('@value', '').startswith('<p>'):
                     field['@value'] = field['@value'][3:-4]
                 if field_type in self.BLACKLIST_TYPES:
@@ -526,7 +615,12 @@ class ArcherAPISession(object):
                         value_list.add(field.get('@value'))
                         field['multi_value'] = list(value_list)
             except Exception as e:
-                    W('Failed to parse {}: {}'.format(field, str(e)))
+                err = self._get_error_message_from_exception(e)
+                W('Failed to parse {}: {}'.format(field, err))
+        # All name fields should not be None for valid record
+        if empty_name_count == len(rec_dict['Record']['Field']):
+            W('Failed to get name field. Check input parameters')
+            raise Exception('Failed to get name field. Check input parameters')
         return rec_dict
 
     def create_record(self, app, data={}):
@@ -550,19 +644,21 @@ class ArcherAPISession(object):
                 ftype = int(f['RequestedObject']['Type'])
                 field_data[f['RequestedObject']['Name']] = {'id': int(f['RequestedObject']['Id']), 'type': ftype}
             except Exception as e:
-                W('Failed to parse: {}: {}'.format(f, str(e)))
-        for field, value in data.items():
+                err = self._get_error_message_from_exception(e)
+                W('Failed to parse: {}: {}'.format(f, err))
+        for field, value in list(data.items()):
             fd = field_data.get(field)
             if not fd:
                 raise Exception('Could not identify field {}'.format(field))
             value = self.get_valuesetvalue_of_field(fd['id'], value)
 
-            field = { 'value': value, }
+            field = {'value': value}
             field.update(fd)
             fields.append(field)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         cid = self.asoap.create_record(moduleId, fields)
         return cid
 
@@ -584,7 +680,7 @@ class ArcherAPISession(object):
 
             TODO: accept multiple field/value pairs for efficiency
         """
-        W(u'In update_record({}, {}, {})'.format(contentId, fieldId, value))
+        W('In update_record({}, {}, {})'.format(contentId, fieldId, value))
         try:
             fieldId = int(fieldId)
             W('fieldId is integer, using as-is: {}'.format(fieldId))
@@ -605,13 +701,16 @@ class ArcherAPISession(object):
         moduleId = self.get_moduleid(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
+                     pythonVersion=self.python_version)
         field = {
            'id': fieldId,
            'type': fieldType,
            'value': value
         }
-        W(u'Updating to value: {}'.format(value))
+        W('Updating to value: {}'.format(value))
+        W('Updating to id: {}'.format(fieldId))
+        W('Updating to type: {}'.format(fieldType))
         data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)
