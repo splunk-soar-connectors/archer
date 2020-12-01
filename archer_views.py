@@ -1,15 +1,12 @@
 # --
 # File: archer_views.py
 #
-# Copyright (c) 2016-2018 Splunk Inc.
+# Copyright (c) 2016-2020 Splunk Inc.
 #
 # SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
 #
 # --
-
-from django.http import HttpResponse
-import json
 
 
 def get_ticket(provides, all_results, context):
@@ -24,7 +21,7 @@ def get_ticket(provides, all_results, context):
             data = result.get_data()
             if data:
                 data = data[0]['Record']['Field']
-            rec['record'] = sorted(data, key=lambda x: x['@name'])
+            rec['record'] = sorted(data, key=lambda x: (x['@name'] is not None, x['@name']))
             rec['content_id'] = result.get_summary().get(
                 'content_id', 'Not provided')
             results.append(rec)
@@ -35,6 +32,7 @@ def get_ticket(provides, all_results, context):
 def list_tickets(provides, all_results, context):
 
     headers = ['application', 'content id']
+    context['results'] = results = []
 
     headers_set = set()
     for summary, action_results in all_results:
@@ -46,22 +44,13 @@ def list_tickets(provides, all_results, context):
         headers_set.update(headers)
     headers.extend(sorted(headers_set))
 
-    context['ajax'] = True
-    if 'start' not in context['QS']:
-        context['headers'] = headers
-        return '/widgets/generic_table.html'
+    final_result = {'headers': headers, 'data': []}
 
-    start = int(context['QS']['start'][0])
-    length = int(context['QS'].get('length', ['5'])[0])
-    end = start + length
-    rows = []
-    total = 0
     dyn_headers = headers[2:]
     for summary, action_results in all_results:
         for result in action_results:
             data = result.get_data()
             param = result.get_param()
-            total += len(data)
             for item in data:
                 row = []
                 row.append({'value': param.get('application'),
@@ -78,11 +67,7 @@ def list_tickets(provides, all_results, context):
                                     'contains': ['ip']})
                     else:
                         row.append({'value': name_value.get(h, '')})
-                rows.append(row)
+                final_result['data'].append(row)
 
-    content = {
-        "data": rows[start:end],
-        "recordsTotal": total,
-        "recordsFiltered": total,
-    }
-    return HttpResponse(json.dumps(content), content_type='text/javascript')
+    results.append(final_result)
+    return 'list_tickets.html'

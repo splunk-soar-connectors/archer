@@ -12,7 +12,7 @@
 <!--
 File: get_ticket.html
 
-Copyright (c) 2016-2018 Splunk Inc.
+Copyright (c) 2016-2020 Splunk Inc.
 
 SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 without a valid written license from Splunk Inc. is PROHIBITED.
@@ -103,7 +103,7 @@ a:hover {
 <tr>
   <td><b>{{ result.parameters.name_field }}</b></td>
   <td>
-    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer user-friendly id'], 'value':'{{ result.parameters.name_value }}' }], 0, {{ container.id }}, null, false);">
+    <a href="javascript:;" onclick="context_menu(this, [{'contains':['archer user friendly id'], 'value':'{{ result.parameters.name_value }}' }], 0, {{ container.id }}, null, false);">
     {{ result.parameters.name_value }}
     &nbsp;<span class="fa fa-caret-down" style="font-size: smaller;"></span>
     </a>

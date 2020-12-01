@@ -1,7 +1,7 @@
 # --
 # File: archer_connector.py
 #
-# Copyright (c) 2016-2018 Splunk Inc.
+# Copyright (c) 2016-2020 Splunk Inc.
 #
 # SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
@@ -14,11 +14,16 @@ import phantom.app as phantom
 from phantom.base_connector import BaseConnector
 from phantom.action_result import ActionResult
 
+# Imports local to this App
+import archer_consts as consts
+
+import sys
 import os
 import json
 import fcntl
 import requests
 import archer_utils
+from bs4 import UnicodeDammit
 
 
 class ArcherConnector(BaseConnector):
@@ -33,7 +38,7 @@ class ArcherConnector(BaseConnector):
             time.)
         """
         super(ArcherConnector, self).__init__()
-        self.file_ = 'last_record_{}.txt'.format(self.get_asset_id())
+        self.file_ = consts.ARCHER_LAST_RECORD_FILE.format(self.get_asset_id())
         self.latest_time = 0
         self.proxy = None
         if isinstance(self.get_app_config(), dict):
@@ -51,11 +56,68 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
+
+        # Fetching the Python major version
+        try:
+            self._python_version = int(sys.version_info[0])
+        except:
+            return self.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_PYTHON_MAJOR_VERSION)
+
         return phantom.APP_SUCCESS
 
     def finalize(self):
         self.save_state(self._state)
         return phantom.APP_SUCCESS
+
+    def _handle_py_ver_compat_for_input_str(self, input_str):
+        """
+        This method returns the encoded|original string based on the Python version.
+        :param input_str: Input string to be processed
+        :return: input_str (Processed input string based on following logic 'input_str - Python 3; encoded input_str - Python 2')
+        """
+
+        try:
+            if input_str and self._python_version == 2:
+                input_str = UnicodeDammit(input_str).unicode_markup.encode('utf-8')
+        except:
+            self.debug_print("Error occurred while handling python 2to3 compatibility for the input string")
+
+        return input_str
+
+    def _get_error_message_from_exception(self, e):
+        """ This method is used to get appropriate error message from the exception.
+        :param e: Exception object
+        :return: error message
+        """
+
+        try:
+            if e.args:
+                if len(e.args) > 1:
+                    error_code = e.args[0]
+                    error_msg = e.args[1]
+                elif len(e.args) == 1:
+                    error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
+                    error_msg = e.args[0]
+            else:
+                error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
+                error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
+        except:
+            error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
+            error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
+
+        try:
+            error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
+        except TypeError:
+            error_msg = consts.ARCHER_UNICODE_DAMMIT_TYPE_ERR_MESSAGE
+        except:
+            error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
+
+        if error_code in consts.ARCHER_ERR_CODE_UNAVAILABLE:
+            error_text = consts.ARCHER_ERR_MESSAGE.format(error_msg)
+        else:
+            error_text = consts.ARCHER_ERR_CODE_MESSAGE.format(error_code, error_msg)
+
+        return error_text
 
     def _handle_on_poll(self, action_result, param):
         """Handles 'on_poll' ingest actions"""
@@ -65,19 +127,20 @@ class ArcherConnector(BaseConnector):
         config = self.get_config()
 
         if 'cef_mapping' not in config:
-            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping is required for ingestion. Please add CEF mapping to the asset config.')
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_CEF_MAPPING_REQUIRED)
             return action_result.get_status()
 
         try:
             cef_mapping = json.loads(config.get('cef_mapping'))
         except Exception as e:
-            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(str(e)))
+            err = self._get_error_message_from_exception(e)
+            action_result.set_status(phantom.APP_ERROR, 'CEF Mapping JSON is not valid: {}'.format(err))
             return action_result.get_status()
 
-        cef_mapping = dict( [ (k.lower(), v) for k, v in cef_mapping.iteritems() ])
+        cef_mapping = dict([(k.lower(), v) for k, v in list(cef_mapping.items())])
 
         if not cef_mapping.get('application'):
-            action_result.set_status(phantom.APP_ERROR, 'Application not provided in CEF Mapping (use key: "application")')
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_APPLICATION_NOT_PROVIDED)
             return action_result.get_status()
 
         application = cef_mapping.pop('application')
@@ -85,13 +148,21 @@ class ArcherConnector(BaseConnector):
         state = self._state.get(application, {})
         max_content_id = state.get('max_content_id', -1)
         last_page = state.get('last_page', 1)
-        max_records = min(self.POLLING_PAGE_SIZE, param['container_count'])
+        max_records = self.POLLING_PAGE_SIZE
+        sort_type = consts.ARCHER_SORT_TYPE_ASCENDING
+
+        if self.is_poll_now():
+            max_content_id = 0
+            last_page = 1
+            max_records = param['container_count']
+            sort_type = consts.ARCHER_SORT_TYPE_DESCENDING
+
         self.save_progress('Polling Archer for {} new records after {}...'.format(
                max_records, max_content_id))
         proxy = self._get_proxy()
 
         if not cef_mapping.get('tracking'):
-            action_result.set_status(phantom.APP_ERROR, 'Tracking ID Field name not provided in CEF Mapping (use key: "tracking")')
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_TRACKING_ID_NOT_PROVIDED)
             return action_result.get_status()
         tracking_id_field = cef_mapping.pop('tracking')
 
@@ -99,7 +170,7 @@ class ArcherConnector(BaseConnector):
         max_ingested_id = max_content_id
         proxy.excluded_fields = [ x.lower().strip() for x in config.get('exclude_fields', '').split(',') ]
         while completed_records < max_records:
-            records = proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort='Ascending', page=last_page)
+            records = proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort=sort_type, page=last_page)
             nrecs = len(records)
             if not records:
                 break
@@ -109,7 +180,7 @@ class ArcherConnector(BaseConnector):
                 if content_id <= max_content_id:
                     continue
                 self.send_progress('On record {}/{}...'.format(i + 1, nrecs))
-                record_name = 'Record Name not found'
+                record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
 
                 cef = {}
                 for field in rec.get('Field', []):
@@ -171,11 +242,15 @@ class ArcherConnector(BaseConnector):
                 completed_records += 1
                 if completed_records >= max_records:
                     break
-            if completed_records < max_records:
+
+            if nrecs < self.POLLING_PAGE_SIZE:
+                break
+            else:
                 last_page += 1
 
         self.save_progress('Ingested {} records'.format(completed_records))
-        self._state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
+        if not self.is_poll_now():
+            self._state[application] = {'max_content_id': max_ingested_id, 'last_page': last_page}
         self.save_progress('Import complete.')
         action_result.set_status(phantom.APP_SUCCESS, 'Import complete')
         return action_result.get_status()
@@ -197,16 +272,17 @@ class ArcherConnector(BaseConnector):
         return (self.get_config().get('endpoint_url'),
                 self.get_config().get('username'),
                 self.get_config().get('password'),
-                self.get_config().get('instance_name'))
+                self.get_config().get('instance_name'),
+                self.get_config().get('domain'))
 
     def _get_proxy(self):
         """Returns an archer_utils.ArcherAPISession object."""
         if not self.proxy:
-            ep, user, pwd, instance = self._get_proxy_args()
+            ep, user, pwd, instance, users_domain = self._get_proxy_args()
             verify = self.get_config().get('verify_ssl')
             self.debug_print('New Archer API session at ep:{}, user:{}, '
                              'verify:{}'.format(ep, user, verify))
-            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance)
+            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, self._python_version, users_domain)
             self.proxy.verifySSL = verify
             archer_utils.W = self.debug_print
         return self.proxy
@@ -219,18 +295,21 @@ class ArcherConnector(BaseConnector):
             p = self._get_proxy()
             p.get_token()
         except Exception as e:
-            self.debug_print('Exception during archer test: {}'.format(e))
+            err = self._get_error_message_from_exception(e)
+            self.debug_print('Exception during archer test: {}'.format(err))
             self.save_progress('Archer login test failed')
             self.save_progress('Please provide correct URL and credentials')
-            return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed.')
+            return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
-        msg = 'Archer configuration test SUCCESS'
-        return self.set_status_save_progress(phantom.APP_SUCCESS, msg)
+        msg = consts.ARCHER_SUCC_CONFIGURATION
+        self.save_progress("Test connectivity passed")
+
+        return action_result.set_status(phantom.APP_SUCCESS, msg)
 
     def _container_to_archer(self, cid):
-        """Reads CEF fields from a container, returns a list of dicts with
+        """Reads CEF fields from a container, returns a list of dictionaries with
             key/value pairs to populate a new Archer record, where the
-            'module' key of each dict names the module/app within which to
+            'module' key of each dictionary names the module/app within which to
             create a new record.
         """
         self.save_progress('Fetching data for container {}'.format(cid))
@@ -238,7 +317,7 @@ class ArcherConnector(BaseConnector):
         if isinstance(c2as, dict):
             c2as = (c2as,)
         maps = [{'module': (c2a['module'],)} for c2a in c2as]
-        url = 'http://127.0.0.1/rest/container/{}'.format(cid)
+        url = consts.ARCHER_URL_FETCH_CONTAINER.format(cid)
         c = requests.get(url, verify=False).json()
         if 'failed' in c and c['failed']:
             raise Exception('Failed to get container: {}'.format(
@@ -252,14 +331,14 @@ class ArcherConnector(BaseConnector):
                     c2a[cfld], m.get(c2a[cfld], []), c[cfld]))
             m[c2a[cfld]] = m.get(c2a[cfld], []) + [c[cfld]]
         self.save_progress('Fetching artifacts for container')
-        url = 'http://127.0.0.1/rest/container/{}/artifacts{}'
+        url = consts.ARCHER_URL_FETCH_ARTIFACT_CONTAINER
         page = 1
         while True:
             get_page = page > 1 and '?page={}'.format(page) or ''
             self.debug_print('URL {}'.format(url.format(cid, get_page)))
             resp = requests.get(url.format(cid, get_page), verify=False).json()
             for r in resp['data']:
-                url2 = 'http://127.0.0.1/rest/artifact/{}'.format(r['id'])
+                url2 = consts.ARCHER_URL_FETCH_ARTIFACT.format(r['id'])
                 self.debug_print('URL {}'.format(url.format(cid, get_page)))
                 c = requests.get(url2, verify=False).json()
                 self.debug_print('Mapping Artifact {}'.format(c))
@@ -284,11 +363,11 @@ class ArcherConnector(BaseConnector):
 
             If it's an integer, then it's a container_id.  Use the Phantom
                 REST API to get CEF fields from the container.  Each asset
-                must have a config param mapping CEF<->Archer fields, and the
+                must have a config param mapping CEF<->Archer fields and the
                 new record is created with the data from the CEF fields of the
                 given container, populated into the appropriate Archer fields.
-                This mapping may be a list of JSON dicts instead of a single
-                dict, so that multiple 'module' keys may be specified and
+                This mapping may be a list of JSON dictionaries instead of a single
+                dictionary, so that multiple 'module' keys may be specified and
                 mapped to.
 
             Otherwise, if it's a native or JSON list, each item in the list is
@@ -304,44 +383,46 @@ class ArcherConnector(BaseConnector):
                 creation process will proceed even if some fields could not be
                 updated appropriately.
         """
-        self.save_progress(u'Processing data parameter...')
+        self.save_progress('Processing data parameter...')
 
-        json_string = param.get(u'json_string', '')
+        json_string = param.get('json_string', '')
         try:
             mapping = json.loads(json_string)
         except (ValueError, TypeError) as e:
-            msg = u'JSON field does not contain a valid JSON value'
+            msg = consts.ARCHER_ERR_VALID_JSON
             self.debug_print(msg)
-            action_result.set_status(phantom.APP_ERROR, msg, e)
+            err = self._get_error_message_from_exception(e)
+            action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
         if not isinstance(mapping, dict):
-            action_result.set_status(phantom.APP_ERROR, u'Invalid JSON string. Must be a dictionary containing key value pairs')
+            action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
             return action_result.get_status()
 
-        self.debug_print(u'Parsed data: {}'.format(mapping))
+        self.debug_print('Parsed data: {}'.format(mapping))
         proxy = self._get_proxy()
         if not isinstance(mapping, dict):
-            msg = u'Non-dict map: {}'.format(mapping)
+            msg = consts.ARCHER_ERR_NON_DICT.format(mapping)
             self.debug_print(msg)
-            action_result.set_status(phantom.APP_ERROR, msg, e)
+            action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
 
         app = param.get('application')
 
-        self.save_progress(u'Creating Archer record')
+        self.save_progress('Creating Archer record')
         try:
             cid = proxy.create_record(app, mapping)
         except Exception as e:
-            return action_result.set_status(phantom.APP_ERROR, u'Failed to create Archer record. Error: {0}'.format(str(e)))
+            err = self._get_error_message_from_exception(e)
+            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record {0}'.format(err))
 
         if cid:
-            self.save_progress(u'Created Archer record {}'.format(cid))
+            self.save_progress('Created Archer record {}'.format(cid))
             d = {'content_id': cid}
             action_result.add_data(d)
             action_result.update_summary(d)
             action_result.set_status(phantom.APP_SUCCESS, 'Created ticket')
         else:
-            action_result.set_status(phantom.APP_ERROR, u'Failed to create Archer record')
+            action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record')
             return action_result.get_status()
         return action_result.get_status()
 
@@ -376,18 +457,21 @@ class ArcherConnector(BaseConnector):
             action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
             return action_result.get_status()
 
-        try:
-            fid = int(fid)
-        except (ValueError, TypeError):
-            fid = proxy.get_fieldId_for_app_and_name(app, fid)
-
-        if not fid or type(fid) != int:
-            action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}.'.format(orig_fid))
+        if proxy.get_levelId_for_app(app) is None:
+            action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify application \'{}\''.format(app))
         else:
-            if proxy.update_record(app, cid, fid, value):
-                action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
+            try:
+                fid = int(fid)
+            except (ValueError, TypeError):
+                fid = proxy.get_fieldId_for_app_and_name(app, fid)
+
+            if not fid or type(fid) != int:
+                action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}.'.format(orig_fid))
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
+                if proxy.update_record(app, cid, fid, value):
+                    action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
+                else:
+                    action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
 
         return action_result.get_status()
 
@@ -419,15 +503,33 @@ class ArcherConnector(BaseConnector):
                 return action_result.get_status()
 
         action_result.update_summary({'content_id': cid})
-        record = proxy.get_record_by_id(app, cid)
 
-        if record:
-            action_result.add_data(record)
-            action_result.set_status(phantom.APP_SUCCESS, 'Ticket retrieved')
-        else:
-            action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket')
+        try:
+            record = proxy.get_record_by_id(app, cid)
+            if record:
+                action_result.add_data(record)
+                action_result.set_status(phantom.APP_SUCCESS, 'Ticket retrieved')
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket')
+        except:
+            action_result.set_status(phantom.APP_ERROR, 'Given content_id not found in \'{}\' application'.format(app))
 
         return action_result.get_status()
+
+    def _validate_integer(self, action_result, parameter, key, allow_zero=False):
+        """Handles non integer values and set appropriate status"""
+        if parameter is not None:
+            try:
+                if not float(parameter).is_integer() or isinstance(parameter, float):
+                    return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                parameter = int(parameter)
+            except:
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+            if parameter < 0:
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_NON_NEGATIVE.format(key)), None
+            if not allow_zero and parameter == 0:
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+        return phantom.APP_SUCCESS, parameter
 
     def _handle_list_tickets(self, action_result, param):
         """Handles 'list_tickets' actions"""
@@ -437,10 +539,9 @@ class ArcherConnector(BaseConnector):
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
 
-        try:
-            max_count = int(max_count)
-        except:
-            return action_result.set_status(phantom.APP_ERROR, 'Please provide a valid integer max_results value')
+        status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
+        if (phantom.is_fail(status)):
+            return action_result.get_status()
 
         if (search_field_name or search_value) and not (search_field_name and search_value):
             action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')
@@ -471,32 +572,32 @@ class ArcherConnector(BaseConnector):
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
         try:
-            if (action_id == 'create_ticket'):
+            if (action_id == consts.ARCHER_ACTION_CREATE_TICKET):
                 return self._handle_create_ticket(action_result, param)
-            elif (action_id == 'update_ticket'):
+            elif (action_id == consts.ARCHER_ACTION_UPDATE_TICKET):
                 return self._handle_update_ticket(action_result, param)
-            elif (action_id == 'get_ticket'):
+            elif (action_id == consts.ARCHER_ACTION_GET_TICKET):
                 return self._handle_get_ticket(action_result, param)
-            elif (action_id == 'list_tickets'):
+            elif (action_id == consts.ARCHER_ACTION_LIST_TICKET):
                 return self._handle_list_tickets(action_result, param)
             elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
                 return self._handle_test_connectivity(action_result, param)
-            elif (action_id == 'on_poll'):
+            elif (action_id == consts.ARCHER_ACTION_ON_POLL):
                 return self._handle_on_poll(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
-            error_message = 'Exception during execution of archer action: {} and the error is: {}'.format(action_id, e)
+            err = self._get_error_message_from_exception(e)
+            error_message = consts.ARCHER_ERR_ACTION_EXECUTION.format(action_id, err)
             self.debug_print(error_message)
             return action_result.set_status(phantom.APP_ERROR, error_message)
 
 
 if __name__ == '__main__':
-    import sys
     import pudb
     from traceback import format_exc
     pudb.set_trace()
     if (len(sys.argv) < 2):
-        print 'No test json specified as input'
+        print('No test json specified as input')
         exit(0)
     with open(sys.argv[1]) as f:
         in_json = f.read()
@@ -507,6 +608,6 @@ if __name__ == '__main__':
         try:
             ret_val = connector._handle_action(json.dumps(in_json), None)
         except:
-            print format_exc()
-        print (json.dumps(json.loads(ret_val), indent=4))
+            print(format_exc())
+        print(json.dumps(json.loads(ret_val), indent=4))
     exit(0)

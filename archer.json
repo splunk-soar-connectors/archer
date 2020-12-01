@@ -2,17 +2,21 @@
     "appid": "c4492201-fd2c-49d8-b38f-805b0967032f",
     "name": "RSA Archer",
     "description": "This app implements ticket management actions on RSA Archer GRC",
-    "publisher": "Phantom",
+    "publisher": "Splunk",
     "package_name": "phantom_archer",
     "type": "ticketing",
-    "license": "Copyright (c) 2016-2018 Splunk Inc.",
-    "main_module": "archer_connector.pyc",
-    "app_version": "1.0.51",
-    "utctime_updated": "2018-10-19T22:21:44.000000Z",
+    "license": "Copyright (c) 2016-2020 Splunk Inc.",
+    "main_module": "archer_connector.py",
+    "app_version": "2.0.2",
+    "latest_tested_versions": [
+        "On-premise RSA Archer v6.8, API version v5.5"
+    ],
+    "utctime_updated": "2020-11-25T14:28:30.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "3.5.210",
+    "min_phantom_version": "4.8.24304",
+    "python_version": "3",
     "logo": "logo_rsa.svg",
     "logo_dark": "logo_rsa_dark.svg",
     "configuration": {
@@ -43,20 +47,22 @@
         "verify_ssl": {
             "description": "Verify server certificate",
             "data_type": "boolean",
-            "order": 5,
-            "required": false
+            "order": 5
         },
         "cef_mapping": {
             "description": "CEF to Archer mapping",
             "data_type": "string",
-            "order": 6,
-            "required": false
+            "order": 6
         },
         "exclude_fields": {
             "description": "Fields to exclude (comma separated)",
             "data_type": "string",
-            "order": 7,
-            "required": false
+            "order": 7
+        },
+        "domain": {
+            "description": "User's Domain",
+            "data_type": "string",
+            "order": 8
         }
     },
     "actions": [
@@ -178,7 +184,7 @@
         {
             "action": "update ticket",
             "description": "Update the value of a field of a record",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.",
             "type": "generic",
             "identifier": "update_ticket",
             "read_only": false,
@@ -197,7 +203,6 @@
                     "data_type": "numeric",
                     "order": 1,
                     "description": "Content ID (Identifies the specific record)",
-                    "required": false,
                     "primary": true,
                     "contains": [
                         "archer content id"
@@ -206,17 +211,15 @@
                 "name_field": {
                     "data_type": "string",
                     "order": 2,
-                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
-                    "required": false
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")"
                 },
                 "name_value": {
                     "data_type": "string",
                     "order": 3,
                     "description": "Name of record (e.g. \"INC-1234\")",
-                    "required": false,
                     "primary": true,
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ]
                 },
                 "field_id": {
@@ -245,7 +248,7 @@
                     "column_name": "Archer Application",
                     "column_order": 0,
                     "data_path": "action_result.parameter.application",
-                    "data_type": "numeric",
+                    "data_type": "string",
                     "contains": [
                         "archer application"
                     ],
@@ -283,7 +286,7 @@
                     "data_path": "action_result.parameter.name_value",
                     "data_type": "string",
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ],
                     "example_values": [
                         "10009"
@@ -347,8 +350,8 @@
         {
             "action": "get ticket",
             "description": "Get ticket information",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all the three parameters are provided, content ID will be used as overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.",
-            "type": "generic",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.",
+            "type": "investigate",
             "identifier": "get_ticket",
             "read_only": true,
             "parameters": {
@@ -366,7 +369,6 @@
                     "data_type": "numeric",
                     "order": 2,
                     "description": "Content ID (Identifies the specific record)",
-                    "required": false,
                     "primary": true,
                     "contains": [
                         "archer content id"
@@ -375,17 +377,15 @@
                 "name_field": {
                     "data_type": "string",
                     "order": 3,
-                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
-                    "required": false
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")"
                 },
                 "name_value": {
                     "data_type": "string",
                     "order": 4,
                     "description": "Name of record (e.g. \"INC-1234\")",
-                    "required": false,
                     "primary": true,
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ]
                 }
             },
@@ -429,7 +429,7 @@
                     "data_path": "action_result.parameter.name_value",
                     "data_type": "string",
                     "contains": [
-                        "archer user-friendly id"
+                        "archer user friendly id"
                     ],
                     "example_values": [
                         "INC-10009"
@@ -437,7 +437,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.@contentId",
-                    "data_type": "string",
+                    "data_type": "numeric",
                     "contains": [
                         "archer content id"
                     ],
@@ -482,10 +482,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@height",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@id",
@@ -503,10 +500,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@parentId",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@type",
@@ -548,10 +542,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.@width",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Groups.Group.*.@desc",
@@ -589,6 +580,41 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@desc",
+                    "data_type": "string",
+                    "example_values": [
+                        "This group is the default for users with the IM: Solution Admin role."
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "1"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@name",
+                    "data_type": "string",
+                    "example_values": [
+                        "IM: Admin"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "1/18/2006 4:28:14 AM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Groups.Group.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "2"
+                    ]
+                },
+                {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.@id",
                     "data_type": "string",
                     "example_values": [
@@ -611,10 +637,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@parentId",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.@type",
@@ -660,10 +683,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@middleName",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.@updateDate",
@@ -709,10 +729,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.@value",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.Field.@id",
@@ -733,6 +750,45 @@
                     "data_type": "string",
                     "example_values": [
                         "Phoenix PD"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@firstName",
+                    "data_type": "string",
+                    "example_values": [
+                        "System"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@id",
+                    "data_type": "string",
+                    "example_values": [
+                        "206"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@lastName",
+                    "data_type": "string",
+                    "example_values": [
+                        "Administrator"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@middleName",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@updateDate",
+                    "data_type": "string",
+                    "example_values": [
+                        "10/6/2020 12:57:15 PM"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.Users.User.*.@updateLogin",
+                    "data_type": "string",
+                    "example_values": [
+                        "207"
                     ]
                 },
                 {
@@ -758,10 +814,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Users.User.@middleName",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Users.User.@updateDate",
@@ -779,10 +832,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.multi_value",
-                    "data_type": "string",
-                    "example_values": [
-                        ""
-                    ]
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.summary.content_id",
@@ -825,8 +875,8 @@
         {
             "action": "list tickets",
             "description": "Get a list of tickets in an application",
-            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
-            "type": "generic",
+            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
+            "type": "investigate",
             "identifier": "list_tickets",
             "read_only": true,
             "parameters": {
@@ -850,14 +900,12 @@
                 "name_field": {
                     "data_type": "string",
                     "order": 3,
-                    "description": "Name of field to search in (e.g. \"Incident ID\")",
-                    "required": false
+                    "description": "Name of field to search in (e.g. \"Incident ID\")"
                 },
                 "search_value": {
                     "data_type": "string",
                     "order": 4,
-                    "description": "Value to search for in this application",
-                    "required": false
+                    "description": "Value to search for in this application"
                 }
             },
             "output": [
@@ -881,7 +929,7 @@
                 },
                 {
                     "data_path": "action_result.parameter.max_results",
-                    "data_type": "string",
+                    "data_type": "numeric",
                     "example_values": [
                         100
                     ]
@@ -902,7 +950,7 @@
                 },
                 {
                     "data_path": "action_result.data.*.@contentId",
-                    "data_type": "string",
+                    "data_type": "numeric",
                     "contains": [
                         "archer content id"
                     ],
@@ -1052,7 +1100,7 @@
         {
             "action": "on poll",
             "description": "Callback action for the on_poll ingest functionality",
-            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then, and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
+            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
             "type": "ingest",
             "identifier": "on_poll",
             "read_only": true,
@@ -1060,12 +1108,12 @@
                 "start_time": {
                     "data_type": "numeric",
                     "order": 1,
-                    "description": "Start of time range, in epoch time (milliseconds). If not specified, the default is the past_days setting of the App."
+                    "description": "Parameter ignored for this app"
                 },
                 "end_time": {
                     "data_type": "numeric",
                     "order": 2,
-                    "description": "End of time range, in epoch time (milliseconds)  If not specified, the default is now"
+                    "description": "Parameter ignored for this app"
                 },
                 "container_count": {
                     "data_type": "numeric",
