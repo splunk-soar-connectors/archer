@@ -7,11 +7,11 @@
     "type": "ticketing",
     "license": "Copyright (c) 2016-2021 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "2.1.0",
+    "app_version": "2.1.1",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.9, API version v5.5"
     ],
-    "utctime_updated": "2020-11-25T14:28:30.000000Z",
+    "utctime_updated": "2021-07-23T08:39:35.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
