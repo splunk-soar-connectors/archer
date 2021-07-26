@@ -1,7 +1,7 @@
 # --
 # File: archer_consts.py
 #
-# Copyright (c) 2016-2020 Splunk Inc.
+# Copyright (c) 2016-2021 Splunk Inc.
 #
 # SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
@@ -20,10 +20,6 @@ ARCHER_SORT_TYPE_ASCENDING = "Ascending"
 ARCHER_SORT_TYPE_DESCENDING = "Descending"
 
 ARCHER_LAST_RECORD_FILE = "last_record_{}.txt"
-
-ARCHER_URL_FETCH_ARTIFACT_CONTAINER = "http://127.0.0.1/rest/container/{}/artifacts{}"
-ARCHER_URL_FETCH_CONTAINER = "http://127.0.0.1/rest/container/{}"
-ARCHER_URL_FETCH_ARTIFACT = "http://127.0.0.1/rest/artifact/{}"
 
 ARCHER_ERR_PYTHON_MAJOR_VERSION = "Error occurred while getting the Phantom server's Python major version"
 ARCHER_ERR_CODE_UNAVAILABLE = "Error code unavailable"

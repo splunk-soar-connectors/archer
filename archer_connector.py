@@ -1,7 +1,7 @@
 # --
 # File: archer_connector.py
 #
-# Copyright (c) 2016-2020 Splunk Inc.
+# Copyright (c) 2016-2021 Splunk Inc.
 #
 # SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
 # without a valid written license from Splunk Inc. is PROHIBITED.
@@ -21,7 +21,6 @@ import sys
 import os
 import json
 import fcntl
-import requests
 import archer_utils
 from bs4 import UnicodeDammit
 
@@ -305,56 +304,6 @@ class ArcherConnector(BaseConnector):
         self.save_progress("Test connectivity passed")
 
         return action_result.set_status(phantom.APP_SUCCESS, msg)
-
-    def _container_to_archer(self, cid):
-        """Reads CEF fields from a container, returns a list of dictionaries with
-            key/value pairs to populate a new Archer record, where the
-            'module' key of each dictionary names the module/app within which to
-            create a new record.
-        """
-        self.save_progress('Fetching data for container {}'.format(cid))
-        c2as = json.loads(self.get_config().get('cef_mapping'))
-        if isinstance(c2as, dict):
-            c2as = (c2as,)
-        maps = [{'module': (c2a['module'],)} for c2a in c2as]
-        url = consts.ARCHER_URL_FETCH_CONTAINER.format(cid)
-        c = requests.get(url, verify=False).json()
-        if 'failed' in c and c['failed']:
-            raise Exception('Failed to get container: {}'.format(
-                    'message' in c and c['message'] or 'unknown reason'))
-        self.debug_print('Mapping Container {}'.format(c))
-        for m, c2a, cfld in ((maps[i], c2a, x) for i, c2a in enumerate(c2as)
-                             for x in c if x in c2a):
-            self.debug_print('Container[{}] <-> Archer/{}[{}]'.format(
-                    cfld, m['module'], c2a[cfld]))
-            self.debug_print('m[{}] = {} + [{}]'.format(
-                    c2a[cfld], m.get(c2a[cfld], []), c[cfld]))
-            m[c2a[cfld]] = m.get(c2a[cfld], []) + [c[cfld]]
-        self.save_progress('Fetching artifacts for container')
-        url = consts.ARCHER_URL_FETCH_ARTIFACT_CONTAINER
-        page = 1
-        while True:
-            get_page = page > 1 and '?page={}'.format(page) or ''
-            self.debug_print('URL {}'.format(url.format(cid, get_page)))
-            resp = requests.get(url.format(cid, get_page), verify=False).json()
-            for r in resp['data']:
-                url2 = consts.ARCHER_URL_FETCH_ARTIFACT.format(r['id'])
-                self.debug_print('URL {}'.format(url.format(cid, get_page)))
-                c = requests.get(url2, verify=False).json()
-                self.debug_print('Mapping Artifact {}'.format(c))
-                for m, c2a, cfld in ((maps[i], c2a, x)
-                                     for i, c2a in enumerate(c2as)
-                                     for x in c['cef'] if x in c2a):
-                    self.debug_print(
-                            'Container["cef"][{}] <-> Archer/{}[{}]'.format(
-                                    cfld, m['module'], c2a[cfld]))
-                    self.debug_print('m[{}] = {} + [{}]'.format(
-                            c2a[cfld], m.get(c2a[cfld], []), c['cef'][cfld]))
-                    m[c2a[cfld]] = m.get(c2a[cfld], []) + [c['cef'][cfld]]
-            if resp['num_pages'] <= page:
-                break
-            page += 1
-        return [{x: ', '.join(m[x]) for x in m} for m in maps]
 
     def _handle_create_ticket(self, action_result, param):
         """Handles 'create_ticket' actions.
