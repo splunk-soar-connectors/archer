@@ -153,7 +153,7 @@ class ArcherConnector(BaseConnector):
         if self.is_poll_now():
             max_content_id = 0
             last_page = 1
-            max_records = param['container_count']
+            max_records = param.get('container_count')
             sort_type = consts.ARCHER_SORT_TYPE_DESCENDING
 
         self.save_progress('Polling Archer for {} new records after {}...'.format(

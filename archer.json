@@ -15,7 +15,8 @@
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "4.9.39220",
+    "min_phantom_version": "5.0.0",
+    "fips_compliant": true,
     "python_version": "3",
     "logo": "logo_rsa.svg",
     "logo_dark": "logo_rsa_dark.svg",
@@ -23,47 +24,47 @@
         "endpoint_url": {
             "description": "API endpoint (e.g., http://host/RSAarcher)",
             "data_type": "string",
-            "order": 1,
+            "order": 0,
             "required": true
         },
         "instance_name": {
             "description": "Instance name (e.g., Default)",
             "data_type": "string",
-            "order": 2,
+            "order": 1,
             "required": true
         },
         "username": {
             "description": "Username",
             "data_type": "string",
-            "order": 3,
+            "order": 2,
             "required": true
         },
         "password": {
             "description": "Password",
             "data_type": "password",
-            "order": 4,
+            "order": 3,
             "required": true
         },
         "verify_ssl": {
             "description": "Verify server certificate",
             "data_type": "boolean",
-            "order": 5,
+            "order": 4,
             "default": false
         },
         "cef_mapping": {
             "description": "CEF to Archer mapping",
             "data_type": "string",
-            "order": 6
+            "order": 5
         },
         "exclude_fields": {
             "description": "Fields to exclude (comma separated)",
             "data_type": "string",
-            "order": 7
+            "order": 6
         },
         "domain": {
             "description": "User's Domain",
             "data_type": "string",
-            "order": 8
+            "order": 7
         }
     },
     "actions": [
@@ -80,14 +81,14 @@
         {
             "action": "create ticket",
             "description": "Create a new ticket",
-            "verbose": "<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ \"Incident Summary\": \"test incident summary data\", \"Incident Owner\": \"susan\" }</code></pre><br><p>Parameter application is case-sensitive</p>",
+            "verbose": "<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ \"Incident Summary\": \"test incident summary data\", \"Incident Owner\": \"susan\" }</code></pre><br><p>Parameter application is case-sensitive.</p>",
             "type": "generic",
             "identifier": "create_ticket",
             "read_only": false,
             "parameters": {
                 "application": {
                     "data_type": "string",
-                    "order": 1,
+                    "order": 0,
                     "description": "Application/Module name (e.g. Incidents)",
                     "required": true,
                     "primary": true,
@@ -97,7 +98,7 @@
                 },
                 "json_string": {
                     "data_type": "string",
-                    "order": 2,
+                    "order": 1,
                     "description": "JSON data string",
                     "required": true
                 }
@@ -358,7 +359,7 @@
             "parameters": {
                 "application": {
                     "data_type": "string",
-                    "order": 1,
+                    "order": 0,
                     "description": "Application/Module name (e.g. Incidents)",
                     "contains": [
                         "archer application"
@@ -368,7 +369,7 @@
                 },
                 "content_id": {
                     "data_type": "numeric",
-                    "order": 2,
+                    "order": 1,
                     "description": "Content ID (Identifies the specific record)",
                     "primary": true,
                     "contains": [
@@ -377,12 +378,12 @@
                 },
                 "name_field": {
                     "data_type": "string",
-                    "order": 3,
+                    "order": 2,
                     "description": "Name of Tracking ID field (e.g. \"Incident ID\")"
                 },
                 "name_value": {
                     "data_type": "string",
-                    "order": 4,
+                    "order": 3,
                     "description": "Name of record (e.g. \"INC-1234\")",
                     "primary": true,
                     "contains": [
@@ -883,7 +884,7 @@
             "parameters": {
                 "application": {
                     "data_type": "string",
-                    "order": 1,
+                    "order": 0,
                     "description": "Application/Module name (e.g. Incidents)",
                     "required": true,
                     "primary": true,
@@ -893,19 +894,19 @@
                 },
                 "max_results": {
                     "data_type": "numeric",
-                    "order": 2,
+                    "order": 1,
                     "description": "Max number of records to return",
                     "required": true,
                     "default": 100
                 },
                 "name_field": {
                     "data_type": "string",
-                    "order": 3,
+                    "order": 2,
                     "description": "Name of field to search in (e.g. \"Incident ID\")"
                 },
                 "search_value": {
                     "data_type": "string",
-                    "order": 4,
+                    "order": 3,
                     "description": "Value to search for in this application"
                 }
             },
@@ -1108,22 +1109,22 @@
             "parameters": {
                 "start_time": {
                     "data_type": "numeric",
-                    "order": 1,
+                    "order": 0,
                     "description": "Parameter ignored for this app"
                 },
                 "end_time": {
                     "data_type": "numeric",
-                    "order": 2,
+                    "order": 1,
                     "description": "Parameter ignored for this app"
                 },
                 "container_count": {
                     "data_type": "numeric",
-                    "order": 3,
+                    "order": 2,
                     "description": "Maximum number of container records to query for"
                 },
                 "artifact_count": {
                     "data_type": "numeric",
-                    "order": 4,
+                    "order": 3,
                     "description": "Maximum number of artifact records to query for"
                 }
             },
