@@ -1,0 +1,4 @@
+beautifulsoup4==4.9.1
+lxml==4.6.3
+requests==2.25.0
+xmltodict==0.12.0
