@@ -28,7 +28,8 @@ ARCHER_LAST_RECORD_FILE = "last_record_{}.txt"
 ARCHER_ERR_PYTHON_MAJOR_VERSION = "Error occurred while getting the Phantom server's Python major version"
 ARCHER_ERR_CODE_UNAVAILABLE = "Error code unavailable"
 ARCHER_ERR_CHECK_ASSET_CONFIG = "Error message unavailable. Please check the asset configuration and|or action parameters"
-ARCHER_UNICODE_DAMMIT_TYPE_ERR_MESSAGE = "Error occurred while connecting to the Archer Server. Please check the asset configuration and|or the action parameters"
+ARCHER_UNICODE_DAMMIT_TYPE_ERR_MESSAGE = "Error occurred while connecting to the Archer Server. " \
+                                         "Please check the asset configuration and|or the action parameters"
 ARCHER_ERR_CEF_MAPPING_REQUIRED = "CEF Mapping is required for ingestion. Please add CEF mapping to the asset config"
 ARCHER_ERR_APPLICATION_NOT_PROVIDED = 'Application is not provided in CEF Mapping (use key: "application")'
 ARCHER_ERR_TRACKING_ID_NOT_PROVIDED = 'Tracking ID Field name not provided in CEF Mapping (use key: "tracking")'
@@ -40,3 +41,8 @@ ARCHER_ERR_NON_DICT = "Non-dict map: {}"
 ARCHER_ERR_ACTION_EXECUTION = "Exception during execution of archer action: {} and the error is: {}"
 ARCHER_ERR_VALID_INTEGER = "Please provide a valid integer value in the {}"
 ARCHER_ERR_NON_NEGATIVE = "Please provide a valid non-negative integer value in the {}"
+
+ARCHER_XPATH_AUTH = '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult'
+ARCHER_XPATH_DOMAIN_USER_AUTH = \
+    '/soap:Envelope/soap:Body/dummy:CreateDomainUserSessionFromInstanceResponse/dummy:CreateDomainUserSessionFromInstanceResult'
+ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'
