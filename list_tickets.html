@@ -107,10 +107,10 @@ and limitations under the License.
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody> 
-                        {% for data in result.data %}   
+                    <tbody>
+                        {% for data in result.data %}
                         <tr>
-                            {% for value in data %} 
+                            {% for value in data %}
                                 <td>
                                     {% if value.contains %}
                                         <a href="javascript:;" onclick="context_menu(this, [{'contains': {{value.contains}}, 'value':'{{ value.value }}' }], 0, {{ container.id }}, null, false);">
