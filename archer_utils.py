@@ -17,16 +17,16 @@
     we use them both as necessary.
 """
 
-import sys
-import json
 import functools
-import xmltodict
+import json
+import sys
+
 import requests
-from lxml import etree
+import xmltodict
 from bs4 import UnicodeDammit
+from lxml import etree
 
 from archer_soap import ArcherSOAP
-
 
 last_message_length = 0
 
@@ -143,7 +143,8 @@ class ArcherAPISession(object):
         try:
             error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
         except TypeError:
-            error_msg = "Error occurred while connecting to the Archer server. Please check the asset configuration and|or the action parameters."
+            error_msg = "Error occurred while connecting to the Archer server. " \
+                        "Please check the asset configuration and|or the action parameters."
         except:
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
@@ -167,7 +168,10 @@ class ArcherAPISession(object):
         hdrs.update({'Authorization': 'Archer session-id="{}"'.format(
                 self.get_token())})
         url = '{}{}'.format(self.base_url, ep)
-        r = requests.post(url, headers=hdrs, json=data, verify=self.verifySSL)
+        r = requests.post(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                          headers=hdrs,
+                          json=data,
+                          verify=self.verifySSL)
         r.raise_for_status
         try:
             r = r.content.decode()

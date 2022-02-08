@@ -14,19 +14,19 @@
 # and limitations under the License.
 """Implements a Phantom.us app for RSA Archer GRC."""
 
+import fcntl
+import json
+import os
+import sys
+
 import phantom.app as phantom
-from phantom.base_connector import BaseConnector
+from bs4 import UnicodeDammit
 from phantom.action_result import ActionResult
+from phantom.base_connector import BaseConnector
 
 # Imports local to this App
 import archer_consts as consts
-
-import sys
-import os
-import json
-import fcntl
 import archer_utils
-from bs4 import UnicodeDammit
 
 
 class ArcherConnector(BaseConnector):
@@ -407,7 +407,8 @@ class ArcherConnector(BaseConnector):
         action_result.update_summary({'content_id': cid})
 
         if not cid and nfv:
-            action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
+            action_result.set_status(phantom.APP_ERROR,
+                'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
             return action_result.get_status()
 
         if proxy.get_levelId_for_app(app) is None:
@@ -452,7 +453,8 @@ class ArcherConnector(BaseConnector):
                 action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
                 return action_result.get_status()
             if not cid:
-                action_result.set_status(phantom.APP_ERROR, 'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
+                action_result.set_status(phantom.APP_ERROR,
+                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
                 return action_result.get_status()
 
         action_result.update_summary({'content_id': cid})
@@ -512,7 +514,8 @@ class ArcherConnector(BaseConnector):
             action_result.update_summary({'records_found': len(records)})
         else:
             if search_field_name and search_value:
-                action_result.set_status(phantom.APP_ERROR, 'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+                action_result.set_status(phantom.APP_ERROR,
+                    'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
             else:
                 action_result.set_status(phantom.APP_ERROR, 'Found no tickets for {}'.format(app))
 
@@ -546,12 +549,13 @@ class ArcherConnector(BaseConnector):
 
 
 if __name__ == '__main__':
-    import pudb
     from traceback import format_exc
+
+    import pudb
     pudb.set_trace()
     if (len(sys.argv) < 2):
         print('No test json specified as input')
-        exit(0)
+        sys.exit(0)
     with open(sys.argv[1]) as f:
         in_json = f.read()
         in_json = json.loads(in_json)
@@ -563,4 +567,4 @@ if __name__ == '__main__':
         except:
             print(format_exc())
         print(json.dumps(json.loads(ret_val), indent=4))
-    exit(0)
+    sys.exit(0)
