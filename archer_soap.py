@@ -1,17 +1,24 @@
-# --
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2021 Splunk Inc.
+# Copyright (c) 2016-2022 Splunk Inc.
 #
-# SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
-# without a valid written license from Splunk Inc. is PROHIBITED.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# --
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
+from io import BytesIO
 
 import requests
-from lxml import etree
-from io import BytesIO
 from bs4 import UnicodeDammit
+from lxml import etree
+
+import archer_consts
 
 SOAPNS = 'http://schemas.xmlsoap.org/soap/envelope/'
 XSINS = 'http://www.w3.org/2001/XMLSchema-instance'
@@ -63,8 +70,7 @@ class ArcherSOAP(object):
         p.text = self.password
         sess_doc = self._do_request(self.base_uri + '/general.asmx', doc)
         sess_root = sess_doc.getroot()
-        result = sess_root.xpath(
-            '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
+        result = sess_root.xpath(archer_consts.ARCHER_XPATH_AUTH, namespaces=ALL_NS_MAP)
         if result:
             self.session = result[0].text
             return
@@ -85,8 +91,7 @@ class ArcherSOAP(object):
         p.text = self.users_domain
         sess_doc = self._do_request(self.base_uri + '/general.asmx', doc)
         sess_root = sess_doc.getroot()
-        result = sess_root.xpath(
-            '/soap:Envelope/soap:Body/dummy:CreateDomainUserSessionFromInstanceResponse/dummy:CreateDomainUserSessionFromInstanceResult', namespaces=ALL_NS_MAP)
+        result = sess_root.xpath(archer_consts.ARCHER_XPATH_DOMAIN_USER_AUTH, namespaces=ALL_NS_MAP)
         if result:
             self.session = result[0].text
             return
@@ -103,8 +108,7 @@ class ArcherSOAP(object):
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath(
-            '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name', namespaces=ALL_NS_MAP)
+        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
         if result:
             for name_ele in result:
                 if name_ele.text == groupname:
@@ -148,7 +152,8 @@ class ArcherSOAP(object):
             return int(result[0].text)
         return
 
-    def find_records(self, mod_id, mod_name, key_id, key_name, value, filter_type='text', max_count=1000, fields=None, comparison='Equals', sort=None, page=1):
+    def find_records(self, mod_id, mod_name, key_id, key_name, value,
+                     filter_type='text', max_count=1000, fields=None, comparison='Equals', sort=None, page=1):
         if not self.session:
             raise Exception('No session')
         if fields is None:
@@ -367,7 +372,7 @@ class ArcherSOAP(object):
                 'Content-Type': 'text/xml; charset=utf-8',
                 'SOAPAction': '"http://archer-tech.com/webservices/{}"'.format(api),
             }
-            response = requests.post(
+            response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
             r_io = BytesIO(response.text.encode('UTF8'))
             resp_doc = etree.parse(r_io)

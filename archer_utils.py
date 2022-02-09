@@ -1,28 +1,32 @@
-# --
 # File: archer_utils.py
 #
-# Copyright (c) 2016-2021 Splunk Inc.
+# Copyright (c) 2016-2022 Splunk Inc.
 #
-# SPLUNK CONFIDENTIAL - Use or disclosure of this material in whole or in part
-# without a valid written license from Splunk Inc. is PROHIBITED.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# --
-
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
 """Do things with the RSA Archer APIs.  There are two: a RESTful one and a SOAP
     one.  There are some things that can only be done in one or the other.  So
     we use them both as necessary.
 """
 
-import sys
-import json
 import functools
-import xmltodict
+import json
+import sys
+
 import requests
-from lxml import etree
+import xmltodict
 from bs4 import UnicodeDammit
+from lxml import etree
 
 from archer_soap import ArcherSOAP
-
 
 last_message_length = 0
 
@@ -139,7 +143,8 @@ class ArcherAPISession(object):
         try:
             error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
         except TypeError:
-            error_msg = "Error occurred while connecting to the Archer server. Please check the asset configuration and|or the action parameters."
+            error_msg = "Error occurred while connecting to the Archer server. " \
+                        "Please check the asset configuration and|or the action parameters."
         except:
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
@@ -163,7 +168,10 @@ class ArcherAPISession(object):
         hdrs.update({'Authorization': 'Archer session-id="{}"'.format(
                 self.get_token())})
         url = '{}{}'.format(self.base_url, ep)
-        r = requests.post(url, headers=hdrs, json=data, verify=self.verifySSL)
+        r = requests.post(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                          headers=hdrs,
+                          json=data,
+                          verify=self.verifySSL)
         r.raise_for_status
         try:
             r = r.content.decode()
