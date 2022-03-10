@@ -1,2 +1,2 @@
 **Unreleased**
-Updated lxml library to address XSS vulnerabilities [PAPP-9071]
+* Updated lxml library to address XSS vulnerabilities [PAPP-9071]
