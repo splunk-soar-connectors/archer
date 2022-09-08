@@ -3,11 +3,16 @@
     "name": "RSA Archer",
     "description": "This app implements ticket management actions on RSA Archer GRC",
     "publisher": "Splunk",
+    "contributors": [
+      {
+        "name": "Jeff Berry"
+      }
+    ],
     "package_name": "phantom_archer",
     "type": "ticketing",
     "license": "Copyright (c) 2016-2022 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "2.1.6",
+    "app_version": "2.1.7",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.9, API version v5.5"
     ],
@@ -876,8 +881,8 @@
         },
         {
             "action": "list tickets",
-            "description": "Get a list of tickets in an application",
-            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
+            "description": "Get a list of tickets in an application or report",
+            "verbose": "Application/Module name or a report GUID is required. If an Application/Module name is specified, the report GUID (guid) and max_pages parameters are not used. Also for this scenario, you must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. If a report GUID (and no Application/Module name) is specified, the name_field and search_value parameters are not used.",
             "type": "investigate",
             "identifier": "list_tickets",
             "read_only": true,
@@ -886,18 +891,18 @@
                     "data_type": "string",
                     "order": 0,
                     "description": "Application/Module name (e.g. Incidents)",
-                    "required": true,
                     "primary": true,
                     "contains": [
                         "archer application"
                     ]
                 },
-                "max_results": {
-                    "data_type": "numeric",
+                "guid": {
+                    "data_type": "string",
                     "order": 1,
-                    "description": "Max number of records to return",
-                    "required": true,
-                    "default": 100
+                    "description": "Report GUID",
+					"contains": [
+                        "archer guid"
+                    ]
                 },
                 "name_field": {
                     "data_type": "string",
@@ -908,6 +913,19 @@
                     "data_type": "string",
                     "order": 3,
                     "description": "Value to search for in this application"
+                },
+                "max_results": {
+                    "data_type": "numeric",
+                    "order": 4,
+                    "description": "Max number of records to return",
+                    "required": true,
+                    "default": 100
+                },
+                "max_pages": {
+                    "data_type": "numeric",
+                    "order": 5,
+                    "description": "Max number of report pages to return",
+                    "default": 10
                 }
             },
             "output": [
@@ -930,10 +948,13 @@
                     ]
                 },
                 {
-                    "data_path": "action_result.parameter.max_results",
-                    "data_type": "numeric",
+                    "data_path": "action_result.parameter.guid",
+                    "data_type": "string",
+                    "contains": [
+                        "archer guid"
+                    ],
                     "example_values": [
-                        100
+                        "d00ae4c0-c75f-4eac-8900-81cf93cb4e21"
                     ]
                 },
                 {
@@ -948,6 +969,20 @@
                     "data_type": "string",
                     "example_values": [
                         "10000"
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.max_results",
+                    "data_type": "numeric",
+                    "example_values": [
+                        100
+                    ]
+                },
+                {
+                    "data_path": "action_result.parameter.max_pages",
+                    "data_type": "numeric",
+                    "example_values": [
+                        10
                     ]
                 },
                 {
@@ -1063,6 +1098,13 @@
                 },
                 {
                     "data_path": "action_result.summary.records_found",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "action_result.summary.pages_found",
                     "data_type": "numeric",
                     "example_values": [
                         1

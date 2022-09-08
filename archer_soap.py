@@ -360,6 +360,29 @@ class ArcherSOAP(object):
         body = etree.SubElement(envelope, etree.QName(SOAPNS, 'Body'))
         return document, body
 
+    def get_report(self, guid, page_number):
+        doc, body = self._generate_xml_stub()
+        gr = etree.SubElement(body, 'SearchRecordsByReport', nsmap=ARCHER_MAP)
+        to = etree.SubElement(gr, 'sessionToken')
+        to.text = self.session
+        gi = etree.SubElement(gr, 'reportIdOrGuid')
+        gi.text = str(guid)
+        pn = etree.SubElement(gr, 'pageNumber')
+        pn.text = str(page_number)
+        resp_doc = self._do_request(self.base_uri + '/search.asmx', doc)
+        resp_root = resp_doc.getroot()
+        rec_xml = resp_root.xpath(
+                '/soap:Envelope/soap:Body/dummy:SearchRecordsByReportResponse/dummy:SearchRecordsByReportResult', namespaces=ALL_NS_MAP)
+
+        if len(rec_xml) > 0:
+            return {'status': 'success', 'result': rec_xml[0].text}
+        else:
+            rec_xml = resp_root.xpath('//*[local-name()="faultstring"]', namespaces=ALL_NS_MAP)
+            if len(rec_xml) > 0:
+                return {'status': 'failed', 'result': rec_xml[0].text}
+            else:
+                return {'status': 'failed', 'result': 'Unable to find SearchRecordsByReportResult.'}
+
     def _do_request(self, uri, doc, method='post'):
         if method == 'post':
             xml = etree.tostring(doc, pretty_print=True)

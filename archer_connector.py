@@ -490,12 +490,18 @@ class ArcherConnector(BaseConnector):
         """Handles 'list_tickets' actions"""
         self.save_progress('Get Archer record...')
         app = param.get('application')
+        guid = param.get('guid')
         max_count = param.get('max_results', 100)
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
+        max_pages = param.get('max_pages', 10)
 
         status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
         if (phantom.is_fail(status)):
+            return action_result.get_status()
+
+        if not (app or guid):
+            action_result.set_status(phantom.APP_ERROR, 'Either an Application/Module name or report GUID is required')
             return action_result.get_status()
 
         if (search_field_name or search_value) and not (search_field_name and search_value):
@@ -504,20 +510,44 @@ class ArcherConnector(BaseConnector):
 
         proxy = self._get_proxy()
 
-        proxy.excluded_fields = [ x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',') ]
-        records = proxy.find_records(app, search_field_name, search_value, max_count)
+        if app:
 
-        if records:
-            for r in records:
-                action_result.add_data(r)
-            action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
-            action_result.update_summary({'records_found': len(records)})
-        else:
-            if search_field_name and search_value:
-                action_result.set_status(phantom.APP_ERROR,
-                    'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+            proxy.excluded_fields = [ x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',') ]
+            records = proxy.find_records(app, search_field_name, search_value, max_count)
+
+            if records:
+                for r in records:
+                    action_result.add_data(r)
+                action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
+                action_result.update_summary({'records_found': len(records)})
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Found no tickets for {}'.format(app))
+                if search_field_name and search_value:
+                    action_result.set_status(phantom.APP_ERROR,
+                        'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+                else:
+                    action_result.set_status(phantom.APP_ERROR, 'Found no tickets for {}'.format(app))
+        else:
+
+            status, max_pages = self._validate_integer(action_result, max_pages, "max_pages", False)
+            if (phantom.is_fail(status)):
+                return action_result.get_status()
+
+            try:
+                result_dict = proxy.get_report_by_id(guid, max_count, max_pages)
+                if result_dict['status'] != 'success':
+                    action_result.set_status(phantom.APP_ERROR, result_dict['message'])
+                    return action_result.get_status()
+
+                records = result_dict['records']
+                for r in records:
+                    action_result.add_data(r)
+                action_result.set_status(phantom.APP_SUCCESS, result_dict['message'])
+                action_result.update_summary({'records_found': len(records)})
+                action_result.update_summary({'pages_found': result_dict['page_count']})
+
+            except Exception as e:
+                action_result.set_status(phantom.APP_ERROR,
+                    'Error handling get list tickets action - e = {}'.format(e))
 
         return action_result.get_status()
 

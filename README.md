@@ -264,29 +264,33 @@ summary\.total\_objects | numeric |
 summary\.total\_objects\_successful | numeric |   
 
 ## action: 'list tickets'
-Get a list of tickets in an application
+Get a list of tickets in an application or report
 
 Type: **investigate**  
 Read only: **True**
 
-You must provide both the field name/ID \(name\_field\) and the value to search for \(search\_value\) to search in records\. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list\. Parameters application, name\_field, and search\_value are case\-sensitive\.
+Application/Module name or a report GUID is required. If an Application/Module name is specified, the report GUID \(guid\) and max\_pages parameters are not used. Also for this scenario, you must provide both the field name/ID \(name\_field\) and the value to search for \(search\_value\) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name\_field, and search\_value are case-sensitive. If a report GUID \(and no Application/Module name\) is specified, the name\_field and search\_value parameters are not used.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 --------- | -------- | ----------- | ---- | --------
-**application** |  required  | Application/Module name \(e\.g\. Incidents\) | string |  `archer application` 
-**max\_results** |  required  | Max number of records to return | numeric | 
+**application** |  optional  | Application/Module name \(e\.g\. Incidents\) | string |  `archer application` 
+**guid** |  optional  | Report GUID | string |  `archer guid` 
 **name\_field** |  optional  | Name of field to search in \(e\.g\. "Incident ID"\) | string | 
 **search\_value** |  optional  | Value to search for in this application | string | 
+**max\_results** |  required  | Max number of records to return | numeric | 
+**max\_pages** |  required  | Max number of report pages to return | numeric | 
 
 #### Action Output
 DATA PATH | TYPE | CONTAINS
 --------- | ---- | --------
 action\_result\.status | string | 
 action\_result\.parameter\.application | string |  `archer application` 
-action\_result\.parameter\.max\_results | numeric | 
+action\_result\.parameter\.guid | string |  `archer guid` 
 action\_result\.parameter\.name\_field | string | 
 action\_result\.parameter\.search\_value | string | 
+action\_result\.parameter\.max\_results | numeric | 
+action\_result\.parameter\.max\_pages | numeric | 
 action\_result\.data\.\*\.\@contentId | numeric |  `archer content id` 
 action\_result\.data\.\*\.\@levelGuid | string | 
 action\_result\.data\.\*\.\@levelId | string | 
@@ -303,6 +307,7 @@ action\_result\.data\.\*\.Field\.\*\.ListValues\.ListValue\.\@displayName | stri
 action\_result\.data\.\*\.Field\.\*\.ListValues\.ListValue\.\@id | string | 
 action\_result\.data\.\*\.Field\.\*\.multi\_value | string | 
 action\_result\.summary\.records\_found | numeric | 
+action\_result\.summary\.pages\_found | numeric | 
 action\_result\.message | string | 
 summary\.total\_objects | numeric | 
 summary\.total\_objects\_successful | numeric |   

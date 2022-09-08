@@ -722,3 +722,210 @@ class ArcherAPISession(object):
         data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)
+
+    def get_report_by_id(self, guid, max_count, max_pages):
+        """Returns the report with the given guid."""
+
+        # Initialize result dictionary
+        result_dict = {}
+        result_dict['status'] = 'failed'
+        result_dict['message'] = 'Failed - default message'
+        result_dict['page_count'] = 0
+        result_dict['records'] = []
+
+        # Initialize the current count of records
+        total_count = 0
+
+        # If an Archer SOAP login object does not exist, create one
+        try:
+            if not self.asoap:
+                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
+                    verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
+        except:
+            result_dict['message'] = 'Failed to login to Archer'
+            return result_dict
+
+        # Try to loop through report pages until no records are returned, max pages reached,
+        # or max number of record results reached
+        try:
+
+            for page_number in range(1, max_pages + 1):
+
+                # Try to get current report page
+                try:
+                    data_dict = self.asoap.get_report(guid, page_number)
+                    if data_dict['status'] != 'success':
+                        result_dict['message'] = data_dict['result']
+                        return result_dict
+                    data = data_dict['result']
+
+                except Exception as e:
+                    result_dict['message'] = 'Failed to get page {} of report. Check input parameters are valid. e = {}'.format(page_number, e)
+                    return result_dict
+
+                # Try to parse current report page from xml to a dictionary
+                try:
+                    if data is None:
+                        raw_dict = {}
+                    else:
+                        raw_dict = xmltodict.parse(data) or {}
+                except Exception as e:
+                    result_dict['message'] = 'Failed to parse report page {} to dict - e = {}'. \
+                        format(page_number, e)
+                    return result_dict
+
+                # Try to get tickets/records from current report page
+                try:
+                    try:
+                        raw_records = raw_dict['Records']['Record']
+                        num_raw_records = len(raw_records)
+                    except:
+                        num_raw_records = 0
+
+                    # If no report records were found in the current
+                    # page, assume all records have been found
+                    if num_raw_records < 1:
+                        result_dict['status'] = 'success'
+                        if len(result_dict['records']) < 1:
+                            result_dict['message'] = 'No report tickets found'
+                        else:
+                            result_dict['message'] = 'Report retrieved'
+                            result_dict['page_count'] = page_number - 1
+                        return result_dict
+
+                except Exception as e:
+                    result_dict['message'] = 'Failed to get tickets from report page {} - {}'. \
+                        format(page_number, e)
+                    return result_dict
+
+                # Try to get field definitions for current report page
+                try:
+                    field_defs = raw_dict['Records']['Metadata']['FieldDefinitions']['FieldDefinition']
+
+                except Exception as e:
+                    result_dict['message'] = 'Failed to get field definitions for report page {} - e = {}'. \
+                        format(page_number, e)
+                    return result_dict
+
+                # Merge the field definitions with the record/ticket data for the current report page
+                merge_dict = self.merge_field_defs(field_defs, raw_records, max_count, total_count, page_number)
+                result_dict['records'].extend(merge_dict['records'])
+                total_count = len(result_dict['records'])
+                if merge_dict['status'] == 'max records reached':
+                    result_dict['status'] = 'success'
+                    result_dict['page_count'] = page_number
+                    result_dict['message'] = merge_dict['message']
+                    return result_dict
+                elif merge_dict['status'] != 'success':
+                    result_dict['message'] = merge_dict['message']
+                    return result_dict
+
+            result_dict['status'] = 'success'
+            result_dict['message'] = 'Report retrieved'
+            result_dict['page_count'] = page_number
+            return result_dict
+
+        except Exception as e:
+            result_dict['status'] = 'failed'
+            result_dict['message'] = 'Failed while getting report page(s) - e = {}'. \
+                format(e)
+            return result_dict
+
+    def merge_field_defs(self, field_defs, raw_records, max_count, total_count, page_number):
+
+        try:
+
+            # Initialize result dictionary
+            merge_dict = {}
+            merge_dict['status'] = 'failed'
+            merge_dict['message'] = 'Failed - default message'
+            merge_dict['records'] = []
+
+            for raw_record in raw_records:
+
+                # Initialize field variables and increment the total record count
+                valid_name_count = 0
+                new_fields = []
+                total_count = total_count + 1
+
+                # Merge the field definitions into the current record
+                for field in raw_record['Field']:
+
+                    try:
+
+                        field_id = int(field.get('@id'))
+                        field_name = None
+                        for field_def in field_defs:
+                            if field_id == int(field_def.get('@id')):
+                                field_name = str(field_def.get('@name'))
+                                break
+                        if field_name is not None:
+                            valid_name_count += 1
+                        field['@name'] = field_name
+                        field_type = int(field.get('@type'))
+                        if field_type == 4:
+                            value_list = field.get('ListValues', {}).get('ListValue', {})
+                            if value_list:
+                                if isinstance(value_list, dict):
+                                    value_list = [value_list]
+                                value_list = set([ x.get('#text', '') for x in value_list])
+                                v = field.get('@value')
+                                if v:
+                                    value_list.add(v)
+                                field['multi_value'] = list(value_list)
+                                field['#text'] = ', '.join(field['multi_value'])
+                        elif field_type == 8:
+                            value_list = field.get('Users', {}).get('User', {})
+                            if value_list:
+                                if isinstance(value_list, dict):
+                                    value_list = [value_list]
+                                value_list = set([ self.process_user_multivalue(x) for x in value_list])
+                                v = field.get('@value')
+                                if v:
+                                    value_list.add(v)
+                                field['multi_value'] = list(value_list)
+                                field['#text'] = ', '.join(field['multi_value'])
+                        elif field_type == 9:
+                            field['#text'] = field.get('Reference', {}).get('#text', '')
+
+                    except Exception as e:
+                        err = self._get_error_message_from_exception(e)
+                        W('Failed to parse {}: {}'.format(field, err))
+                        field['@name'] = None
+                    new_fields.append(field)
+
+                # If none of the name fields were merged, return fail
+                if valid_name_count < 1:
+                    merge_dict['message'] = 'Failed to merge any field name(s). Check Archer report configuration'
+                    return merge_dict
+
+                # Append merged record to the results record dictionary
+                raw_record['Field'] = new_fields
+                merge_dict['records'].append(raw_record)
+
+                # If the record count is reached, return
+                if total_count >= max_count:
+                    merge_dict['status'] = 'max records reached'
+                    merge_dict['message'] = 'Report retrieved - max results reached'
+                    return merge_dict
+
+            merge_dict['status'] = 'success'
+            merge_dict['message'] = 'Report retrieved'
+            return merge_dict
+
+        except Exception as e:
+            merge_dict['message'] = 'Failed to merge field definitions with report page {} ticket data - e = {}'. \
+                format(page_number, e)
+            return merge_dict
+
+    def process_user_multivalue(self, x):
+
+        firstname = x.get('@firstName', '')
+        middlename = x.get('@middleName', '')
+        lastname = x.get('@lastName', '')
+        name = firstname
+        if middlename != '':
+            name = '{} {}'.format(name, middlename)
+        if lastname != '':
+            name = '{} {}'.format(name, lastname)
+        return name
