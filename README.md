@@ -2,7 +2,7 @@
 # RSA Archer
 
 Publisher: Splunk  
-Connector Version: 2\.1\.6  
+Connector Version: 2\.1\.7  
 Product Vendor: RSA  
 Product Name: Archer GRC  
 Product Version Supported (regex): "\.\*"  
@@ -269,7 +269,7 @@ Get a list of tickets in an application
 Type: **investigate**  
 Read only: **True**
 
-You must provide both the field name/ID \(name\_field\) and the value to search for \(search\_value\) to search in records\. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list\. Parameters application, name\_field, and search\_value are case\-sensitive\.
+You must provide both the field name/ID \(name\_field\) and the value to search for \(search\_value\) to search in records, or a JSON string to search multiple fields\. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list\. Parameters application, name\_field, and search\_value are case\-sensitive\.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -278,6 +278,9 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **max\_results** |  required  | Max number of records to return | numeric | 
 **name\_field** |  optional  | Name of field to search in \(e\.g\. "Incident ID"\) | string | 
 **search\_value** |  optional  | Value to search for in this application | string | 
+**query_filter\_json** |  optional  | JSON with name fields and search values of query filter for this application | string | 
+**results\_filter\_json** |  optional  | JSON with field names and values of results filter for this application | string | 
+**results\_filter\_operator** |  optional  | Boolean operator of key/value pairs in the results filter JSON for this application | string | 
 
 #### Action Output
 DATA PATH | TYPE | CONTAINS
@@ -287,6 +290,55 @@ action\_result\.parameter\.application | string |  `archer application`
 action\_result\.parameter\.max\_results | numeric | 
 action\_result\.parameter\.name\_field | string | 
 action\_result\.parameter\.search\_value | string | 
+action\_result\.parameter\.query_filter\_json | string | 
+action\_result\.parameter\.results\_filter\_json | string | 
+action\_result\.parameter\.results\_filter\_operator | string | 
+action\_result\.data\.\*\.\@contentId | numeric |  `archer content id` 
+action\_result\.data\.\*\.\@levelGuid | string | 
+action\_result\.data\.\*\.\@levelId | string | 
+action\_result\.data\.\*\.\@moduleId | string | 
+action\_result\.data\.\*\.\@parentId | string | 
+action\_result\.data\.\*\.Field\.\*\.\#text | string |  `ip` 
+action\_result\.data\.\*\.Field\.\*\.\@guid | string | 
+action\_result\.data\.\*\.Field\.\*\.\@id | string | 
+action\_result\.data\.\*\.Field\.\*\.\@name | string | 
+action\_result\.data\.\*\.Field\.\*\.\@type | string | 
+action\_result\.data\.\*\.Field\.\*\.\@xmlConvertedValue | string | 
+action\_result\.data\.\*\.Field\.\*\.ListValues\.ListValue\.\#text | string | 
+action\_result\.data\.\*\.Field\.\*\.ListValues\.ListValue\.\@displayName | string | 
+action\_result\.data\.\*\.Field\.\*\.ListValues\.ListValue\.\@id | string | 
+action\_result\.data\.\*\.Field\.\*\.multi\_value | string | 
+action\_result\.summary\.records\_found | numeric | 
+action\_result\.message | string | 
+summary\.total\_objects | numeric | 
+summary\.total\_objects\_successful | numeric |   
+
+## action: 'get report'
+Get a list of tickets in a report
+
+Type: **investigate**  
+Read only: **True**
+
+The records for a report GUID (guid) are returned\.
+
+#### Action Parameters
+PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
+--------- | -------- | ----------- | ---- | --------
+**guid** |  required  | Report GUID | string |  `archer guid` 
+**max\_results** |  required  | Max number of records to return | numeric | 
+**max\_pages** |  required  | Max number of report pages to return | numeric | 
+**results\_filter\_json** |  optional  | JSON with field names and values of results filter for a report | string | 
+**results\_filter\_operator** |  optional  | Boolean operator of key/value pairs in the results filter JSON for a report | string | 
+
+#### Action Output
+DATA PATH | TYPE | CONTAINS
+--------- | ---- | --------
+action\_result\.status | string | 
+action\_result\.parameter\.guid | string |  `archer guid` 
+action\_result\.parameter\.max\_results | numeric | 
+action\_result\.parameter\.max\_pages | numeric | 
+action\_result\.parameter\.results\_filter\_json | string | 
+action\_result\.parameter\.results\_filter\_operator | string | 
 action\_result\.data\.\*\.\@contentId | numeric |  `archer content id` 
 action\_result\.data\.\*\.\@levelGuid | string | 
 action\_result\.data\.\*\.\@levelId | string | 

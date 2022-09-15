@@ -493,31 +493,153 @@ class ArcherConnector(BaseConnector):
         max_count = param.get('max_results', 100)
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
+        query_filter_json = param.get('query_filter_json')
+        results_filter_json = param.get('results_filter_json')
+        if results_filter_json:
+            results_filter_dict = json.loads(results_filter_json)
+        else:
+            results_filter_dict = None
+        results_filter_operator = param.get('results_filter_operator')
 
         status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
         if (phantom.is_fail(status)):
             return action_result.get_status()
 
-        if (search_field_name or search_value) and not (search_field_name and search_value):
-            action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')
+        if (results_filter_dict or results_filter_operator) and not (results_filter_dict and results_filter_operator):
+            action_result.set_status(phantom.APP_ERROR, 'Need both results filter json and results filter operator to filter the results')
             return action_result.get_status()
 
         proxy = self._get_proxy()
 
         proxy.excluded_fields = [ x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',') ]
-        records = proxy.find_records(app, search_field_name, search_value, max_count)
 
-        if records:
-            for r in records:
+        if query_filter_json:
+            filter_dict = json.loads(query_filter_json)
+            records = proxy.find_records_dict(app, filter_dict, max_count)
+        else:
+            if (search_field_name or search_value) and not (search_field_name and search_value):
+                action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')
+                return action_result.get_status()
+            filter_dict = {}
+            filter_dict[search_field_name] = search_value
+            records = proxy.find_records(app, search_field_name, search_value, max_count)
+
+        if results_filter_dict:
+            filtered_records = self.filter_records(results_filter_dict, results_filter_operator, records)
+        else:
+            filtered_records = records
+
+        if filtered_records:
+            for r in filtered_records:
                 action_result.add_data(r)
             action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
-            action_result.update_summary({'records_found': len(records)})
+            action_result.update_summary({'records_found': len(filtered_records)})
         else:
-            if search_field_name and search_value:
-                action_result.set_status(phantom.APP_ERROR,
-                    'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+            filter_msg = ''
+
+            if query_filter_json:
+                filter_msg = 'query filter json'
+            elif search_field_name and search_value:
+                filter_msg = 'field {} containing value {}'.format(search_field_name, search_value)
+
+            if results_filter_dict:
+                if filter_msg != '':
+                    filter_msg = '{} and results filter json'.format(filter_msg)
+                else:
+                    filter_msg = 'results filter json'
+
+            if filter_msg != '':
+                filter_msg = ' with {}'.format(filter_msg)
+
+            action_result.set_status(phantom.APP_ERROR, 'Found no tickets for {}{}'.format(app, filter_msg))
+            action_result.update_summary({'records_found': 0})
+
+        return action_result.get_status()
+
+    def filter_records(self, results_filter_dict, results_filter_operator, records):
+        filtered_records = []
+
+        if results_filter_operator == "AND":
+            and_dict_len = len(results_filter_dict)
+            for record in records:
+                and_dict_count = 0
+                for field in record['Field']:
+                    for k, v in results_filter_dict.items():
+                        if field['@name'] == k and v.lower() in field['#text'].lower():
+                            and_dict_count = and_dict_count + 1
+                if and_dict_count >= and_dict_len:
+                    filtered_records.append(record)
+
+        elif results_filter_operator == "OR":
+            for record in records:
+                next_record = False
+                for field in record['Field']:
+                    for k, v in results_filter_dict.items():
+                        if field['@name'] == k and v.lower() in field['#text'].lower():
+                            filtered_records.append(record)
+                            next_record = True
+                            break
+                    if next_record:
+                        break
+
+        return filtered_records
+
+    def _get_report(self, action_result, param):
+        """Handles 'get_report' actions"""
+        self.save_progress('Get Archer report...')
+        guid = param.get('guid')
+        max_count = param.get('max_results', 100)
+        max_pages = param.get('max_pages', 10)
+        results_filter_json = param.get('results_filter_json')
+        if results_filter_json:
+            results_filter_dict = json.loads(results_filter_json)
+        else:
+            results_filter_dict = None
+        results_filter_operator = param.get('results_filter_operator')
+
+        status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
+        if (phantom.is_fail(status)):
+            return action_result.get_status()
+
+        status, max_pages = self._validate_integer(action_result, max_pages, "max_pages", False)
+        if (phantom.is_fail(status)):
+            return action_result.get_status()
+
+        proxy = self._get_proxy()
+
+        try:
+            result_dict = proxy.get_report_by_id(guid, max_count, max_pages)
+            if result_dict['status'] != 'success':
+                action_result.set_status(phantom.APP_ERROR, result_dict['message'])
+                return action_result.get_status()
+
+            records = result_dict['records']
+
+            if results_filter_dict:
+                filtered_records = self.filter_records(results_filter_dict, results_filter_operator, records)
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Found no tickets for {}'.format(app))
+                filtered_records = records
+
+            if filtered_records:
+                for r in filtered_records:
+                    action_result.add_data(r)
+                action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
+                action_result.update_summary({'records_found': len(filtered_records)})
+                action_result.update_summary({'pages_found': result_dict['page_count']})
+            else:
+
+                if results_filter_dict:
+                    filter_msg = ' with results filter json'
+                else:
+                    filter_msg = ''
+
+                action_result.set_status(phantom.APP_ERROR, 'Found no tickets{}'.format(filter_msg))
+                action_result.update_summary({'records_found': 0})
+                action_result.update_summary({'pages_found': result_dict['page_count']})
+
+        except Exception as e:
+            action_result.set_status(phantom.APP_ERROR,
+                'Error handling get report action - e = {}'.format(e))
 
         return action_result.get_status()
 
@@ -536,6 +658,8 @@ class ArcherConnector(BaseConnector):
                 return self._handle_get_ticket(action_result, param)
             elif (action_id == consts.ARCHER_ACTION_LIST_TICKET):
                 return self._handle_list_tickets(action_result, param)
+            elif (action_id == consts.ARCHER_ACTION_GET_REPORT):
+                return self._get_report(action_result, param)
             elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
                 return self._handle_test_connectivity(action_result, param)
             elif (action_id == consts.ARCHER_ACTION_ON_POLL):
