@@ -295,16 +295,22 @@ class ArcherConnector(BaseConnector):
         self.send_progress('Archer login test initiated...')
 
         try:
+            term_msg = ''
             p = self._get_proxy()
             p.get_token()
+            term_msg = p.terminate_session()
         except Exception as e:
             err = self._get_error_message_from_exception(e)
             self.debug_print('Exception during archer test: {}'.format(err))
             self.save_progress('Archer login test failed')
             self.save_progress('Please provide correct URL and credentials')
+            if term_msg != '':
+                self.save_progress(term_msg)
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
         msg = consts.ARCHER_SUCC_CONFIGURATION
+        if term_msg != '':
+            self.save_progress(term_msg)
         self.save_progress("Test connectivity passed")
 
         return action_result.set_status(phantom.APP_SUCCESS, msg)
@@ -354,7 +360,9 @@ class ArcherConnector(BaseConnector):
         self.debug_print('Parsed data: {}'.format(mapping))
         proxy = self._get_proxy()
         if not isinstance(mapping, dict):
+            term_msg = proxy.terminate_session()
             msg = consts.ARCHER_ERR_NON_DICT.format(mapping)
+            msg = '{}{}'.format(msg, term_msg)
             self.debug_print(msg)
             action_result.set_status(phantom.APP_ERROR, msg, err)
             return action_result.get_status()
@@ -366,16 +374,18 @@ class ArcherConnector(BaseConnector):
             cid = proxy.create_record(app, mapping)
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record {0}'.format(err))
+            term_msg = proxy.terminate_session()
+            return action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record {}{}'.format(err, term_msg))
 
+        term_msg = proxy.terminate_session()
         if cid:
             self.save_progress('Created Archer record {}'.format(cid))
             d = {'content_id': cid}
             action_result.add_data(d)
             action_result.update_summary(d)
-            action_result.set_status(phantom.APP_SUCCESS, 'Created ticket')
+            action_result.set_status(phantom.APP_SUCCESS, 'Created ticket{}'.format(term_msg))
         else:
-            action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record')
+            action_result.set_status(phantom.APP_ERROR, 'Failed to create Archer record{}'.format(term_msg))
             return action_result.get_status()
         return action_result.get_status()
 
@@ -402,13 +412,15 @@ class ArcherConnector(BaseConnector):
             if nfid and nfv:
                 cid = proxy.get_content_id(app, nfid, nfv)
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
+                term_msg = proxy.terminate_session()
+                action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory{}'.format(term_msg))
                 return action_result.get_status()
         action_result.update_summary({'content_id': cid})
 
         if not cid and nfv:
+            term_msg = proxy.terminate_session()
             action_result.set_status(phantom.APP_ERROR,
-                'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
+                'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".{}'.format(nfv, nfid, app, term_msg))
             return action_result.get_status()
 
         if proxy.get_levelId_for_app(app) is None:
@@ -420,12 +432,15 @@ class ArcherConnector(BaseConnector):
                 fid = proxy.get_fieldId_for_app_and_name(app, fid)
 
             if not fid or type(fid) != int:
-                action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}.'.format(orig_fid))
+                term_msg = proxy.terminate_session()
+                action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}.{}'.format(orig_fid, term_msg))
             else:
-                if proxy.update_record(app, cid, fid, value):
-                    action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
+                pur = proxy.update_record(app, cid, fid, value)
+                term_msg = proxy.terminate_session()
+                if pur:
+                    action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket{}'.format(term_msg))
                 else:
-                    action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
+                    action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket{}'.format(term_msg))
 
         return action_result.get_status()
 
@@ -453,21 +468,24 @@ class ArcherConnector(BaseConnector):
                 action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
                 return action_result.get_status()
             if not cid:
+                term_msg = proxy.terminate_session()
                 action_result.set_status(phantom.APP_ERROR,
-                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".'.format(nfv, nfid, app))
+                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}".{}'.format(nfv, nfid, app, term_msg))
                 return action_result.get_status()
 
         action_result.update_summary({'content_id': cid})
 
         try:
+            term_msg = ''
             record = proxy.get_record_by_id(app, cid)
+            term_msg = proxy.terminate_session()
             if record:
                 action_result.add_data(record)
-                action_result.set_status(phantom.APP_SUCCESS, 'Ticket retrieved')
+                action_result.set_status(phantom.APP_SUCCESS, 'Ticket retrieved{}'.format(term_msg))
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket')
+                action_result.set_status(phantom.APP_ERROR, 'Could not locate Ticket{}'.format(term_msg))
         except:
-            action_result.set_status(phantom.APP_ERROR, 'Given content_id not found in \'{}\' application'.format(app))
+            action_result.set_status(phantom.APP_ERROR, 'Given content_id not found in \'{}\' application{}'.format(app, term_msg))
 
         return action_result.get_status()
 
@@ -506,18 +524,19 @@ class ArcherConnector(BaseConnector):
 
         proxy.excluded_fields = [ x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',') ]
         records = proxy.find_records(app, search_field_name, search_value, max_count)
+        term_msg = proxy.terminate_session()
 
         if records:
             for r in records:
                 action_result.add_data(r)
-            action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
+            action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved{}'.format(term_msg))
             action_result.update_summary({'records_found': len(records)})
         else:
             if search_field_name and search_value:
-                action_result.set_status(phantom.APP_ERROR,
-                    'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+                action_result.set_status(phantom.APP_SUCCESS,
+                    'Found no tickets with field {} containing value {}{}'.format(search_field_name, search_value, term_msg))
             else:
-                action_result.set_status(phantom.APP_ERROR, 'Found no tickets for {}'.format(app))
+                action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets for {}{}'.format(app, term_msg))
 
         return action_result.get_status()
 
