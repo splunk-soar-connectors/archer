@@ -413,7 +413,8 @@ class ArcherConnector(BaseConnector):
                 cid = proxy.get_content_id(app, nfid, nfv)
             else:
                 term_msg = proxy.terminate_session()
-                action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory{}'.format(term_msg))
+                action_result.set_status(phantom.APP_ERROR,
+                  'Either content ID or both name field and name value are mandatory{}'.format(term_msg))
                 return action_result.get_status()
         action_result.update_summary({'content_id': cid})
 
