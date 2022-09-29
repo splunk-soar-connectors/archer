@@ -412,9 +412,7 @@ class ArcherConnector(BaseConnector):
             if nfid and nfv:
                 cid = proxy.get_content_id(app, nfid, nfv)
             else:
-                term_msg = proxy.terminate_session()
-                action_result.set_status(phantom.APP_ERROR,
-                  'Either content ID or both name field and name value are mandatory{}'.format(term_msg))
+                action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
                 return action_result.get_status()
         action_result.update_summary({'content_id': cid})
 
@@ -425,7 +423,8 @@ class ArcherConnector(BaseConnector):
             return action_result.get_status()
 
         if proxy.get_levelId_for_app(app) is None:
-            action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify application \'{}\''.format(app))
+            term_msg = proxy.terminate_session()
+            action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify application \'{}\'{}'.format(app, term_msg))
         else:
             try:
                 fid = int(fid)
