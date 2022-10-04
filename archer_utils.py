@@ -722,3 +722,19 @@ class ArcherAPISession(object):
         data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)
+
+    def terminate_session(self):
+        try:
+            if self.sessionToken:
+                result = self.asoap.terminate_session(self.sessionToken)
+            else:
+                result = self.asoap.terminate_session(self.get_token())
+        except Exception as e:
+            result = str(e)
+
+        if result == '1':
+            result = ''
+        else:
+            result = ' - Terminate session details: {}'.format(result)
+
+        return result

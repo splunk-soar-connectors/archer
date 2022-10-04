@@ -3,11 +3,16 @@
     "name": "RSA Archer",
     "description": "This app implements ticket management actions on RSA Archer GRC",
     "publisher": "Splunk",
+    "contributors": [
+        {
+            "name": "Jeff Berry"
+        }
+    ],
     "package_name": "phantom_archer",
     "type": "ticketing",
     "license": "Copyright (c) 2016-2022 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "2.1.6",
+    "app_version": "2.2.0",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.9, API version v5.5"
     ],
@@ -15,7 +20,7 @@
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "5.1.0",
+    "min_phantom_version": "5.3.3",
     "fips_compliant": true,
     "python_version": "3",
     "logo": "logo_rsa.svg",
@@ -1140,7 +1145,7 @@
             },
             {
                 "module": "certifi",
-                "input_file": "wheels/shared/certifi-2021.10.8-py2.py3-none-any.whl"
+                "input_file": "wheels/py3/certifi-2022.9.24-py3-none-any.whl"
             },
             {
                 "module": "chardet",
@@ -1152,7 +1157,7 @@
             },
             {
                 "module": "lxml",
-                "input_file": "wheels/py36/lxml-4.7.1-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl"
+                "input_file": "wheels/py36/lxml-4.9.1-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl"
             },
             {
                 "module": "requests",
@@ -1160,11 +1165,11 @@
             },
             {
                 "module": "soupsieve",
-                "input_file": "wheels/py3/soupsieve-2.3.1-py3-none-any.whl"
+                "input_file": "wheels/py3/soupsieve-2.3.2.post1-py3-none-any.whl"
             },
             {
                 "module": "urllib3",
-                "input_file": "wheels/shared/urllib3-1.26.8-py2.py3-none-any.whl"
+                "input_file": "wheels/shared/urllib3-1.26.12-py2.py3-none-any.whl"
             },
             {
                 "module": "xmltodict",
@@ -1180,7 +1185,7 @@
             },
             {
                 "module": "certifi",
-                "input_file": "wheels/shared/certifi-2021.10.8-py2.py3-none-any.whl"
+                "input_file": "wheels/py3/certifi-2022.9.24-py3-none-any.whl"
             },
             {
                 "module": "chardet",
@@ -1192,7 +1197,7 @@
             },
             {
                 "module": "lxml",
-                "input_file": "wheels/py39/lxml-4.7.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl"
+                "input_file": "wheels/py39/lxml-4.9.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl"
             },
             {
                 "module": "requests",
@@ -1200,11 +1205,11 @@
             },
             {
                 "module": "soupsieve",
-                "input_file": "wheels/py3/soupsieve-2.3.1-py3-none-any.whl"
+                "input_file": "wheels/py3/soupsieve-2.3.2.post1-py3-none-any.whl"
             },
             {
                 "module": "urllib3",
-                "input_file": "wheels/shared/urllib3-1.26.8-py2.py3-none-any.whl"
+                "input_file": "wheels/shared/urllib3-1.26.12-py2.py3-none-any.whl"
             },
             {
                 "module": "xmltodict",
