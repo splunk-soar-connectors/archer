@@ -2,11 +2,11 @@
 # RSA Archer
 
 Publisher: Splunk  
-Connector Version: 2\.1\.6  
+Connector Version: 2\.2\.0  
 Product Vendor: RSA  
 Product Name: Archer GRC  
 Product Version Supported (regex): "\.\*"  
-Minimum Product Version: 5\.1\.0  
+Minimum Product Version: 5\.3\.3  
 
 This app implements ticket management actions on RSA Archer GRC
 
