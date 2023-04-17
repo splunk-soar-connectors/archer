@@ -76,10 +76,9 @@ def get_record_field(record, field):
 class ArcherAPISession(object):
     """Keeps state and simplifies Archer Web Service (SOAP) interactions."""
 
-    sessionTimeout = 60  # Generate a new token after this much time unused
     BLACKLIST_TYPES = (24, 25)
 
-    def __init__(self, base_url, userName, password, instanceName, pythonVerison, usersDomain):
+    def __init__(self, base_url, userName, password, instanceName, usersDomain, obj):
         """Initializes an API session.
 
             base, a string: base endpoint for the Archer APIs.  E.g.,
@@ -92,32 +91,16 @@ class ArcherAPISession(object):
         self.userName = userName
         self.password = password
         self.instanceName = instanceName
-        self.sessionToken = None
-        self.sessionLastUse = 0
+        self.conn_obj=obj
         self.verifySSL = True
         self.excluded_fields = []
         self.headers = {'Accept': 'application/json,text/html,'
                                   'application/xhtml+xml,application/xml;'
                                   'q=0.9,*/*;q=0.8',
                         'Content-Type': 'application/json'}
-        self.asoap = None
-        self.python_version = pythonVerison
         self.users_domain = usersDomain
-
-    def _handle_py_ver_compat_for_input_str(self, input_str):
-        """
-        This method returns the encoded|original string based on the Python version.
-        :param input_str: Input string to be processed
-        :return: input_str (Processed input string based on following logic 'input_str - Python 3; encoded input_str - Python 2')
-        """
-
-        try:
-            if input_str and self.python_version == 2:
-                input_str = UnicodeDammit(input_str).unicode_markup.encode('utf-8')
-        except:
-            W("Error occurred while handling python 2to3 compatibility for the input string")
-
-        return input_str
+        self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain, conn_obj=obj)
 
     def _get_error_message_from_exception(self, e):
         """ This method is used to get appropriate error message from the exception.
@@ -140,14 +123,6 @@ class ArcherAPISession(object):
             error_code = "Error code unavailable"
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
-        try:
-            error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
-        except TypeError:
-            error_msg = "Error occurred while connecting to the Archer server. " \
-                        "Please check the asset configuration and|or the action parameters."
-        except:
-            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
-
         if error_code in "Error code unavailable":
             error_text = "Error Message: {0}".format(error_msg)
         else:
@@ -156,22 +131,22 @@ class ArcherAPISession(object):
         return error_text
 
     def get_token(self):
-        if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
-                         usersDomain=self.users_domain, pythonVersion=self.python_version)
-        return self.asoap.session
+        self.asoap._authenticate()
 
     def _rest_call(self, ep, meth='GET', data={}):
         """Utility to make a REST API call."""
         hdrs = self.headers.copy()
         hdrs.update({'X-Http-Method-Override': meth})
         hdrs.update({'Authorization': 'Archer session-id="{}"'.format(
-                self.get_token())})
+                self.conn_obj.sessionToken)})
         url = '{}{}'.format(self.base_url, ep)
         r = requests.post(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                           headers=hdrs,
                           json=data,
                           verify=self.verifySSL)
+        if r.status_code == 401:
+            self.get_token()
+            return self._rest_call(ep, meth, data)
         r.raise_for_status
         try:
             r = r.content.decode()
@@ -314,15 +289,11 @@ class ArcherAPISession(object):
         if not field_value:
             raise TypeError('Either content id or Tracking ID field and record name are required')
         fv = filter(lambda x: x.isdigit(), field_value)
-        if self.python_version == 3:
-            fv = self.concatenate_list_data(list(fv))
+        fv = self.concatenate_list_data(list(fv))
         if not fv:
             return None
         fv = int(fv)
 
-        if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
         # should only get one
         if records:
@@ -358,9 +329,6 @@ class ArcherAPISession(object):
                                 'vlid:{}/val:{}'.format(vlid, value))
             return {'value_id': vlval, 'other_text': othertext}
         if fld['Type'] == 8:
-            if not self.asoap:
-                self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
-                         verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
             uid = self.asoap.find_user(value)
             if not uid:
                 W("User not found in local user search")
@@ -536,10 +504,6 @@ class ArcherAPISession(object):
         mid = self.get_moduleid(app)
         fields = self._get_field_id_map(app)
 
-        if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(),
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
-
         records = self.get_records(app, field_name, value, max_count, mid, fid, fields, comparison, sort, page)
         if not records:
             return records
@@ -595,9 +559,6 @@ class ArcherAPISession(object):
         fields = self._get_field_id_map(app)
         moduleId = self.get_moduleid(app)
 
-        if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         data = self.asoap.get_record(contentId, moduleId)
 
         rec_dict = xmltodict.parse(data) or {}
@@ -663,10 +624,6 @@ class ArcherAPISession(object):
             field = {'value': value}
             field.update(fd)
             fields.append(field)
-
-        if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
         cid = self.asoap.create_record(moduleId, fields)
         return cid
 
@@ -708,9 +665,6 @@ class ArcherAPISession(object):
         value = self.get_valuesetvalue_of_field(fieldId, value)
         moduleId = self.get_moduleid(app)
 
-        if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
-                     pythonVersion=self.python_version)
         field = {
            'id': fieldId,
            'type': fieldType,
@@ -722,19 +676,3 @@ class ArcherAPISession(object):
         data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
         return bool(data)
-
-    def terminate_session(self):
-        try:
-            if self.sessionToken:
-                result = self.asoap.terminate_session(self.sessionToken)
-            else:
-                result = self.asoap.terminate_session(self.get_token())
-        except Exception as e:
-            result = str(e)
-
-        if result == '1':
-            result = ''
-        else:
-            result = ' - Terminate session details: {}'.format(result)
-
-        return result

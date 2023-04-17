@@ -17,6 +17,7 @@ ARCHER_ACTION_UPDATE_TICKET = "update_ticket"
 ARCHER_ACTION_GET_TICKET = "get_ticket"
 ARCHER_ACTION_LIST_TICKET = "list_tickets"
 ARCHER_ACTION_ON_POLL = "on_poll"
+ARCHER_SESSION_TOKEN = "session_token"
 
 ARCHER_SUCC_CONFIGURATION = "Archer configuration test SUCCESS"
 
