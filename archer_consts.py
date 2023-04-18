@@ -25,6 +25,8 @@ ARCHER_SORT_TYPE_ASCENDING = "Ascending"
 ARCHER_SORT_TYPE_DESCENDING = "Descending"
 
 ARCHER_LAST_RECORD_FILE = "last_record_{}.txt"
+ARCHER_ENCRYPT_TOKEN = "Encryptint the {} token"
+ARCHER_DECRYPT_TOKEN = "Decryptint the {} token"
 
 ARCHER_ERR_PYTHON_MAJOR_VERSION = "Error occurred while getting the Phantom server's Python major version"
 ARCHER_ERR_CODE_UNAVAILABLE = "Error code unavailable"

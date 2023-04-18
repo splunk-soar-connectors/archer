@@ -19,6 +19,8 @@ import json
 import os
 import sys
 
+import encryption_helper
+
 import phantom.app as phantom
 from bs4 import UnicodeDammit
 from phantom.action_result import ActionResult
@@ -60,14 +62,32 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
-        self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
+        # self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
+        self.sessionToken = self.decrypt_state(consts.ARCHER_SESSION_TOKEN, "session token")
         self.proxy = self._get_proxy()
         return phantom.APP_SUCCESS
 
     def finalize(self):
-        self._state[consts.ARCHER_SESSION_TOKEN] = self.sessionToken
+        # self._state[consts.ARCHER_SESSION_TOKEN] = self.sessionToken
+        self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(consts.ARCHER_SESSION_TOKEN, "session token")
         self.save_state(self._state)
         return phantom.APP_SUCCESS
+    
+    def encrypt_state(self, encrypt_var, token_name):
+        """ Handle encryption of token.
+        :param encrypt_var: Variable needs to be encrypted
+        :return: encrypted variable
+        """
+        self.debug_print(consts.ARCHER_ENCRYPT_TOKEN.format(token_name))   # nosemgrep
+        return encryption_helper.encrypt(encrypt_var, self.get_asset_id())
+
+    def decrypt_state(self, decrypt_var, token_name):
+        """ Handle decryption of token.
+        :param decrypt_var: Variable needs to be decrypted
+        :return: decrypted variable
+        """
+        self.debug_print(consts.ARCHER_DECRYPT_TOKEN.format(token_name))    # nosemgrep
+        return encryption_helper.decrypt(decrypt_var, self.get_asset_id())
 
     def _get_error_message_from_exception(self, e):
         """ This method is used to get appropriate error message from the exception.
@@ -277,6 +297,7 @@ class ArcherConnector(BaseConnector):
             self.save_progress('Please provide correct URL and credentials')
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
+        self.send_progress("{}".format(self.proxy.conn_obj.sessionToken))
         msg = consts.ARCHER_SUCC_CONFIGURATION
         self.save_progress("Test connectivity passed")
 
