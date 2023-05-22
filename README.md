@@ -6,7 +6,7 @@ Connector Version: 3.0.0
 Product Vendor: RSA  
 Product Name: Archer GRC  
 Product Version Supported (regex): ".\*"  
-Minimum Product Version: 5.3.3  
+Minimum Product Version: 5.2.0  
 
 This app implements ticket management actions on RSA Archer GRC
 
@@ -100,6 +100,8 @@ VARIABLE | REQUIRED | TYPE | DESCRIPTION
 [update ticket](#action-update-ticket) - Update the value of a field of a record  
 [get ticket](#action-get-ticket) - Get ticket information  
 [list tickets](#action-list-tickets) - Get a list of tickets in an application  
+[create attachment](#action-create-attachment) - Create an attachment  
+[get report](#action-get-report) - Get a list of tickets in a report  
 [on poll](#action-on-poll) - Callback action for the on_poll ingest functionality  
 
 ## action: 'test connectivity'
@@ -155,8 +157,9 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **content_id** |  optional  | Content ID (Identifies the specific record) | numeric |  `archer content id` 
 **name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
 **name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
-**field_id** |  required  | ID or name of the field to update in the record | string | 
-**value** |  required  | New value of the record's field | string | 
+**field_id** |  optional  | ID or name of the field to update in the record | string | 
+**value** |  optional  | New value of the record's field | string | 
+**json_string** |  optional  | JSON data string | string | 
 
 #### Action Output
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
@@ -165,6 +168,7 @@ action_result.status | string |  |   success  failed
 action_result.parameter.application | string |  `archer application`  |   Incidents 
 action_result.parameter.content_id | numeric |  `archer content id`  |   210035 
 action_result.parameter.field_id | string |  |   Incident Summary 
+action_result.parameter.json_string | string |  |   { "Incident Summary": "Final test incident summary data" } 
 action_result.parameter.name_field | string |  |   Incident ID 
 action_result.parameter.name_value | string |  `archer user friendly id`  |   10009 
 action_result.parameter.value | string |  |   Hello Test Summary 1 
@@ -207,6 +211,7 @@ action_result.data.\*.Record.@updateLogin | string |  |   2
 action_result.data.\*.Record.Field.\*.@height | string |  |  
 action_result.data.\*.Record.Field.\*.@id | string |  |   206 
 action_result.data.\*.Record.Field.\*.@name | string |  |   Incident ID 
+action_result.data.\*.Record.Field.\*.@otherText | string |  |   This is no impact incident to check the ownership and the contact field/. 
 action_result.data.\*.Record.Field.\*.@parentId | string |  |  
 action_result.data.\*.Record.Field.\*.@type | string |  |   6 
 action_result.data.\*.Record.Field.\*.@updateDate | string |  |   10/1/2018 6:57:46 AM 
@@ -224,24 +229,59 @@ action_result.data.\*.Record.Field.\*.Groups.Group.@id | string |  |   1
 action_result.data.\*.Record.Field.\*.Groups.Group.@name | string |  |   IM: Admin 
 action_result.data.\*.Record.Field.\*.Groups.Group.@updateDate | string |  |   1/18/2006 4:28:14 AM 
 action_result.data.\*.Record.Field.\*.Groups.Group.@updateLogin | string |  |   2 
+action_result.data.\*.Record.Field.\*.Record.\*.@contentName | string |  |   308246 
 action_result.data.\*.Record.Field.\*.Record.\*.@id | string |  |   200049 
 action_result.data.\*.Record.Field.\*.Record.\*.@levelId | string |  |   60 
+action_result.data.\*.Record.Field.\*.Record.\*.@moduleId | string |  |   165 
+action_result.data.\*.Record.Field.\*.Record.\*.@moduleName | string |  |   Task Management 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@id | string |  |   206 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@parentId | string |  |  
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@type | string |  |   6 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@value | string |  |   1 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@valueID | string |  |   406 
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@firstName | string |  |   phantom 
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@id | string |  |   207 
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@lastName | string |  |   lab 
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@middleName | string |  |  
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@updateDate | string |  |   12/15/2022 10:22:17 AM 
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@updateLogin | string |  |   2 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.@firstName | string |  |   test 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.@id | string |  |   190 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.@lastName | string |  |   user 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.@middleName | string |  |  
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.@updateDate | string |  |   6/01/2016 12:58:55 AM 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.@updateLogin | string |  |   190 
+action_result.data.\*.Record.Field.\*.Record.@contentName | string |  |   308608 
 action_result.data.\*.Record.Field.\*.Record.@id | string |  |   210033 
 action_result.data.\*.Record.Field.\*.Record.@levelId | string |  |   60 
+action_result.data.\*.Record.Field.\*.Record.@moduleId | string |  |   435 
+action_result.data.\*.Record.Field.\*.Record.@moduleName | string |  |   Incident Journal 
+action_result.data.\*.Record.Field.\*.Record.@sequentialId | string |  |   1 
+action_result.data.\*.Record.Field.\*.Record.@updateDate | string |  |   12/27/2022 9:38:24 AM 
+action_result.data.\*.Record.Field.\*.Record.@updateLogin | string |  |   208 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.@fileID | string |  |   2 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.@fileName | string |  |   Archive_test.zip 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.@height | string |  |  
 action_result.data.\*.Record.Field.\*.Record.Field.\*.@id | string |  |   607 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.@parentId | string |  |  
 action_result.data.\*.Record.Field.\*.Record.Field.\*.@type | string |  |   1 
 action_result.data.\*.Record.Field.\*.Record.Field.\*.@value | string |  |  
+action_result.data.\*.Record.Field.\*.Record.Field.\*.@valueID | string |  |   66329 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.@width | string |  |  
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.@id | string |  |   285743 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.@levelId | string |  |   37 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.\*.@id | string |  |   540 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.\*.@type | string |  |   1 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.\*.@value | string |  |   Soc L1 L1 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@id | string |  |   540 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@type | string |  |   1 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@value | string |  |   Phantom Test 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@firstName | string |  |   phantom 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@id | string |  |   207 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@lastName | string |  |   lab 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@middleName | string |  |  
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@updateDate | string |  |   12/15/2022 10:22:17 AM 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@updateLogin | string |  |   2 
 action_result.data.\*.Record.Field.\*.Record.Field.@id | string |  |   120 
 action_result.data.\*.Record.Field.\*.Record.Field.@type | string |  |   1 
 action_result.data.\*.Record.Field.\*.Record.Field.@value | string |  |   Phoenix PD 
@@ -278,6 +318,9 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **max_results** |  required  | Max number of records to return | numeric | 
 **name_field** |  optional  | Name of field to search in (e.g. "Incident ID") | string | 
 **search_value** |  optional  | Value to search for in this application | string | 
+**results_filter_json** |  optional  | JSON with field names and values of results filter for this application | string | 
+**results_filter_operator** |  optional  | Boolean operator of key/value pairs in the results filter JSON for this application | string | 
+**results_filter_equality** |  optional  | Equality operator of key/value pairs in the results filter JSON for this application | string | 
 
 #### Action Output
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
@@ -286,6 +329,9 @@ action_result.status | string |  |   success  failed
 action_result.parameter.application | string |  `archer application`  |   Incidents 
 action_result.parameter.max_results | numeric |  |   100 
 action_result.parameter.name_field | string |  |   Incident ID 
+action_result.parameter.results_filter_equality | string |  |   Contains  Equals 
+action_result.parameter.results_filter_json | string |  |   {'Incident ID': '10000'} 
+action_result.parameter.results_filter_operator | string |  |   AND  OR 
 action_result.parameter.search_value | string |  |   10000 
 action_result.data.\*.@contentId | numeric |  `archer content id`  |   210035 
 action_result.data.\*.@levelGuid | string |  |   b0c2da91-167c-4fee-ad91-4b4e7b098b4b 
@@ -299,9 +345,89 @@ action_result.data.\*.Field.\*.@name | string |  |   Address
 action_result.data.\*.Field.\*.@type | string |  |   1 
 action_result.data.\*.Field.\*.@xmlConvertedValue | string |  |   2018-10-01T06:59:00Z 
 action_result.data.\*.Field.\*.ListValues.ListValue.#text | string |  |   California 
+action_result.data.\*.Field.\*.ListValues.ListValue.\*.#text | string |  |   Arcsight 
+action_result.data.\*.Field.\*.ListValues.ListValue.\*.@displayName | string |  |   Arcsight 
+action_result.data.\*.Field.\*.ListValues.ListValue.\*.@id | string |  |   9526 
 action_result.data.\*.Field.\*.ListValues.ListValue.@displayName | string |  |   California 
 action_result.data.\*.Field.\*.ListValues.ListValue.@id | string |  |   91 
 action_result.data.\*.Field.\*.multi_value | string |  |   No 
+action_result.summary.records_found | numeric |  |   1 
+action_result.message | string |  |   Tickets retrieved 
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1   
+
+## action: 'create attachment'
+Create an attachment
+
+Type: **generic**  
+Read only: **False**
+
+Newly created attachment ID will be returned.
+
+#### Action Parameters
+PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
+--------- | -------- | ----------- | ---- | --------
+**vault_id** |  required  | Vault ID of the file | string |  `vault id` 
+
+#### Action Output
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.status | string |  |   success  failed 
+action_result.parameter.vault_id | string |  `vault id`  |   f0fee71865babe4df97088370e44b7aa76d949d0 
+action_result.data | string |  |  
+action_result.data.\*.Attachment_ID | numeric |  |   31 
+action_result.summary | string |  |  
+action_result.message | string |  |   Attachment created successfully   
+
+## action: 'get report'
+Get a list of tickets in a report
+
+Type: **investigate**  
+Read only: **True**
+
+The records for a report GUID (guid) are returned.
+
+#### Action Parameters
+PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
+--------- | -------- | ----------- | ---- | --------
+**guid** |  required  | Report GUID | string |  `archer guid` 
+**max_results** |  optional  | Max number of records to return | numeric | 
+**max_pages** |  optional  | Max number of report pages to return | numeric | 
+**results_filter_json** |  optional  | JSON with field names and values of results filter for a report | string | 
+**results_filter_operator** |  optional  | Boolean operator of key/value pairs in the results filter JSON for a report | string | 
+**results_filter_equality** |  optional  | Equality operator of key/value pairs in the results filter JSON for a report | string | 
+
+#### Action Output
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.status | string |  |   success  failed 
+action_result.parameter.guid | string |  `archer guid`  |   d00ae4c0-c75f-4eac-8900-81cf93cb4e21 
+action_result.parameter.max_pages | numeric |  |   10 
+action_result.parameter.max_results | numeric |  |   100 
+action_result.parameter.results_filter_equality | string |  |   Contains  Equals 
+action_result.parameter.results_filter_json | string |  |   {'Incident ID': '10000'} 
+action_result.parameter.results_filter_operator | string |  |   AND  OR 
+action_result.data.\*.@contentId | numeric |  `archer content id`  |   210035 
+action_result.data.\*.@levelGuid | string |  |   b0c2da91-167c-4fee-ad91-4b4e7b098b4b 
+action_result.data.\*.@levelId | string |  |   60 
+action_result.data.\*.@moduleId | string |  |   70 
+action_result.data.\*.@parentId | string |  |   0 
+action_result.data.\*.Field.\*.#text | string |  `ip`  |   <p>Testing address</p> 
+action_result.data.\*.Field.\*.@guid | string |  |   d00ae4c0-c75f-4eac-8900-81cf93cb4e21 
+action_result.data.\*.Field.\*.@id | string |  |   1600 
+action_result.data.\*.Field.\*.@name | string |  |   Address 
+action_result.data.\*.Field.\*.@type | string |  |   1 
+action_result.data.\*.Field.\*.@xmlConvertedValue | string |  |   2018-10-01T06:59:00Z 
+action_result.data.\*.Field.\*.Groups | string |  |  
+action_result.data.\*.Field.\*.ListValues.ListValue.#text | string |  |   California 
+action_result.data.\*.Field.\*.ListValues.ListValue.@displayName | string |  |   California 
+action_result.data.\*.Field.\*.ListValues.ListValue.@id | string |  |   91 
+action_result.data.\*.Field.\*.Users.User.#text | string |  |   socl1 
+action_result.data.\*.Field.\*.Users.User.@firstName | string |  |   SOC 
+action_result.data.\*.Field.\*.Users.User.@id | string |  |   208 
+action_result.data.\*.Field.\*.Users.User.@lastName | string |  |   L1 
+action_result.data.\*.Field.\*.multi_value | string |  |   No 
+action_result.summary.pages_found | numeric |  |   1 
 action_result.summary.records_found | numeric |  |   1 
 action_result.message | string |  |   Tickets retrieved 
 summary.total_objects | numeric |  |   1 
