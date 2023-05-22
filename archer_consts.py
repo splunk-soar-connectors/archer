@@ -17,7 +17,10 @@ ARCHER_ACTION_UPDATE_TICKET = "update_ticket"
 ARCHER_ACTION_GET_TICKET = "get_ticket"
 ARCHER_ACTION_LIST_TICKET = "list_tickets"
 ARCHER_ACTION_ON_POLL = "on_poll"
+ARCHER_ACTION_CREATE_ATTACHMENT = "create_attachment"
+ARCHER_ACTION_GET_REPORT = "get_report"
 ARCHER_SESSION_TOKEN = "session_token"
+ARCHER_INVALID_SESSION_TOKEN = "Invalid session token"
 
 ARCHER_SUCC_CONFIGURATION = "Archer configuration test SUCCESS"
 
@@ -49,3 +52,6 @@ ARCHER_XPATH_AUTH = '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanc
 ARCHER_XPATH_DOMAIN_USER_AUTH = \
     '/soap:Envelope/soap:Body/dummy:CreateDomainUserSessionFromInstanceResponse/dummy:CreateDomainUserSessionFromInstanceResult'
 ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'
+
+ARCHER_CREATE_ATTACHMENT_ENDPOINT = '/api/core/content/attachment'
+ARCHER_UNAUTHORIZED_USER = 401

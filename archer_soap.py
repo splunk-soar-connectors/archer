@@ -218,6 +218,8 @@ class ArcherSOAP(object):
         resp_root = resp_doc.getroot()
         result = resp_root.xpath(
             '/soap:Envelope/soap:Body/dummy:ExecuteSearchResponse/dummy:ExecuteSearchResult', namespaces=ALL_NS_MAP)
+        self.conn_obj.debug_print(f"soap find_records result:: {result}")
+
         if not result:
             return []
 
@@ -255,33 +257,48 @@ class ArcherSOAP(object):
 
     def mv_field(self, field, parent):
         f = etree.SubElement(parent, 'Field')
+        self.conn_obj.debug_print(f"mv_field field:: {field}")
         values = field['value']
+        self.conn_obj.debug_print(f"mv_field values:: {values}")
         o = None
         if isinstance(values, dict):
             o = field.get('other_text')
             values = values['value_id']
-        f.set('value', str(values))
+
+        if isinstance(values, list):
+            f.set('value', str(values[0]))
+            for v in values[1:]:
+                mv = etree.SubElement(f, 'MultiValue')
+                mv.set('value', str(v))
+                self.conn_obj.debug_print(f"mv_field mv :: {mv}")
+        else:
+            f.set('value', str(values))
+
         f.set('id', str(field['id']))
         f.set('type', str(field['type']))
+        self.conn_obj.debug_print(f"mv_field f :: {f}")
         if o:
             f.set('othertext', str(o))
-        # add this when we have proper multi value support.
-        # for v in values[1:]:
-        #    mv = etree.SubElement(f, 'MultiValue')
-        #    mv.set('value', str(v))
+        self.conn_obj.debug_print(f"mv_field f value end :: {f}")
 
     def user_field(self, field, parent):
         f = etree.SubElement(parent, 'Field')
         f.set('id', str(field['id']))
         u = etree.SubElement(f, 'Users')
-        uid = etree.SubElement(u, 'User')
-        uid.set('id', str(field['value']))
+
+        if isinstance(field['value'], list):
+            for user in field['value']:
+                uid = etree.SubElement(u, 'User')
+                uid.set('id', str(user))
+        else:
+            uid = etree.SubElement(u, 'User')
+            uid.set('id', str(field['value']))
 
     def get_field_map(self):
         type_formatter_map = {}
         for i in (1, 2, 3, 19):
             type_formatter_map[i] = self.plain_field
-        for i in (4, 9, 18):
+        for i in (4, 9, 18, 27, 23):
             type_formatter_map[i] = self.mv_field
         for i in (8,):
             type_formatter_map[i] = self.user_field
@@ -308,12 +325,15 @@ class ArcherSOAP(object):
                 fn(field, r)
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
+        self.conn_obj.debug_print(f"update_record soap fv.text:: {fv.text}")
 
+        self.conn_obj.debug_print(f"update_record Failed to set valueslist field vli fv.text:: {doc}")
         resp_doc = self._do_request(self.base_uri + '/record.asmx', doc)
 
         resp_root = resp_doc.getroot()
         result = resp_root.xpath(
             '/soap:Envelope/soap:Body/dummy:UpdateRecordResponse/dummy:UpdateRecordResult', namespaces=ALL_NS_MAP)
+        self.conn_obj.debug_print(f"update_record soap result:: {result}")
         if result and len(result) > 0:
             try:
                 return int(result[0].text)
@@ -359,6 +379,31 @@ class ArcherSOAP(object):
         body = etree.SubElement(envelope, etree.QName(SOAPNS, 'Body'))
         return document, body
 
+    def get_report(self, guid, page_number):
+        if not self.conn_obj.sessionToken:
+            raise Exception('No session')
+        doc, body = self._generate_xml_stub()
+        gr = etree.SubElement(body, 'SearchRecordsByReport', nsmap=ARCHER_MAP)
+        to = etree.SubElement(gr, 'sessionToken')
+        to.text = self.conn_obj.sessionToken
+        gi = etree.SubElement(gr, 'reportIdOrGuid')
+        gi.text = str(guid)
+        pn = etree.SubElement(gr, 'pageNumber')
+        pn.text = str(page_number)
+        resp_doc = self._do_request(self.base_uri + '/search.asmx', doc)
+        resp_root = resp_doc.getroot()
+        rec_xml = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:SearchRecordsByReportResponse/dummy:SearchRecordsByReportResult', namespaces=ALL_NS_MAP)
+
+        if len(rec_xml) > 0:
+            return {'status': 'success', 'result': rec_xml[0].text}
+        else:
+            rec_xml = resp_root.xpath('//*[local-name()="faultstring"]', namespaces=ALL_NS_MAP)
+            if len(rec_xml) > 0:
+                return {'status': 'failed', 'result': rec_xml[0].text}
+            else:
+                return {'status': 'failed', 'result': 'Unable to find SearchRecordsByReportResult.'}
+
     def _do_request(self, uri, doc, method='post'):
         if method == 'post':
             xml = etree.tostring(doc, pretty_print=True)
@@ -373,7 +418,7 @@ class ArcherSOAP(object):
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            if "Invalid session token" in response.text:
+            if archer_consts.ARCHER_INVALID_SESSION_TOKEN in response.text:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]
                 session_token.text = self.conn_obj.sessionToken

@@ -14,15 +14,15 @@
 # and limitations under the License.
 """Implements a Phantom.us app for RSA Archer GRC."""
 
+import base64
 import fcntl
 import json
 import os
 import sys
 
 import encryption_helper
-
 import phantom.app as phantom
-from bs4 import UnicodeDammit
+from phantom import vault
 from phantom.action_result import ActionResult
 from phantom.base_connector import BaseConnector
 
@@ -62,17 +62,17 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
-        # self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
-        self.sessionToken = self.decrypt_state(consts.ARCHER_SESSION_TOKEN, "session token")
+        self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
+        self.sessionToken = self.decrypt_state(str(self.sessionToken), consts.ARCHER_SESSION_TOKEN)
         self.proxy = self._get_proxy()
         return phantom.APP_SUCCESS
 
     def finalize(self):
-        # self._state[consts.ARCHER_SESSION_TOKEN] = self.sessionToken
-        self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(consts.ARCHER_SESSION_TOKEN, "session token")
+        self._state[consts.ARCHER_SESSION_TOKEN] = self.sessionToken
+        self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(str(self.sessionToken), consts.ARCHER_SESSION_TOKEN)
         self.save_state(self._state)
         return phantom.APP_SUCCESS
-    
+
     def encrypt_state(self, encrypt_var, token_name):
         """ Handle encryption of token.
         :param encrypt_var: Variable needs to be encrypted
@@ -156,7 +156,7 @@ class ArcherConnector(BaseConnector):
             sort_type = consts.ARCHER_SORT_TYPE_DESCENDING
 
         self.save_progress('Polling Archer for {} new records after {}...'.format(
-               max_records, max_content_id))
+            max_records, max_content_id))
 
         if not cef_mapping.get('tracking'):
             action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_TRACKING_ID_NOT_PROVIDED)
@@ -165,7 +165,7 @@ class ArcherConnector(BaseConnector):
 
         completed_records = 0
         max_ingested_id = max_content_id
-        self.proxy.excluded_fields = [ x.lower().strip() for x in config.get('exclude_fields', '').split(',') ]
+        self.proxy.excluded_fields = [x.lower().strip() for x in config.get('exclude_fields', '').split(',')]
         while completed_records < max_records:
             records = self.proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort=sort_type, page=last_page)
             nrecs = len(records)
@@ -205,9 +205,9 @@ class ArcherConnector(BaseConnector):
                 c['data']['archer_url'] = c['data']['archer_url'][3]
                 c['data']['archer_content_id'] = int(rec['@contentId'])
                 c['source_data_identifier'] = '{}@"{}"/{}'.format(
-                        c['data']['archer_content_id'],
-                        c['data']['archer_instance'],
-                        c['data']['archer_url'])
+                    c['data']['archer_content_id'],
+                    c['data']['archer_instance'],
+                    c['data']['archer_url'])
                 c['data']['raw'] = dict(rec)
 
                 self.send_progress('Saving container {}...'.format(c['data']['archer_content_id']))
@@ -216,8 +216,8 @@ class ArcherConnector(BaseConnector):
                     self.debug_print('Failed to store: {}'.format(c))
                     self.debug_print('stat/msg {}/{}'.format(status, msg))
                     action_result.set_status(
-                            phantom.APP_ERROR,
-                            'Container creation failed: {}'.format(msg))
+                        phantom.APP_ERROR,
+                        'Container creation failed: {}'.format(msg))
                     return status
                 art = {
                     'container_id': id_,
@@ -232,8 +232,8 @@ class ArcherConnector(BaseConnector):
                     self.debug_print('Failed to store: {}'.format(c))
                     self.debug_print('stat/msg {}/{}'.format(status, msg))
                     action_result.set_status(
-                            phantom.APP_ERROR,
-                            'Artifact creation failed: {}'.format(msg))
+                        phantom.APP_ERROR,
+                        'Artifact creation failed: {}'.format(msg))
                     return status
                 max_ingested_id = max(max_ingested_id, c['data']['archer_content_id'])
                 completed_records += 1
@@ -379,8 +379,25 @@ class ArcherConnector(BaseConnector):
         cid = param.get('content_id')
         nfid = param.get('name_field')
         nfv = param.get('name_value')
-        fid = orig_fid = param.get('field_id')
+        fid = param.get('field_id')
         value = param.get('value')
+        json_string = param.get('json_string')
+
+        mapping = ''
+        if json_string:
+            try:
+                mapping = json.loads(json_string)
+            except (ValueError, TypeError) as e:
+                msg = consts.ARCHER_ERR_VALID_JSON
+                self.debug_print(msg)
+                err = self._get_error_message_from_exception(e)
+                action_result.set_status(phantom.APP_ERROR, msg, err)
+                return action_result.get_status()
+            if not isinstance(mapping, dict):
+                action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
+                return action_result.get_status()
+
+            self.debug_print('Parsed data: {}'.format(mapping))
 
         # Raise an exception if invalid numeric value is provided in content ID parameter
         try:
@@ -400,25 +417,21 @@ class ArcherConnector(BaseConnector):
 
         if not cid and nfv:
             action_result.set_status(phantom.APP_ERROR,
-                'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(nfv, nfid, app))
+                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(nfv, nfid, app))
             return action_result.get_status()
 
         if self.proxy.get_levelId_for_app(app) is None:
             action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify application \'{}'.format(app))
         else:
-            try:
-                fid = int(fid)
-            except (ValueError, TypeError):
-                fid = self.proxy.get_fieldId_for_app_and_name(app, fid)
-
-            if not fid or type(fid) != int:
-                action_result.set_status(phantom.APP_ERROR, 'Error: Could not identify field {}'.format(orig_fid))
+            pur = False
+            if json_string:
+                pur = self.proxy.update_record_by_json(app, cid, mapping)
             else:
-                pur = self.proxy.update_record(app, cid, fid, value)
-                if pur:
-                    action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
-                else:
-                    action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
+                pur = self.proxy.update_record(app, cid, fid, value, mapping)
+            if pur:
+                action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Unable to update ticket')
 
         return action_result.get_status()
 
@@ -446,7 +459,7 @@ class ArcherConnector(BaseConnector):
                 return action_result.get_status()
             if not cid:
                 action_result.set_status(phantom.APP_ERROR,
-                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(nfv, nfid, app))
+                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(nfv, nfid, app))
                 return action_result.get_status()
 
         action_result.update_summary({'content_id': cid})
@@ -485,6 +498,25 @@ class ArcherConnector(BaseConnector):
         max_count = param.get('max_results', 100)
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
+        results_filter_json = param.get('results_filter_json')
+        self.save_progress(f"results_filter_json: {results_filter_json}")
+        if results_filter_json:
+            results_filter_dict = json.loads(results_filter_json)
+        else:
+            results_filter_dict = None
+
+        results_filter_operator = param.get('results_filter_operator')
+        self.save_progress(f"results_filter_operator: {results_filter_operator}")
+        results_filter_equality = param.get('results_filter_equality')
+        self.save_progress(f"results_filter_equality: {results_filter_equality}")
+        try:
+            results_filter_operator = results_filter_operator.lower()
+        except:
+            pass
+        try:
+            results_filter_equality = results_filter_equality.lower()
+        except:
+            pass
 
         status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
         if (phantom.is_fail(status)):
@@ -494,19 +526,194 @@ class ArcherConnector(BaseConnector):
             action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')
             return action_result.get_status()
 
-        self.proxy.excluded_fields = [ x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',') ]
+        if (results_filter_dict or results_filter_operator or results_filter_equality) \
+                and not (results_filter_dict and results_filter_operator and results_filter_equality):
+            action_result.set_status(phantom.APP_ERROR,
+                                     'Need results filter json, results filter operator and results filter equality to filter the results')
+            return action_result.get_status()
+
+        self.proxy.excluded_fields = [x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',')]
         records = self.proxy.find_records(app, search_field_name, search_value, max_count)
-        if records:
-            for r in records:
+
+        if results_filter_dict:
+            filtered_records = self.filter_records(results_filter_dict, results_filter_operator, results_filter_equality, records)
+        else:
+            filtered_records = records
+
+        if filtered_records:
+            for r in filtered_records:
                 action_result.add_data(r)
             action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
-            action_result.update_summary({'records_found': len(records)})
+            action_result.update_summary({'records_found': len(filtered_records)})
         else:
+            filter_msg = ''
             if search_field_name and search_value:
-                action_result.set_status(phantom.APP_SUCCESS,
-                    'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+                filter_msg = 'with field {} containing value {}'.format(search_field_name, search_value)
+                # action_result.set_status(phantom.APP_SUCCESS,
+                #                          'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
+            if results_filter_dict:
+                if filter_msg != '':
+                    filter_msg = '{} and results filter json'.format(filter_msg)
+                else:
+                    filter_msg = 'with results filter json'
+
+            action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets for {}{}'.format(app, filter_msg))
+            action_result.update_summary({'records_found': 0})
+            # else:
+            #     action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets for {}'.format(app))
+
+        return action_result.get_status()
+
+    def _handle_create_attachment(self, action_result, param):
+        self.save_progress("Get attachment")
+
+        vault_id = param.get('vault_id')
+
+        endpoint = consts.ARCHER_CREATE_ATTACHMENT_ENDPOINT
+
+        if vault_id:
+            container = self.get_container_id()
+            success, message, info = vault.vault_info(
+                vault_id=vault_id, container_id=container)
+            if success:
+                file_path = info[0]["path"]
+                file_name = info[0]["name"]
+                with open(file_path, "rb") as file_object:
+                    attachment_data = file_object.read()
+                    attachment_bytes = base64.encodebytes(attachment_data)
+            data = {
+                "AttachmentName": file_name,
+                "AttachmentBytes": attachment_bytes
+            }
+
+            try:
+                response = archer_utils.ArcherAPISession._rest_call(self.proxy, endpoint, 'post', data)
+                response = json.loads(response)
+                if response['IsSuccessful']:
+                    action_result.add_data({'Attachment_ID': response['RequestedObject']['Id']})
+                    action_result.set_status(phantom.APP_SUCCESS, 'Attachment created successfully')
+            except Exception as e:
+                err = self._get_error_message_from_exception(e)
+                action_result.set_status(phantom.APP_ERROR, 'Error: {}'.format(err))
+                return action_result.get_status()
+
+        return action_result.get_status()
+
+    def filter_records(self, results_filter_dict, results_filter_operator, results_filter_equality, records):
+        filtered_records = []
+
+        if results_filter_operator == 'and':
+            and_dict_len = len(results_filter_dict)
+            for record in records:
+                and_dict_count = 0
+                for field in record['Field']:
+                    for k, v in results_filter_dict.items():
+                        if results_filter_equality == 'equals':
+                            if field['@name'] == k and v.lower() == field['#text'].lower():
+                                and_dict_count = and_dict_count + 1
+                        else:
+                            if field['@name'] == k and v.lower() in field['#text'].lower():
+                                and_dict_count = and_dict_count + 1
+                if and_dict_count >= and_dict_len:
+                    filtered_records.append(record)
+
+        elif results_filter_operator == 'or':
+            for record in records:
+                next_record = False
+                for field in record['Field']:
+                    for k, v in results_filter_dict.items():
+                        if results_filter_equality == 'equals':
+                            if field['@name'] == k and v.lower() == field['#text'].lower():
+                                filtered_records.append(record)
+                                next_record = True
+                                break
+                        else:
+                            if field['@name'] == k and v.lower() in field['#text'].lower():
+                                filtered_records.append(record)
+                                next_record = True
+                                break
+                    if next_record:
+                        break
+
+        return filtered_records
+
+    def _handle_get_report(self, action_result, param):
+        """Handles 'get_report' actions"""
+        self.save_progress('Get Archer report...')
+        guid = param.get('guid')
+        max_count = param.get('max_results', 100)
+        max_pages = param.get('max_pages', 10)
+        results_filter_json = param.get('results_filter_json')
+        self.save_progress(f"results_filter_json: {results_filter_json}")
+        if results_filter_json:
+            results_filter_dict = json.loads(results_filter_json)
+        else:
+            results_filter_dict = None
+
+        results_filter_operator = param.get('results_filter_operator')
+        self.save_progress(f"results_filter_operator: {results_filter_operator}")
+        results_filter_equality = param.get('results_filter_equality')
+        self.save_progress(f"results_filter_equality: {results_filter_equality}")
+        try:
+            results_filter_operator = results_filter_operator.lower()
+        except:
+            pass
+        try:
+            results_filter_equality = results_filter_equality.lower()
+        except:
+            pass
+
+        status, max_count = self._validate_integer(action_result, max_count, "max_result", False)
+        if (phantom.is_fail(status)):
+            return action_result.get_status()
+
+        status, max_pages = self._validate_integer(action_result, max_pages, "max_pages", False)
+        if (phantom.is_fail(status)):
+            return action_result.get_status()
+
+        if (results_filter_dict or results_filter_operator or results_filter_equality) \
+                and not (results_filter_dict and results_filter_operator and results_filter_equality):
+            action_result.set_status(phantom.APP_ERROR,
+                                     'Need results filter json, results filter operator and results filter equality to filter the results')
+            return action_result.get_status()
+
+        try:
+            result_dict = self.proxy.get_report_by_id(guid, max_count, max_pages)
+            self.save_progress(f"result_dict:: {result_dict}")
+            if result_dict['status'] != 'success':
+                action_result.set_status(phantom.APP_ERROR, result_dict['message'])
+                return action_result.get_status()
+
+            records = result_dict['records']
+            self.save_progress(f"records:: {records}")
+
+            if results_filter_dict:
+                filtered_records = self.filter_records(results_filter_dict, results_filter_operator, results_filter_equality, records)
+                self.save_progress(f"if filtered_records: {filtered_records}")
             else:
-                action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets for {}'.format(app))
+                filtered_records = records
+                self.save_progress(f"else filtered_records: {filtered_records}")
+
+            if filtered_records:
+                for r in filtered_records:
+                    action_result.add_data(r)
+                action_result.set_status(phantom.APP_SUCCESS, 'Tickets retrieved')
+                action_result.update_summary({'records_found': len(filtered_records)})
+                action_result.update_summary({'pages_found': result_dict['page_count']})
+            else:
+
+                if results_filter_dict:
+                    filter_msg = ' with results filter json'
+                else:
+                    filter_msg = ''
+
+                action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets{}'.format(filter_msg))
+                action_result.update_summary({'records_found': 0})
+                action_result.update_summary({'pages_found': result_dict['page_count']})
+
+        except Exception as e:
+            action_result.set_status(phantom.APP_ERROR,
+                                     'Error handling get report action - e = {}'.format(e))
 
         return action_result.get_status()
 
@@ -529,6 +736,10 @@ class ArcherConnector(BaseConnector):
                 return self._handle_test_connectivity(action_result, param)
             elif (action_id == consts.ARCHER_ACTION_ON_POLL):
                 return self._handle_on_poll(action_result, param)
+            elif (action_id == consts.ARCHER_ACTION_CREATE_ATTACHMENT):
+                return self._handle_create_attachment(action_result, param)
+            elif (action_id == consts.ARCHER_ACTION_GET_REPORT):
+                return self._handle_get_report(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
             err = self._get_error_message_from_exception(e)
