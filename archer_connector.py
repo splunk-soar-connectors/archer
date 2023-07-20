@@ -306,6 +306,7 @@ class ArcherConnector(BaseConnector):
             self.save_progress('Please provide correct URL and credentials')
             if term_msg != '':
                 self.save_progress(term_msg)
+            self.save_progress(err)
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
         msg = consts.ARCHER_SUCC_CONFIGURATION
