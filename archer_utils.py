@@ -434,29 +434,32 @@ class ArcherAPISession(object):
 
         if isinstance(value, list):
             lval = [str(x.lower()) for x in value]
+        elif isinstance(value, dict):
+            lval = value
         else:
             lval = [str(value.lower())]
 
-        for val in values:
-            for lv in lval:
-                if lv in (self.get_value(val[y]) for y in match_flds if val[y]):
-                    W(f"Get value : {self.get_value(val['Id'])}")
-                    vlid.append(val['Id'])
-                    break
+        if values:
+            for val in values:
+                for lv in lval:
+                    if lv in (self.get_value(val[y]) for y in match_flds if val[y]):
+                        W(f"Get value : {self.get_value(val['Id'])}")
+                        vlid.append(val['Id'])
+                        break
 
-        return vlid, None
+            return vlid, None
 
-        # if ':' in value:
-        #     vname, vval = value.split(':', 1)
-        #     vname = vname.lower()
-        #     for other in (x for x in values if x['EnableOtherText']):
-        #         if vname in (self.get_value(other[x]) for x in match_flds
-        #                      if other[x]):
-        #             W(f"get_valueslistvalue_id other['Id'] {other['Id']}")
-        #             return other['Id'], vval
-        # W('No valueslistvalue found for vlid:{} and value:{}'.format(
-        #     vlid, value))
-        # return None, None
+        if ':' in value:
+            vname, vval = value.split(':', 1)
+            vname = vname.lower()
+            for other in (x for x in values if x['EnableOtherText']):
+                if vname in (self.get_value(other[x]) for x in match_flds
+                             if other[x]):
+                    W(f"get_valueslistvalue_id other['Id'] {other['Id']}")
+                    return other['Id'], vval
+        W('No valueslistvalue found for vlid:{} and value:{}'.format(
+            vlid, value))
+        return None, None
 
     def get_content_by_id(self, cid):
         """Returns the full record with the given id."""

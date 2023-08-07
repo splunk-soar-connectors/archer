@@ -549,8 +549,6 @@ class ArcherConnector(BaseConnector):
             filter_msg = ''
             if search_field_name and search_value:
                 filter_msg = 'with field {} containing value {}'.format(search_field_name, search_value)
-                # action_result.set_status(phantom.APP_SUCCESS,
-                #                          'Found no tickets with field {} containing value {}'.format(search_field_name, search_value))
             if results_filter_dict:
                 if filter_msg != '':
                     filter_msg = '{} and results filter json'.format(filter_msg)
@@ -559,8 +557,6 @@ class ArcherConnector(BaseConnector):
 
             action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets for {}{}'.format(app, filter_msg))
             action_result.update_summary({'records_found': 0})
-            # else:
-            #     action_result.set_status(phantom.APP_SUCCESS, 'Found no tickets for {}'.format(app))
 
         return action_result.get_status()
 
