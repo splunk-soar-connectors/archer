@@ -368,6 +368,7 @@ Newly created attachment ID will be returned.
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 --------- | -------- | ----------- | ---- | --------
 **vault_id** |  required  | Vault ID of the file | string |  `vault id` 
+**file_name** |  optional  | File name | string | 
 
 #### Action Output
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
