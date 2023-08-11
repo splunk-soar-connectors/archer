@@ -218,7 +218,6 @@ class ArcherSOAP(object):
         resp_root = resp_doc.getroot()
         result = resp_root.xpath(
             '/soap:Envelope/soap:Body/dummy:ExecuteSearchResponse/dummy:ExecuteSearchResult', namespaces=ALL_NS_MAP)
-        self.conn_obj.debug_print(f"soap find_records result:: {result}")
 
         if not result:
             return []
@@ -257,9 +256,7 @@ class ArcherSOAP(object):
 
     def mv_field(self, field, parent):
         f = etree.SubElement(parent, 'Field')
-        self.conn_obj.debug_print(f"mv_field field:: {field}")
         values = field['value']
-        self.conn_obj.debug_print(f"mv_field values:: {values}")
         o = None
         if isinstance(values, dict):
             o = field.get('other_text')
@@ -270,16 +267,13 @@ class ArcherSOAP(object):
             for v in values[1:]:
                 mv = etree.SubElement(f, 'MultiValue')
                 mv.set('value', str(v))
-                self.conn_obj.debug_print(f"mv_field mv :: {mv}")
         else:
             f.set('value', str(values))
 
         f.set('id', str(field['id']))
         f.set('type', str(field['type']))
-        self.conn_obj.debug_print(f"mv_field f :: {f}")
         if o:
             f.set('othertext', str(o))
-        self.conn_obj.debug_print(f"mv_field f value end :: {f}")
 
     def user_field(self, field, parent):
         f = etree.SubElement(parent, 'Field')
@@ -325,15 +319,13 @@ class ArcherSOAP(object):
                 fn(field, r)
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
-        self.conn_obj.debug_print(f"update_record soap fv.text:: {fv.text}")
 
-        self.conn_obj.debug_print(f"update_record Failed to set valueslist field vli fv.text:: {doc}")
+        self.conn_obj.debug_print(f'update_record Failed to set valueslist field vli fv.text:: {doc}')
         resp_doc = self._do_request(self.base_uri + '/record.asmx', doc)
 
         resp_root = resp_doc.getroot()
         result = resp_root.xpath(
             '/soap:Envelope/soap:Body/dummy:UpdateRecordResponse/dummy:UpdateRecordResult', namespaces=ALL_NS_MAP)
-        self.conn_obj.debug_print(f"update_record soap result:: {result}")
         if result and len(result) > 0:
             try:
                 return int(result[0].text)

@@ -104,30 +104,31 @@ class ArcherAPISession(object):
                                 verify_cert=self.verifySSL, usersDomain=self.users_domain, conn_obj=obj)
 
     def _get_error_message_from_exception(self, e):
-        """ This method is used to get appropriate error message from the exception.
+        """
+        Get appropriate error message from the exception.
         :param e: Exception object
         :return: error message
         """
 
+        error_code = None
+        error_msg = consts.ERR_MSG_UNAVAILABLE
+
+        self.error_print('Error occurred.', e)
+
         try:
-            if e.args:
+            if hasattr(e, 'args'):
                 if len(e.args) > 1:
                     error_code = e.args[0]
                     error_msg = e.args[1]
                 elif len(e.args) == 1:
-                    error_code = "Error code unavailable"
                     error_msg = e.args[0]
-            else:
-                error_code = "Error code unavailable"
-                error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
-        except:
-            error_code = "Error code unavailable"
-            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
+        except Exception as e:
+            self.error_print('Error occurred while fetching exception information. Details: {}'.format(str(e)))
 
-        if error_code in "Error code unavailable":
-            error_text = "Error Message: {0}".format(error_msg)
+        if not error_code:
+            error_text = 'Error Message: {}'.format(error_msg)
         else:
-            error_text = "Error Code: {0}. Error Message: {1}".format(error_code, error_msg)
+            error_text = 'Error Code: {}. Error Message: {}'.format(error_code, error_msg)
 
         return error_text
 
@@ -339,14 +340,12 @@ class ArcherAPISession(object):
             if isinstance(value, str):
                 uid = self.asoap.find_user(value)
                 if not uid:
-                    W("User not found in local user search")
+                    W('User not found in local user search')
                     duid = self.asoap.find_domain_user(value)
                     if not duid:
-                        W("User not found in domain user search")
+                        W('User not found in domain user search')
                         raise Exception('Failed to find user "{}"'.format(value))
-                    W("Domain User ID: {}".format(duid))
                     return duid
-                W("User ID: {}".format(uid))
                 return uid
             else:
                 user_id = []
@@ -354,14 +353,12 @@ class ArcherAPISession(object):
                     uid = self.asoap.find_user(val)
                     user_id.append(uid)
                     if not uid:
-                        W("User not found in local user search")
+                        W('User not found in local user search')
                         duid = self.asoap.find_domain_user(val)
                         user_id.append(duid)
-                        W(f"duid : {duid}")
                         if not duid:
-                            W("User not found in domain user search")
-                            raise Exception('Failed to find user "{}"'.format(val))
-                        W("Domain User ID: {}".format(duid))
+                            W('User not found in domain user search')
+                            raise Exception('Failed to find user {}'.format(val))
                 return user_id
 
         W('Valufying "{}" as cross-reference field {}'.format(value, fld))
@@ -529,7 +526,7 @@ class ArcherAPISession(object):
 
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
-        err = ""
+        err = ''
 
         try:
             fid = int(field_name)
@@ -758,9 +755,7 @@ class ArcherAPISession(object):
             W('Updating to id: {}'.format(fid))
             W('Updating to type: {}'.format(fieldType))
             fields.append(field)
-        W(f"Fields : {fields}")
         data = self.asoap.update_record(contentId, moduleId, fields)
-        W(f"data in update recordy by json :: {data}")
         return bool(data)
 
     def get_report_by_id(self, guid, max_count, max_pages):
@@ -784,13 +779,10 @@ class ArcherAPISession(object):
 
                 # Try to get current report page
                 try:
-                    W(f"self.asop: {self.asoap}")
                     data_dict = self.asoap.get_report(guid, page_number)
-                    W(f"data_dict: {data_dict}")
                     if data_dict['status'] != 'success':
                         result_dict['message'] = data_dict['result']
                         return result_dict
-                    W(f"data_dict['result']: {data_dict['result']}")
                     data = data_dict['result']
 
                 except Exception as e:
@@ -803,7 +795,6 @@ class ArcherAPISession(object):
                         raw_dict = {}
                     else:
                         raw_dict = xmltodict.parse(data) or {}
-                        W(f"raw_dict: {raw_dict}")
                 except Exception as e:
                     result_dict['message'] = 'Failed to parse report page {} to dict - e = {}'. \
                         format(page_number, e)
