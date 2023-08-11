@@ -485,6 +485,8 @@ class ArcherConnector(BaseConnector):
         results_filter_json = param.get('results_filter_json')
         if results_filter_json:
             results_filter_dict = json.loads(results_filter_json)
+        else:
+            results_filter_dict = None
 
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
@@ -575,12 +577,15 @@ class ArcherConnector(BaseConnector):
                 and_dict_count = 0
                 for field in record['Field']:
                     for k, v in results_filter_dict.items():
-                        if results_filter_equality == 'equals':
-                            if field['#text'] and field['@name'] == k and v.lower() == field['#text'].lower():
-                                and_dict_count = and_dict_count + 1
-                        else:
-                            if field['#text'] and field['@name'] == k and v.lower() in field['#text'].lower():
-                                and_dict_count = and_dict_count + 1
+                        try:
+                            if results_filter_equality == 'equals':
+                                if field['@name'] == k and v.lower() == field['#text'].lower():
+                                    and_dict_count = and_dict_count + 1
+                            else:
+                                if field['@name'] == k and v.lower() in field['#text'].lower():
+                                    and_dict_count = and_dict_count + 1
+                        except Exception:
+                            continue
                 if and_dict_count >= and_dict_len:
                     filtered_records.append(record)
 
@@ -589,16 +594,19 @@ class ArcherConnector(BaseConnector):
                 next_record = False
                 for field in record['Field']:
                     for k, v in results_filter_dict.items():
-                        if results_filter_equality == 'equals':
-                            if field['#text'] and field['@name'] == k and v.lower() == field['#text'].lower():
-                                filtered_records.append(record)
-                                next_record = True
-                                break
-                        else:
-                            if field['#text'] and field['@name'] == k and v.lower() in field['#text'].lower():
-                                filtered_records.append(record)
-                                next_record = True
-                                break
+                        try:
+                            if results_filter_equality == 'equals':
+                                if field['#text'] and field['@name'] == k and v.lower() == field['#text'].lower():
+                                    filtered_records.append(record)
+                                    next_record = True
+                                    break
+                            else:
+                                if field['#text'] and field['@name'] == k and v.lower() in field['#text'].lower():
+                                    filtered_records.append(record)
+                                    next_record = True
+                                    break
+                        except Exception:
+                            continue
                     if next_record:
                         break
 
@@ -613,17 +621,15 @@ class ArcherConnector(BaseConnector):
         results_filter_json = param.get('results_filter_json')
         if results_filter_json:
             results_filter_dict = json.loads(results_filter_json)
+        else:
+            results_filter_dict = None
 
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
-        try:
+        if results_filter_operator:
             results_filter_operator = results_filter_operator.lower()
-        except:
-            pass
-        try:
+        if results_filter_equality:
             results_filter_equality = results_filter_equality.lower()
-        except:
-            pass
 
         status, max_count = self._validate_integer(action_result, max_count, 'max_result', False)
         if (phantom.is_fail(status)):
