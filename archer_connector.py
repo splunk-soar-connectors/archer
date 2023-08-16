@@ -290,6 +290,7 @@ class ArcherConnector(BaseConnector):
             err = self._get_error_message_from_exception(e)
             self.debug_print('Exception during archer test: {}'.format(err))
             self.save_progress('Archer login test failed')
+            self.save_progress(err)
             self.save_progress('Please provide correct URL and credentials')
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
