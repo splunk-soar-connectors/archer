@@ -551,6 +551,9 @@ class ArcherConnector(BaseConnector):
                 with open(file_path, 'rb') as file_object:
                     attachment_data = file_object.read()
                     attachment_bytes = base64.encodebytes(attachment_data)
+            else:
+                return action_result.set_status(phantom.APP_ERROR, message)
+
             data = {
                 'AttachmentName': file_name,
                 'AttachmentBytes': attachment_bytes
