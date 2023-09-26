@@ -5,7 +5,8 @@
     "publisher": "Splunk",
     "contributors": [
         {
-            "name": "Jeff Berry"
+            "name": "Jeff Berry",
+            "name": "Bryan Pluta"
         }
     ],
     "package_name": "phantom_archer",
@@ -1134,6 +1135,358 @@
                 }
             },
             "output": [],
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "assign ticket",
+            "identifier": "assign_ticket",
+            "description": "Assign users and/or groups to Security Incidents",
+            "verbose": "Assigns users and/or groups to a Security Incident. Users and groups must be specified via ID, and comma separated for multiples.",
+            "type": "generic",
+            "read_only": false,
+            "parameters": {
+                "name_field": {
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 0,
+                    "name": "name_field",
+                    "id": 1,
+                    "param_name": "name_field"
+                },
+                "users": {
+                    "description": "Users to assign to incident",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 1,
+                    "name": "users",
+                    "id": 2,
+                    "param_name": "users"
+                },
+                "field_id": {
+                    "description": "Field id for field to change. If not specified, defaults to field Id of Assigned Group field",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 2,
+                    "name": "field_id",
+                    "id": 3,
+                    "param_name": "field_id"
+                },
+                "application": {
+                    "description": "Application/Module name (e.g. Incidents)",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": false,
+                    "contains": [
+                        "archer application"
+                    ],
+                    "value_list": [],
+                    "default": "",
+                    "order": 3,
+                    "name": "application",
+                    "id": 4,
+                    "param_name": "application"
+                },
+                "name_value": {
+                    "description": "Name of record (e.g. \"INC-1234\")",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": true,
+                    "contains": [
+                        "archer user-friendly id"
+                    ],
+                    "value_list": [],
+                    "default": "",
+                    "order": 4,
+                    "name": "name_value",
+                    "id": 5,
+                    "param_name": "name_value"
+                },
+                "groups": {
+                    "description": "Groups to assign to incident",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 5,
+                    "name": "groups",
+                    "id": 6,
+                    "param_name": "groups"
+                },
+                "content_id": {
+                    "description": "Content ID (Identifies the specific record)",
+                    "data_type": "numeric",
+                    "required": false,
+                    "primary": true,
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "value_list": [],
+                    "default": "",
+                    "order": 6,
+                    "name": "content_id",
+                    "id": 7,
+                    "param_name": "content_id"
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "name_field",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.users",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "users",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.parameter.field_id",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "field_id",
+                    "column_order": 2
+                },
+                {
+                    "data_path": "action_result.parameter.application",
+                    "data_type": "string",
+                    "contains": [
+                        "archer application"
+                    ],
+                    "column_name": "application",
+                    "column_order": 3
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user-friendly id"
+                    ],
+                    "column_name": "name_value",
+                    "column_order": 4
+                },
+                {
+                    "data_path": "action_result.parameter.groups",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "groups",
+                    "column_order": 5
+                },
+                {
+                    "data_path": "action_result.parameter.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "column_name": "content_id",
+                    "column_order": 6
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "column_name": "status",
+                    "column_order": 7
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric"
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric"
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "attach alert",
+            "identifier": "attach_alert",
+            "description": "Attach Security alert to Security Incident.",
+            "verbose": "Attach Security alert to Security Incident. Can assign multiple alerts if comma separated.",
+            "type": "generic",
+            "read_only": false,
+            "parameters": {
+                "name_field": {
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 0,
+                    "name": "name_field",
+                    "id": 1,
+                    "param_name": "name_field"
+                },
+                "field_id": {
+                    "description": "Field ID of field to edit. If not provided, searches for Field ID of Security Alerts field",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 1,
+                    "name": "field_id",
+                    "id": 2,
+                    "param_name": "field_id"
+                },
+                "application": {
+                    "description": "Application/Module name (e.g. Incidents)",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": false,
+                    "contains": [
+                        "archer application"
+                    ],
+                    "value_list": [],
+                    "default": "",
+                    "order": 2,
+                    "name": "application",
+                    "id": 3,
+                    "param_name": "application"
+                },
+                "name_value": {
+                    "description": "Name of record (e.g. \"INC-1234\")",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": true,
+                    "contains": [
+                        "archer user-friendly id"
+                    ],
+                    "value_list": [],
+                    "default": "",
+                    "order": 3,
+                    "name": "name_value",
+                    "id": 4,
+                    "param_name": "name_value"
+                },
+                "content_id": {
+                    "description": "Content ID (Identifies the specific incident)",
+                    "data_type": "numeric",
+                    "required": false,
+                    "primary": true,
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "value_list": [],
+                    "default": "",
+                    "order": 4,
+                    "name": "content_id",
+                    "id": 5,
+                    "param_name": "content_id"
+                },
+                "security_alert_id": {
+                    "description": "Security Alert that will be assigned to Incident",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": false,
+                    "contains": [],
+                    "value_list": [],
+                    "default": "",
+                    "order": 5,
+                    "name": "security_alert_id",
+                    "id": 6,
+                    "param_name": "security_alert_id"
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "name_field",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.field_id",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "field_id",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.parameter.application",
+                    "data_type": "string",
+                    "contains": [
+                        "archer application"
+                    ],
+                    "column_name": "application",
+                    "column_order": 2
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user-friendly id"
+                    ],
+                    "column_name": "name_value",
+                    "column_order": 3
+                },
+                {
+                    "data_path": "action_result.parameter.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "column_name": "content_id",
+                    "column_order": 4
+                },
+                {
+                    "data_path": "action_result.parameter.security_alert_id",
+                    "data_type": "string",
+                    "contains": [],
+                    "column_name": "security_alert_id",
+                    "column_order": 5
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "column_name": "status",
+                    "column_order": 6
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric"
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric"
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
             "versions": "EQ(*)"
         }
     ],
