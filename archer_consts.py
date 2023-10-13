@@ -1,6 +1,6 @@
 # File: archer_consts.py
 #
-# Copyright (c) 2016-2022 Splunk Inc.
+# Copyright (c) 2016-2023 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ ARCHER_ACTION_LIST_TICKET = 'list_tickets'
 ARCHER_ACTION_ON_POLL = 'on_poll'
 ARCHER_ACTION_CREATE_ATTACHMENT = 'create_attachment'
 ARCHER_ACTION_GET_REPORT = 'get_report'
+ARCHER_ACTION_ASSIGN_TICKET = 'assign_ticket'
+ARCHER_ACTION_ATTACH_ALERT = 'attach_alert'
 ARCHER_SESSION_TOKEN = 'session_token'
 ARCHER_INVALID_SESSION_TOKEN = 'Invalid session token'
 
@@ -52,5 +54,6 @@ ARCHER_XPATH_DOMAIN_USER_AUTH = \
 ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'
 
 ARCHER_CREATE_ATTACHMENT_ENDPOINT = '/api/core/content/attachment'
+ARCHER_UPDATE_CONTENT_ENDPOINT = '/api/core/content/'
 ARCHER_UNAUTHORIZED_USER = 401
 ERR_MSG_UNAVAILABLE = 'Error message unavailable. Please check the asset configuration and|or action parameters'

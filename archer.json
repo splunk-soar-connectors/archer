@@ -6,11 +6,14 @@
     "contributors": [
         {
             "name": "Jeff Berry"
+        },
+        {
+            "name": "Bryan Pluta"
         }
     ],
     "package_name": "phantom_archer",
     "type": "ticketing",
-    "license": "Copyright (c) 2016-2022 Splunk Inc.",
+    "license": "Copyright (c) 2016-2023 Splunk Inc.",
     "main_module": "archer_connector.py",
     "app_version": "3.0.0",
     "latest_tested_versions": [
@@ -1440,8 +1443,7 @@
                 "file_name": {
                     "data_type": "string",
                     "order": 1,
-                    "description": "File name",
-                    "primary": true
+                    "description": "File name"
                 }
             },
             "output": [
@@ -1462,6 +1464,10 @@
                     "example_values": [
                         "f0fee71865babe4df97088370e44b7aa76d949d0"
                     ]
+                },
+                {
+                    "data_path": "action_result.parameter.file_name",
+                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data",
@@ -1823,6 +1829,299 @@
                 }
             },
             "output": [],
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "assign ticket",
+            "identifier": "assign_ticket",
+            "description": "Assign users and/or groups to Security Incidents",
+            "verbose": "Assigns users and/or groups to a Security Incident. Users and groups must be specified via ID, and comma separated for multiples.",
+            "type": "generic",
+            "read_only": false,
+            "parameters": {
+                "name_field": {
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
+                    "data_type": "string",
+                    "order": 0,
+                    "id": 1
+                },
+                "users": {
+                    "description": "Users to assign to incident/tasks. Provide numeric values. If multiple values, then provide comma-separated",
+                    "data_type": "string",
+                    "order": 1,
+                    "id": 2
+                },
+                "field_id": {
+                    "description": "Field id for field to change",
+                    "data_type": "string",
+                    "order": 2,
+                    "id": 3
+                },
+                "application": {
+                    "description": "Application/Module name (e.g. Incidents)",
+                    "data_type": "string",
+                    "required": true,
+                    "contains": [
+                        "archer application"
+                    ],
+                    "order": 3,
+                    "id": 4,
+                    "primary": true
+                },
+                "name_value": {
+                    "description": "Name of record (e.g. \"INC-1234\")",
+                    "data_type": "string",
+                    "primary": true,
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "order": 4,
+                    "id": 5
+                },
+                "groups": {
+                    "description": "Groups to assign to incident/tasks. Provide numeric values. If multiple values, then provide comma-separated",
+                    "data_type": "string",
+                    "order": 5,
+                    "id": 6
+                },
+                "content_id": {
+                    "description": "Content ID (Identifies the specific record)",
+                    "data_type": "numeric",
+                    "primary": true,
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "order": 6,
+                    "id": 7
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "column_name": "Name Field",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.users",
+                    "data_type": "string",
+                    "column_name": "Users",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.parameter.field_id",
+                    "data_type": "string",
+                    "column_name": "Field ID",
+                    "column_order": 2
+                },
+                {
+                    "data_path": "action_result.parameter.application",
+                    "data_type": "string",
+                    "contains": [
+                        "archer application"
+                    ],
+                    "column_name": "Application",
+                    "column_order": 3
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "column_name": "Name Value",
+                    "column_order": 4
+                },
+                {
+                    "data_path": "action_result.parameter.groups",
+                    "data_type": "string",
+                    "column_name": "Groups",
+                    "column_order": 5
+                },
+                {
+                    "data_path": "action_result.parameter.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "column_name": "Content ID",
+                    "column_order": 6
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "column_name": "Status",
+                    "column_order": 7,
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric"
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric"
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "attach alert",
+            "identifier": "attach_alert",
+            "description": "Attach Security alert to Security Incident",
+            "verbose": "Attach Security alert to Security Incident. Can assign multiple alerts if comma separated.",
+            "type": "generic",
+            "read_only": false,
+            "parameters": {
+                "name_field": {
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
+                    "data_type": "string",
+                    "order": 0,
+                    "id": 1
+                },
+                "application": {
+                    "description": "Application/Module name (e.g. Security Incidents)",
+                    "data_type": "string",
+                    "required": true,
+                    "contains": [
+                        "archer application"
+                    ],
+                    "order": 2,
+                    "id": 3,
+                    "primary": true
+                },
+                "name_value": {
+                    "description": "Name of record (e.g. \"INC-1234\")",
+                    "data_type": "string",
+                    "primary": true,
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "order": 3,
+                    "id": 4
+                },
+                "field_id": {
+                    "description": "Field ID of field to edit. If not provided, searches for Field ID of Security Alerts field",
+                    "data_type": "string",
+                    "order": 1,
+                    "id": 2
+                },
+                "content_id": {
+                    "description": "Content ID (Identifies the specific incident)",
+                    "data_type": "numeric",
+                    "primary": true,
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "order": 4,
+                    "id": 5
+                },
+                "security_alert_id": {
+                    "description": "Security Alert that will be assigned to Incident",
+                    "data_type": "string",
+                    "required": true,
+                    "order": 5,
+                    "id": 6
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "column_name": "Name Field",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.field_id",
+                    "data_type": "string",
+                    "column_name": "Field ID",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.parameter.application",
+                    "data_type": "string",
+                    "contains": [
+                        "archer application"
+                    ],
+                    "column_name": "Application",
+                    "column_order": 2
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "column_name": "Name Value",
+                    "column_order": 3
+                },
+                {
+                    "data_path": "action_result.parameter.content_id",
+                    "data_type": "numeric",
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "column_name": "Content ID",
+                    "column_order": 4
+                },
+                {
+                    "data_path": "action_result.parameter.security_alert_id",
+                    "data_type": "string",
+                    "column_name": "Security Alert ID",
+                    "column_order": 5
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "column_name": "Status",
+                    "column_order": 6,
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric"
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric"
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
             "versions": "EQ(*)"
         }
     ],

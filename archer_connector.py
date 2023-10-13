@@ -1,6 +1,6 @@
 # File: archer_connector.py
 #
-# Copyright (c) 2016-2022 Splunk Inc.
+# Copyright (c) 2016-2023 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -346,7 +346,7 @@ class ArcherConnector(BaseConnector):
             self.debug_print(msg)
             return action_result.set_status(phantom.APP_ERROR, msg, err)
 
-        app = param.get('application')
+        app = param['application']
 
         self.save_progress('Creating Archer record')
         try:
@@ -368,7 +368,7 @@ class ArcherConnector(BaseConnector):
     def _handle_update_ticket(self, action_result, param):
         """Handles 'update_ticket' actions"""
         self.save_progress('Updating Archer record...')
-        app = param.get('application')
+        app = param['application']
         cid = param.get('content_id')
         nfid = param.get('name_field')
         nfv = param.get('name_value')
@@ -402,14 +402,14 @@ class ArcherConnector(BaseConnector):
                 cid = self.proxy.get_content_id(app, nfid, nfv)
             else:
                 return action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
+            if not cid:
+                return action_result.set_status(phantom.APP_ERROR,
+                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(nfv, nfid, app))
+
         action_result.update_summary({'content_id': cid})
 
-        if not cid and nfv:
-            return action_result.set_status(phantom.APP_ERROR,
-                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(nfv, nfid, app))
-
         if self.proxy.get_levelId_for_app(app) is None:
-            action_result.set_status(phantom.APP_ERROR, "Error: Could not identify application \'{}".format(app))
+            action_result.set_status(phantom.APP_ERROR, "Error: Could not identify application {}".format(app))
         else:
             pur = False
             if json_string:
@@ -426,7 +426,7 @@ class ArcherConnector(BaseConnector):
     def _handle_get_ticket(self, action_result, param):
         """Handles 'get_ticket' actions"""
         self.save_progress('Get Archer record...')
-        app = param.get('application')
+        app = param['application']
         cid = param.get('content_id')
         nfid = param.get('name_field')
         nfv = param.get('name_value')
@@ -479,7 +479,7 @@ class ArcherConnector(BaseConnector):
     def _handle_list_tickets(self, action_result, param):
         """Handles 'list_tickets' actions"""
         self.save_progress('Get Archer record...')
-        app = param.get('application')
+        app = param['application']
         max_count = param.get('max_results', 100)
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
@@ -537,6 +537,7 @@ class ArcherConnector(BaseConnector):
         return action_result.get_status()
 
     def _handle_create_attachment(self, action_result, param):
+        self.debug_print("In action create attachment...")
         vault_id = param['vault_id']
         name_of_file = param.get('file_name')
         endpoint = consts.ARCHER_CREATE_ATTACHMENT_ENDPOINT
@@ -561,6 +562,7 @@ class ArcherConnector(BaseConnector):
 
             response = archer_utils.ArcherAPISession._rest_call(self.proxy, endpoint, 'post', data)
             response = json.loads(response)
+            self.debug_print("response: {}".format(response))
             if response['IsSuccessful']:
                 action_result.add_data({'Attachment_ID': response['RequestedObject']['Id']})
                 action_result.set_status(phantom.APP_SUCCESS, 'Attachment created successfully')
@@ -619,7 +621,7 @@ class ArcherConnector(BaseConnector):
     def _handle_get_report(self, action_result, param):
         """Handles 'get_report' actions"""
         self.save_progress('Get Archer report...')
-        guid = param.get('guid')
+        guid = param['guid']
         max_count = param.get('max_results', 100)
         max_pages = param.get('max_pages', 10)
         results_filter_json = param.get('results_filter_json')
@@ -682,6 +684,201 @@ class ArcherConnector(BaseConnector):
 
         return action_result.get_status()
 
+    def _handle_assign_ticket(self, action_result, param):
+        self.debug_print("In action handler for assign ticket...")
+
+        # Required values can be accessed directly
+        application = param['application']
+
+        # Optional values should use the .get() function
+        name_field = param.get('name_field')
+        users = param.get('users')
+        field_id = param.get('field_id')
+        name_value = param.get('name_value')
+        groups = param.get('groups')
+        content_id = param.get('content_id')
+        lid = self.proxy.get_levelId_for_app(application)
+        if lid is None:
+            return action_result.set_status(phantom.APP_ERROR, "Error: Could not identify application {}".format(application))
+
+        if not content_id:
+            if name_field and name_value:
+                content_id = self.proxy.get_content_id(application, name_field, name_value)
+            else:
+                return action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
+            if not content_id:
+                return action_result.set_status(phantom.APP_ERROR,
+                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(name_value, name_field, application))
+
+        if not users and not groups:
+            return action_result.set_status(phantom.APP_ERROR, "Please provide either a users or groups.")
+
+        action_result.update_summary({'content_id': content_id})
+
+        try:
+            field_id = int(field_id)
+        except (ValueError, TypeError) as e:
+            field_id = self.proxy.get_fieldId_for_content_and_name(content_id, field_id)
+            if field_id is None:
+                return action_result.set_status(phantom.APP_ERROR, "Can't resolve field for application {}".format(application))
+
+        group_list_data = []
+        user_list_data = []
+        field_def = {}
+        field_def['Value'] = {}
+        field_def['FieldId'] = field_id
+        field_def['Type'] = 8
+
+        fields = {}
+        fields[str(field_id)] = field_def
+        contentDetails = {}
+        contentDetails["LevelId"] = lid
+        contentDetails["Id"] = content_id
+        contentDetails["FieldContents"] = fields
+
+        assign_ticket_request = {}
+        assign_ticket_request['Content'] = contentDetails
+        try:
+            if groups:
+                temp_groups_list = groups.split(",")
+                for value in temp_groups_list:
+                    strip_group_value = value.strip()
+                    if "" == strip_group_value:
+                        return action_result.set_status(phantom.APP_ERROR, "Please provide valid value of groups.")
+                    group_list_data.append({"Id": strip_group_value})
+                field_def['Value']['GroupList'] = group_list_data
+
+            if users:
+                temp_users_list = users.split(",")
+                for value in temp_users_list:
+                    strip_user_value = value.strip()
+                    if "" == strip_user_value:
+                        return action_result.set_status(phantom.APP_ERROR, "Please provide valid value of users.")
+                    user_list_data.append({"Id": strip_user_value})
+                field_def['Value']['UserList'] = user_list_data
+        except Exception as e:
+            error_message = self._get_error_message_from_exception(e)
+            return action_result.set_status(phantom.APP_ERROR, "Error while parsing users/groups. {}".format(error_message))
+
+        self.debug_print("assign_ticket_request: {}".format(assign_ticket_request))
+
+        # make REST call
+        r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', assign_ticket_request)
+        r = json.loads(r)
+        self.debug_print("Response: {}".format(r))
+
+        # Add response to action_result for troubleshooting purposes
+        action_result.add_data(r)
+
+        try:
+            if r["IsSuccessful"]:
+                action_result.set_status(phantom.APP_SUCCESS, 'Groups/Users successfully assigned')
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Action failed. Groups/Users not assigned.')
+        except Exception as e:
+            error_message = self._get_error_message_from_exception(e)
+            action_result.set_status(phantom.APP_ERROR, 'Action failed. {}'.format(error_message))
+
+        return action_result.get_status()
+
+    def _handle_attach_alert(self, action_result, param):
+        self.debug_print("In attach alert action...")
+
+        # Required values can be accessed directly
+        application = param['application']
+        security_alert_id = param['security_alert_id']
+
+        # Optional values should use the .get() function
+        name_field = param.get('name_field')
+        field_id = param.get('field_id')
+        name_value = param.get('name_value')
+        content_id = param.get('content_id')
+        lid = self.proxy.get_levelId_for_app(application)
+
+        if lid is None:
+            return action_result.set_status(phantom.APP_ERROR, "Error: Could not identify application {}".format(application))
+
+        if not content_id:
+            if name_field and name_value:
+                content_id = self.proxy.get_content_id(application, name_field, name_value)
+            else:
+                return action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
+            if not content_id:
+                return action_result.set_status(phantom.APP_ERROR,
+                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(name_value, name_field, application))
+
+        action_result.update_summary({'content_id': content_id})
+
+        try:
+            field_id = int(field_id)
+        except (ValueError, TypeError):
+            field_id = self.proxy.get_fieldId_for_content_and_name(content_id, "Security Alerts")
+            if field_id is None:
+                return action_result.set_status(phantom.APP_ERROR, "Can't resolve field for application {}".format(application))
+
+        fields = {}
+        field_def = {}
+        field_def['FieldId'] = field_id
+        field_def['Type'] = 23
+
+        security_alert_id = [x.strip() for x in security_alert_id.split(",")]
+
+        record = self.proxy.get_record_by_id(application, content_id)
+
+        # Gathers any existing security alerts in the incident. Blank if not popualted yet. Used for duplicate incidents
+        security_alerts = archer_utils.get_record_field(record, "Security Alerts")
+        record = None
+        try:
+            # Gets any existing security alerts in security incident
+            record = security_alerts['Record']
+        except Exception as e:
+            error_message = self._get_error_message_from_exception(e)
+            self.debug_print("Error while getting any existing security alerts in security incident. {}".format(error_message))
+
+        # If there are any existing security alerts in the incident, add them to the beginning of the list of alerts to add. If not, skip.
+        if record:
+            if isinstance(record, dict):
+                record = [record]
+            for i in range(len(record)):
+                for k, v in record[i].items():
+                    if k == "@id":
+                        if str(v) not in security_alert_id:
+                            security_alert_id.insert(0, str(v))
+                        else:
+                            pass
+
+        # Must be in list form
+        field_def['Value'] = security_alert_id
+
+        fields[str(field_id)] = field_def
+        contentDetails = {}
+        contentDetails["LevelId"] = lid
+        contentDetails["Id"] = str(content_id)
+        contentDetails["FieldContents"] = fields
+
+        sec_alert_request = {}
+        sec_alert_request['Content'] = contentDetails
+
+        # make REST call
+        self.debug_print(f"sec_alert_request: {sec_alert_request}")
+        r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', sec_alert_request)
+        r = json.loads(r)
+        self.debug_print("Response : {}".format(r))
+
+        # Add response data to action result for troubleshooting purposes
+        action_result.add_data(r)
+
+        try:
+            if r["IsSuccessful"]:
+                action_result.set_status(phantom.APP_SUCCESS, 'Alert successfully attached to Incident')
+            else:
+                action_result.set_status(phantom.APP_ERROR, 'Action failed. Alert not attached to Incident.')
+        except Exception as e:
+            error = self._get_error_message_from_exception(e)
+            action_result.set_status(phantom.APP_ERROR, error)
+
+        return action_result.get_status()
+
     def handle_action(self, param):
         """Dispatches actions."""
         action_id = self.get_action_identifier()
@@ -705,6 +902,10 @@ class ArcherConnector(BaseConnector):
                 return self._handle_create_attachment(action_result, param)
             elif (action_id == consts.ARCHER_ACTION_GET_REPORT):
                 return self._handle_get_report(action_result, param)
+            elif (action_id == consts.ARCHER_ACTION_ASSIGN_TICKET):
+                return self._handle_assign_ticket(action_result, param)
+            elif (action_id == consts.ARCHER_ACTION_ATTACH_ALERT):
+                return self._handle_attach_alert(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
             err = self._get_error_message_from_exception(e)
