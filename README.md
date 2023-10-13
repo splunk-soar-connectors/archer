@@ -103,6 +103,8 @@ VARIABLE | REQUIRED | TYPE | DESCRIPTION
 [create attachment](#action-create-attachment) - Create an attachment  
 [get report](#action-get-report) - Get a list of tickets in a report  
 [on poll](#action-on-poll) - Callback action for the on_poll ingest functionality  
+[assign ticket](#action-assign-ticket) - Assign users and/or groups to Security Incidents  
+[attach alert](#action-attach-alert) - Attach Security alert to Security Incident  
 
 ## action: 'test connectivity'
 Validate the asset configuration for connectivity and field mapping
@@ -375,6 +377,7 @@ DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
 --------- | ---- | -------- | --------------
 action_result.status | string |  |   success  failed 
 action_result.parameter.vault_id | string |  `vault id`  |   f0fee71865babe4df97088370e44b7aa76d949d0 
+action_result.parameter.file_name | string |  |  
 action_result.data | string |  |  
 action_result.data.\*.Attachment_ID | numeric |  |   31 
 action_result.summary | string |  |  
@@ -451,4 +454,74 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **artifact_count** |  optional  | Maximum number of artifact records to query for | numeric | 
 
 #### Action Output
-No Output
+No Output  
+
+## action: 'assign ticket'
+Assign users and/or groups to Security Incidents
+
+Type: **generic**  
+Read only: **False**
+
+Assigns users and/or groups to a Security Incident. Users and groups must be specified via ID, and comma separated for multiples.
+
+#### Action Parameters
+PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
+--------- | -------- | ----------- | ---- | --------
+**name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
+**users** |  optional  | Users to assign to incident/tasks. Provide numeric values. If multiple values, then provide comma-separated | string | 
+**field_id** |  optional  | Field id for field to change | string | 
+**application** |  required  | Application/Module name (e.g. Incidents) | string |  `archer application` 
+**name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
+**groups** |  optional  | Groups to assign to incident/tasks. Provide numeric values. If multiple values, then provide comma-separated | string | 
+**content_id** |  optional  | Content ID (Identifies the specific record) | numeric |  `archer content id` 
+
+#### Action Output
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.parameter.name_field | string |  |  
+action_result.parameter.users | string |  |  
+action_result.parameter.field_id | string |  |  
+action_result.parameter.application | string |  `archer application`  |  
+action_result.parameter.name_value | string |  `archer user friendly id`  |  
+action_result.parameter.groups | string |  |  
+action_result.parameter.content_id | numeric |  `archer content id`  |  
+action_result.status | string |  |   success  failed 
+action_result.data | string |  |  
+action_result.message | string |  |  
+action_result.summary | string |  |  
+summary.total_objects | numeric |  |  
+summary.total_objects_successful | numeric |  |    
+
+## action: 'attach alert'
+Attach Security alert to Security Incident
+
+Type: **generic**  
+Read only: **False**
+
+Attach Security alert to Security Incident. Can assign multiple alerts if comma separated.
+
+#### Action Parameters
+PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
+--------- | -------- | ----------- | ---- | --------
+**name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
+**application** |  required  | Application/Module name (e.g. Security Incidents) | string |  `archer application` 
+**name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
+**field_id** |  optional  | Field ID of field to edit. If not provided, searches for Field ID of Security Alerts field | string | 
+**content_id** |  optional  | Content ID (Identifies the specific incident) | numeric |  `archer content id` 
+**security_alert_id** |  required  | Security Alert that will be assigned to Incident | string | 
+
+#### Action Output
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.parameter.name_field | string |  |  
+action_result.parameter.field_id | string |  |  
+action_result.parameter.application | string |  `archer application`  |  
+action_result.parameter.name_value | string |  `archer user friendly id`  |  
+action_result.parameter.content_id | numeric |  `archer content id`  |  
+action_result.parameter.security_alert_id | string |  |  
+action_result.status | string |  |   success  failed 
+action_result.data | string |  |  
+action_result.message | string |  |  
+action_result.summary | string |  |  
+summary.total_objects | numeric |  |  
+summary.total_objects_successful | numeric |  |  
