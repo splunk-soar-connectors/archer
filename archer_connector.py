@@ -111,7 +111,7 @@ class ArcherConnector(BaseConnector):
         try:
             error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
         except TypeError:
-            error_msg = consts.ARCHER_UNICODE_DAMMIT_TYPE_ERR_MESSAGE
+            error_msg = consts.ARCHER_UNICODE_DAMMIT_TYPE_ERROR_MESSAGE
         except:
             error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
 

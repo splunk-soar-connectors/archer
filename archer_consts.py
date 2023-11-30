@@ -28,7 +28,7 @@ ARCHER_LAST_RECORD_FILE = "last_record_{}.txt"
 ARCHER_ERR_PYTHON_MAJOR_VERSION = "Error occurred while getting the Phantom server's Python major version"
 ARCHER_ERR_CODE_UNAVAILABLE = "Error code unavailable"
 ARCHER_ERR_CHECK_ASSET_CONFIG = "Error message unavailable. Please check the asset configuration and|or action parameters"
-ARCHER_UNICODE_DAMMIT_TYPE_ERR_MESSAGE = "Error occurred while connecting to the Archer Server. " \
+ARCHER_UNICODE_DAMMIT_TYPE_ERROR_MESSAGE = "Error occurred while connecting to the Archer Server. " \
                                          "Please check the asset configuration and|or the action parameters"
 ARCHER_ERR_CEF_MAPPING_REQUIRED = "CEF Mapping is required for ingestion. Please add CEF mapping to the asset config"
 ARCHER_ERR_APPLICATION_NOT_PROVIDED = 'Application is not provided in CEF Mapping (use key: "application")'
