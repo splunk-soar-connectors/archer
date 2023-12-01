@@ -255,7 +255,7 @@ class ArcherConnector(BaseConnector):
             verify = self.get_config().get('verify_ssl')
             self.debug_print('New Archer API session at ep:{}, user:{}, '
                              'verify:{}'.format(ep, user, verify))
-            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, 3, users_domain)
+            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, users_domain)
             self.proxy.verifySSL = verify
             archer_utils.W = self.debug_print
         return self.proxy
