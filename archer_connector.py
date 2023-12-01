@@ -20,7 +20,6 @@ import os
 import sys
 
 import phantom.app as phantom
-from bs4 import UnicodeDammit
 from phantom.action_result import ActionResult
 from phantom.base_connector import BaseConnector
 
@@ -59,33 +58,11 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
-
-        # Fetching the Python major version
-        try:
-            self._python_version = int(sys.version_info[0])
-        except:
-            return self.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_PYTHON_MAJOR_VERSION)
-
         return phantom.APP_SUCCESS
 
     def finalize(self):
         self.save_state(self._state)
         return phantom.APP_SUCCESS
-
-    def _handle_py_ver_compat_for_input_str(self, input_str):
-        """
-        This method returns the encoded|original string based on the Python version.
-        :param input_str: Input string to be processed
-        :return: input_str (Processed input string based on following logic 'input_str - Python 3; encoded input_str - Python 2')
-        """
-
-        try:
-            if input_str and self._python_version == 2:
-                input_str = UnicodeDammit(input_str).unicode_markup.encode('utf-8')
-        except:
-            self.debug_print("Error occurred while handling python 2to3 compatibility for the input string")
-
-        return input_str
 
     def _get_error_message_from_exception(self, e):
         """ This method is used to get appropriate error message from the exception.
@@ -99,26 +76,19 @@ class ArcherConnector(BaseConnector):
                     error_code = e.args[0]
                     error_msg = e.args[1]
                 elif len(e.args) == 1:
-                    error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
+                    error_code = consts.ARCHER_ERROR_CODE_UNAVAILABLE
                     error_msg = e.args[0]
             else:
-                error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
-                error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
+                error_code = consts.ARCHER_ERROR_CODE_UNAVAILABLE
+                error_msg = consts.ARCHER_ERROR_CHECK_ASSET_CONFIG
         except:
-            error_code = consts.ARCHER_ERR_CODE_UNAVAILABLE
-            error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
+            error_code = consts.ARCHER_ERROR_CODE_UNAVAILABLE
+            error_msg = consts.ARCHER_ERROR_CHECK_ASSET_CONFIG
 
-        try:
-            error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
-        except TypeError:
-            error_msg = consts.ARCHER_UNICODE_DAMMIT_TYPE_ERROR_MESSAGE
-        except:
-            error_msg = consts.ARCHER_ERR_CHECK_ASSET_CONFIG
-
-        if error_code in consts.ARCHER_ERR_CODE_UNAVAILABLE:
-            error_text = consts.ARCHER_ERR_MESSAGE.format(error_msg)
+        if error_code in consts.ARCHER_ERROR_CODE_UNAVAILABLE:
+            error_text = consts.ARCHER_ERROR_MESSAGE.format(error_msg)
         else:
-            error_text = consts.ARCHER_ERR_CODE_MESSAGE.format(error_code, error_msg)
+            error_text = consts.ARCHER_ERROR_CODE_MESSAGE.format(error_code, error_msg)
 
         return error_text
 
@@ -130,7 +100,7 @@ class ArcherConnector(BaseConnector):
         config = self.get_config()
 
         if 'cef_mapping' not in config:
-            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_CEF_MAPPING_REQUIRED)
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_CEF_MAPPING_REQUIRED)
             return action_result.get_status()
 
         try:
@@ -143,7 +113,7 @@ class ArcherConnector(BaseConnector):
         cef_mapping = dict([(k.lower(), v) for k, v in list(cef_mapping.items())])
 
         if not cef_mapping.get('application'):
-            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_APPLICATION_NOT_PROVIDED)
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_APPLICATION_NOT_PROVIDED)
             return action_result.get_status()
 
         application = cef_mapping.pop('application')
@@ -165,7 +135,7 @@ class ArcherConnector(BaseConnector):
         proxy = self._get_proxy()
 
         if not cef_mapping.get('tracking'):
-            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_TRACKING_ID_NOT_PROVIDED)
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_TRACKING_ID_NOT_PROVIDED)
             return action_result.get_status()
         tracking_id_field = cef_mapping.pop('tracking')
 
@@ -183,7 +153,7 @@ class ArcherConnector(BaseConnector):
                 if content_id <= max_content_id:
                     continue
                 self.send_progress('On record {}/{}...'.format(i + 1, nrecs))
-                record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
+                record_name = consts.ARCHER_ERROR_RECORD_NOT_FOUND
 
                 cef = {}
                 for field in rec.get('Field', []):
@@ -285,7 +255,7 @@ class ArcherConnector(BaseConnector):
             verify = self.get_config().get('verify_ssl')
             self.debug_print('New Archer API session at ep:{}, user:{}, '
                              'verify:{}'.format(ep, user, verify))
-            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, self._python_version, users_domain)
+            self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, 3, users_domain)
             self.proxy.verifySSL = verify
             archer_utils.W = self.debug_print
         return self.proxy
@@ -348,7 +318,7 @@ class ArcherConnector(BaseConnector):
         try:
             mapping = json.loads(json_string)
         except (ValueError, TypeError) as e:
-            msg = consts.ARCHER_ERR_VALID_JSON
+            msg = consts.ARCHER_ERROR_VALID_JSON
             self.debug_print(msg)
             err = self._get_error_message_from_exception(e)
             action_result.set_status(phantom.APP_ERROR, msg, err)
@@ -361,7 +331,7 @@ class ArcherConnector(BaseConnector):
         proxy = self._get_proxy()
         if not isinstance(mapping, dict):
             term_msg = proxy.terminate_session()
-            msg = consts.ARCHER_ERR_NON_DICT.format(mapping)
+            msg = consts.ARCHER_ERROR_NON_DICT.format(mapping)
             msg = '{}{}'.format(msg, term_msg)
             self.debug_print(msg)
             action_result.set_status(phantom.APP_ERROR, msg, err)
@@ -494,14 +464,14 @@ class ArcherConnector(BaseConnector):
         if parameter is not None:
             try:
                 if not float(parameter).is_integer() or isinstance(parameter, float):
-                    return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                    return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_VALID_INTEGER.format(key)), None
                 parameter = int(parameter)
             except:
-                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_VALID_INTEGER.format(key)), None
             if parameter < 0:
-                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_NON_NEGATIVE.format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_NON_NEGATIVE.format(key)), None
             if not allow_zero and parameter == 0:
-                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_VALID_INTEGER.format(key)), None
         return phantom.APP_SUCCESS, parameter
 
     def _handle_list_tickets(self, action_result, param):
@@ -562,7 +532,7 @@ class ArcherConnector(BaseConnector):
             return phantom.APP_SUCCESS
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            error_message = consts.ARCHER_ERR_ACTION_EXECUTION.format(action_id, err)
+            error_message = consts.ARCHER_ERROR_ACTION_EXECUTION.format(action_id, err)
             self.debug_print(error_message)
             return action_result.set_status(phantom.APP_ERROR, error_message)
 
