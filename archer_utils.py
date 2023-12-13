@@ -1,6 +1,6 @@
 # File: archer_utils.py
 #
-# Copyright (c) 2016-2022 Splunk Inc.
+# Copyright (c) 2016-2023 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ class ArcherAPISession(object):
     sessionTimeout = 60  # Generate a new token after this much time unused
     BLACKLIST_TYPES = (24, 25)
 
-    def __init__(self, base_url, userName, password, instanceName, pythonVerison, usersDomain):
+    def __init__(self, base_url, userName, password, instanceName, usersDomain):
         """Initializes an API session.
 
             base, a string: base endpoint for the Archer APIs.  E.g.,
@@ -101,23 +101,7 @@ class ArcherAPISession(object):
                                   'q=0.9,*/*;q=0.8',
                         'Content-Type': 'application/json'}
         self.asoap = None
-        self.python_version = pythonVerison
         self.users_domain = usersDomain
-
-    def _handle_py_ver_compat_for_input_str(self, input_str):
-        """
-        This method returns the encoded|original string based on the Python version.
-        :param input_str: Input string to be processed
-        :return: input_str (Processed input string based on following logic 'input_str - Python 3; encoded input_str - Python 2')
-        """
-
-        try:
-            if input_str and self.python_version == 2:
-                input_str = UnicodeDammit(input_str).unicode_markup.encode('utf-8')
-        except:
-            W("Error occurred while handling python 2to3 compatibility for the input string")
-
-        return input_str
 
     def _get_error_message_from_exception(self, e):
         """ This method is used to get appropriate error message from the exception.
@@ -140,14 +124,6 @@ class ArcherAPISession(object):
             error_code = "Error code unavailable"
             error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
 
-        try:
-            error_msg = self._handle_py_ver_compat_for_input_str(error_msg)
-        except TypeError:
-            error_msg = "Error occurred while connecting to the Archer server. " \
-                        "Please check the asset configuration and|or the action parameters."
-        except:
-            error_msg = "Error message unavailable. Please check the asset configuration and|or action parameters."
-
         if error_code in "Error code unavailable":
             error_text = "Error Message: {0}".format(error_msg)
         else:
@@ -158,7 +134,7 @@ class ArcherAPISession(object):
     def get_token(self):
         if not self.asoap:
             self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
-                         usersDomain=self.users_domain, pythonVersion=self.python_version)
+                         usersDomain=self.users_domain)
         return self.asoap.session
 
     def _rest_call(self, ep, meth='GET', data={}):
@@ -314,15 +290,14 @@ class ArcherAPISession(object):
         if not field_value:
             raise TypeError('Either content id or Tracking ID field and record name are required')
         fv = filter(lambda x: x.isdigit(), field_value)
-        if self.python_version == 3:
-            fv = self.concatenate_list_data(list(fv))
+        fv = self.concatenate_list_data(list(fv))
         if not fv:
             return None
         fv = int(fv)
 
         if not self.asoap:
             self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain)
         records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
         # should only get one
         if records:
@@ -360,7 +335,7 @@ class ArcherAPISession(object):
         if fld['Type'] == 8:
             if not self.asoap:
                 self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.sessionToken,
-                         verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
+                         verify_cert=self.verifySSL, usersDomain=self.users_domain)
             uid = self.asoap.find_user(value)
             if not uid:
                 W("User not found in local user search")
@@ -538,7 +513,7 @@ class ArcherAPISession(object):
 
         if not self.asoap:
             self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, self.get_token(),
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain)
 
         records = self.get_records(app, field_name, value, max_count, mid, fid, fields, comparison, sort, page)
         if not records:
@@ -597,7 +572,7 @@ class ArcherAPISession(object):
 
         if not self.asoap:
             self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain)
         data = self.asoap.get_record(contentId, moduleId)
 
         rec_dict = xmltodict.parse(data) or {}
@@ -666,7 +641,7 @@ class ArcherAPISession(object):
 
         if not self.asoap:
             self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
-                     verify_cert=self.verifySSL, usersDomain=self.users_domain, pythonVersion=self.python_version)
+                     verify_cert=self.verifySSL, usersDomain=self.users_domain)
         cid = self.asoap.create_record(moduleId, fields)
         return cid
 
@@ -709,8 +684,7 @@ class ArcherAPISession(object):
         moduleId = self.get_moduleid(app)
 
         if not self.asoap:
-            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL,
-                     pythonVersion=self.python_version)
+            self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName, verify_cert=self.verifySSL)
         field = {
            'id': fieldId,
            'type': fieldType,
