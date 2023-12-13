@@ -1,2 +1,1 @@
 **Unreleased**
-* Updated requests, lxml dependencies in order to use platform packages [PAPP-30822, PAPP-31092]
