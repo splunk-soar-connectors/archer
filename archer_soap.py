@@ -1,6 +1,6 @@
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2022 Splunk Inc.
+# Copyright (c) 2016-2023 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ DEBUG = False
 
 
 class ArcherSOAP(object):
-    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None, pythonVersion=2):
+    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None):
         self.base_uri = host + '/ws'
         self.username = username
         self.password = password
@@ -50,7 +50,6 @@ class ArcherSOAP(object):
         self.session = session
         self.verify_cert = verify_cert
         self.users_domain = usersDomain
-        self.python_version = pythonVersion
         if not session:
             self._authenticate()
 
