@@ -113,7 +113,7 @@ class ArcherAPISession(object):
         error_code = None
         error_msg = consts.ERR_MSG_UNAVAILABLE
 
-        self.conn_objs.error_print('Error occurred.', e)
+        self.conn_obj.error_print('Error occurred.', e)
 
         try:
             if hasattr(e, 'args'):
