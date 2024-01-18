@@ -22,7 +22,7 @@ ARCHER_ACTION_GET_REPORT = 'get_report'
 ARCHER_ACTION_ASSIGN_TICKET = 'assign_ticket'
 ARCHER_ACTION_ATTACH_ALERT = 'attach_alert'
 ARCHER_SESSION_TOKEN = 'session_token'
-ARCHER_INVALID_SESSION_TOKEN = 'Invalid session token'
+ARCHER_INVALID_SESSION_TOKEN_MSG = ['Invalid session token', 'Unable to validate session']
 
 ARCHER_SUCC_CONFIGURATION = 'Archer configuration test SUCCESS'
 

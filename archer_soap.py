@@ -410,7 +410,7 @@ class ArcherSOAP(object):
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            if archer_consts.ARCHER_INVALID_SESSION_TOKEN in response.text:
+            if response.text in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]
                 session_token.text = self.conn_obj.sessionToken
