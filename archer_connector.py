@@ -396,7 +396,8 @@ class ArcherConnector(BaseConnector):
                 raise ValueError
         except:
             return action_result.set_status(phantom.APP_ERROR, 'Please provide a valid content ID')
-
+        if fid and not value:
+            return action_result.set_status(phantom.APP_ERROR, 'Value paramter is mandatory if field id is mentioned')
         if not cid:
             if nfid and nfv:
                 cid = self.proxy.get_content_id(app, nfid, nfv)
@@ -415,6 +416,8 @@ class ArcherConnector(BaseConnector):
             if json_string:
                 pur = self.proxy.update_record_by_json(app, cid, mapping)
             else:
+                if value:
+                    value = [x.strip() for x in value.split(",")]
                 pur = self.proxy.update_record(app, cid, fid, value, mapping)
             if pur:
                 action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')

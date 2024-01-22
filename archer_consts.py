@@ -44,7 +44,7 @@ ARCHER_ERR_MESSAGE = 'Error Message: {0}'
 ARCHER_ERR_CODE_MESSAGE = 'Error Code: {0}, Error Message: {1}'
 ARCHER_ERR_RECORD_NOT_FOUND = 'Record Name not found'
 ARCHER_ERR_NON_DICT = 'Non-dict map: {}'
-ARCHER_ERR_ACTION_EXECUTION = 'Exception during execution of archer action: {} and the error is: {}'
+ARCHER_ERR_ACTION_EXECUTION = 'Error occurred during execution of archer action: {} and the error is: {}'
 ARCHER_ERR_VALID_INTEGER = 'Please provide a valid integer value in the {}'
 ARCHER_ERR_NON_NEGATIVE = 'Please provide a valid non-negative integer value in the {}'
 
