@@ -648,7 +648,9 @@ class ArcherConnector(BaseConnector):
         if (phantom.is_fail(status)):
             return action_result.get_status()
 
-        if (results_filter_dict or results_filter_operator or results_filter_equality) \
+        if len(results_filter_dict) == 1 and not results_filter_operator:
+            results_filter_operator = "and"
+        elif (results_filter_dict or results_filter_operator or results_filter_equality) \
                 and not (results_filter_dict and results_filter_operator and results_filter_equality):
             return action_result.set_status(phantom.APP_ERROR,
                                      'Need results filter json, results filter operator and results filter equality to filter the results')
@@ -711,7 +713,8 @@ class ArcherConnector(BaseConnector):
                 return action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
             if not content_id:
                 return action_result.set_status(phantom.APP_ERROR,
-                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(name_value, name_field, application))
+                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'
+                                    .format(name_value, name_field, application))
 
         if not users and not groups:
             return action_result.set_status(phantom.APP_ERROR, "Please provide either a users or groups.")
@@ -808,7 +811,8 @@ class ArcherConnector(BaseConnector):
                 return action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
             if not content_id:
                 return action_result.set_status(phantom.APP_ERROR,
-                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'.format(name_value, name_field, application))
+                                    'Error: Could not find record "{}". "{}" may not be a tracking ID field in app "{}"'
+                                    .format(name_value, name_field, application))
 
         action_result.update_summary({'content_id': content_id})
 
