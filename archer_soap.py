@@ -372,8 +372,9 @@ class ArcherSOAP(object):
         return document, body
 
     def get_report(self, guid, page_number):
-        if not self.conn_obj.sessionToken:
-            raise Exception('No session')
+        self.conn_obj.debug_print("inside get report")
+        # if not self.conn_obj.sessionToken:
+        #     raise Exception('No session')
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, 'SearchRecordsByReport', nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, 'sessionToken')
@@ -397,6 +398,7 @@ class ArcherSOAP(object):
                 return {'status': 'failed', 'result': 'Unable to find SearchRecordsByReportResult.'}
 
     def _do_request(self, uri, doc, method='post'):
+        generate_new_token = False
         if method == 'post':
             xml = etree.tostring(doc, pretty_print=True)
             api = doc.xpath('/soap:Envelope/soap:Body', namespaces=NS_MAP)
@@ -410,7 +412,8 @@ class ArcherSOAP(object):
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            if response.text in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG:
+            generate_new_token = [True for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG if x in response.text]
+            if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]
                 session_token.text = self.conn_obj.sessionToken
