@@ -648,8 +648,9 @@ class ArcherConnector(BaseConnector):
         if (phantom.is_fail(status)):
             return action_result.get_status()
 
-        if len(results_filter_dict) == 1 and not results_filter_operator:
-            results_filter_operator = "and"
+        if results_filter_dict:
+            if len(results_filter_dict) == 1 and not results_filter_operator:
+                results_filter_operator = "and"
         elif (results_filter_dict or results_filter_operator or results_filter_equality) \
                 and not (results_filter_dict and results_filter_operator and results_filter_equality):
             return action_result.set_status(phantom.APP_ERROR,
