@@ -233,6 +233,8 @@ action_result.data.\*.Record.Field.\*.Groups.Group.@updateDate | string |  |   1
 action_result.data.\*.Record.Field.\*.Groups.Group.@updateLogin | string |  |   2 
 action_result.data.\*.Record.Field.\*.Record.\*.@contentName | string |  |   308246 
 action_result.data.\*.Record.Field.\*.Record.\*.@id | string |  |   200049 
+action_result.data.\*.Record.Field.\*.@fileID | string |  |   21 
+action_result.data.\*.Record.Field.\*.@fileName | string |  |   test.png 
 action_result.data.\*.Record.Field.\*.Record.\*.@levelId | string |  |   60 
 action_result.data.\*.Record.Field.\*.Record.\*.@moduleId | string |  |   165 
 action_result.data.\*.Record.Field.\*.Record.\*.@moduleName | string |  |   Task Management 
@@ -381,7 +383,9 @@ action_result.parameter.file_name | string |  |
 action_result.data | string |  |  
 action_result.data.\*.Attachment_ID | numeric |  |   31 
 action_result.summary | string |  |  
-action_result.message | string |  |   Attachment created successfully   
+action_result.message | string |  |   Attachment created successfully 
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1   
 
 ## action: 'get report'
 Get a list of tickets in a report
@@ -412,6 +416,7 @@ action_result.parameter.results_filter_equality | string |  |   Contains  Equals
 action_result.parameter.results_filter_json | string |  |   {'Incident ID': '10000'} 
 action_result.parameter.results_filter_operator | string |  |   AND  OR 
 action_result.data.\*.@contentId | numeric |  `archer content id`  |   210035 
+action_result.data.\*.Field.\*.ScoreCard.@total | string |  |   0 
 action_result.data.\*.@levelGuid | string |  |   b0c2da91-167c-4fee-ad91-4b4e7b098b4b 
 action_result.data.\*.@levelId | string |  |   60 
 action_result.data.\*.@moduleId | string |  |   70 
@@ -486,11 +491,13 @@ action_result.parameter.name_value | string |  `archer user friendly id`  |
 action_result.parameter.groups | string |  |  
 action_result.parameter.content_id | numeric |  `archer content id`  |  
 action_result.status | string |  |   success  failed 
-action_result.data | string |  |  
-action_result.message | string |  |  
+action_result.data.\*.IsSuccessful | boolean |  |   False  True 
+action_result.data.\*.RequestedObject.Id | numeric |  |   324031 
+action_result.summary.content_id | string |  |   324031 
+action_result.message | string |  |   Groups/Users successfully assigned 
 action_result.summary | string |  |  
-summary.total_objects | numeric |  |  
-summary.total_objects_successful | numeric |  |    
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1   
 
 ## action: 'attach alert'
 Attach Security alert to Security Incident
@@ -520,8 +527,10 @@ action_result.parameter.name_value | string |  `archer user friendly id`  |
 action_result.parameter.content_id | numeric |  `archer content id`  |  
 action_result.parameter.security_alert_id | string |  |  
 action_result.status | string |  |   success  failed 
-action_result.data | string |  |  
-action_result.message | string |  |  
+action_result.data.\*.IsSuccessful | boolean |  |   False  True 
+action_result.data.\*.RequestedObject.Id | numeric |  |   324784 
+action_result.summary.content_id | string |  |   324784 
+action_result.message | string |  |   Alert successfully attached to Incident 
 action_result.summary | string |  |  
-summary.total_objects | numeric |  |  
-summary.total_objects_successful | numeric |  |  
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1 
