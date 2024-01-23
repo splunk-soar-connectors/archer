@@ -656,6 +656,20 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.data.*.Record.Field.*.@fileID",
+                    "data_type": "string",
+                    "example_values": [
+                       "21"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@fileName",
+                    "data_type": "string",
+                    "example_values": [
+                        "test.png"
+                    ]
+                },
+                {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.@levelId",
                     "data_type": "string",
                     "example_values": [
@@ -1492,6 +1506,20 @@
                     "example_values": [
                         "Attachment created successfully"
                     ]
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
@@ -1619,6 +1647,13 @@
                     ],
                     "example_values": [
                         "210035"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.ScoreCard.@total",
+                    "data_type": "string",
+                    "example_values": [
+                        "0"
                     ]
                 },
                 {
@@ -1958,12 +1993,33 @@
                     ]
                 },
                 {
-                    "data_path": "action_result.data",
-                    "data_type": "string"
+                    "data_path": "action_result.data.*.IsSuccessful",
+                    "data_type": "boolean",
+                    "example_values": [
+                        false,
+                        true
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.RequestedObject.Id",
+                    "data_type": "numeric",
+                    "example_values": [
+                        324031
+                    ]
+                },
+                {
+                    "data_path": "action_result.summary.content_id",
+                    "data_type": "string",
+                    "example_values": [
+                        "324031"
+                    ]
                 },
                 {
                     "data_path": "action_result.message",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        "Groups/Users successfully assigned"
+                    ]
                 },
                 {
                     "data_path": "action_result.summary",
@@ -1971,11 +2027,17 @@
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
@@ -2099,12 +2161,33 @@
                     ]
                 },
                 {
-                    "data_path": "action_result.data",
-                    "data_type": "string"
+                    "data_path": "action_result.data.*.IsSuccessful",
+                    "data_type": "boolean",
+                    "example_values": [
+                        false,
+                        true
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.RequestedObject.Id",
+                    "data_type": "numeric",
+                    "example_values": [
+                        324784
+                    ]
+                },
+                {
+                    "data_path": "action_result.summary.content_id",
+                    "data_type": "string",
+                    "example_values": [
+                        "324784"
+                    ]
                 },
                 {
                     "data_path": "action_result.message",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        "Alert successfully attached to Incident"
+                    ]
                 },
                 {
                     "data_path": "action_result.summary",
@@ -2112,11 +2195,17 @@
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "render": {
