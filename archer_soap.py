@@ -12,6 +12,7 @@
 # the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
+import xml.etree.ElementTree as et
 from io import BytesIO
 
 import requests
@@ -107,12 +108,21 @@ class ArcherSOAP(object):
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
-        if result:
-            for name_ele in result:
-                if name_ele.text == groupname:
-                    for node in name_ele.itersiblings(tag='Id'):
-                        return int(node.text)
+        try:
+            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
+            if result:
+                for name_ele in result:
+                    if name_ele.text == groupname:
+                        for node in name_ele.itersiblings(tag='Id'):
+                            return int(node.text)
+        except Exception:
+            grp_id = None
+            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
+            if result and isinstance(result, list):
+                result = et.fromstring(result[0].text)
+                grp_id = result.find('.//Id').text
+                return grp_id
+
         return
 
     def find_user(self, username):
@@ -276,17 +286,29 @@ class ArcherSOAP(object):
             f.set('othertext', str(o))
 
     def user_field(self, field, parent):
+        user_id, group_id = field['value']
         f = etree.SubElement(parent, 'Field')
         f.set('id', str(field['id']))
-        u = etree.SubElement(f, 'Users')
-
-        if isinstance(field['value'], list):
-            for user in field['value']:
+        if user_id:
+            u = etree.SubElement(f, 'Users')
+            if isinstance(user_id, list):
+                for user in user_id:
+                    if user:
+                        uid = etree.SubElement(u, 'User')
+                        uid.set('id', str(user))
+            else:
                 uid = etree.SubElement(u, 'User')
-                uid.set('id', str(user))
-        else:
-            uid = etree.SubElement(u, 'User')
-            uid.set('id', str(field['value']))
+                uid.set('id', str(user_id))
+        if group_id:
+            g = etree.SubElement(f, 'Groups')
+            if isinstance(group_id, list):
+                for group in group_id:
+                    if group:
+                        gid = etree.SubElement(g, 'Group')
+                        gid.set('id', str(group))
+            else:
+                gid = etree.SubElement(g, 'Group')
+                gid.set('id', str(group_id))
 
     def get_field_map(self):
         type_formatter_map = {}
@@ -320,7 +342,6 @@ class ArcherSOAP(object):
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
 
-        self.conn_obj.debug_print(f'update_record Failed to set valueslist field vli fv.text:: {doc}')
         resp_doc = self._do_request(self.base_uri + '/record.asmx', doc)
 
         resp_root = resp_doc.getroot()
@@ -372,9 +393,8 @@ class ArcherSOAP(object):
         return document, body
 
     def get_report(self, guid, page_number):
-        self.conn_obj.debug_print("inside get report")
-        # if not self.conn_obj.sessionToken:
-        #     raise Exception('No session')
+        if not self.conn_obj.sessionToken:
+            raise Exception('No session')
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, 'SearchRecordsByReport', nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, 'sessionToken')
@@ -415,6 +435,7 @@ class ArcherSOAP(object):
             for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG:
                 if x in response.text:
                     generate_new_token = True
+                    break
             if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]

@@ -13,17 +13,17 @@
     ],
     "package_name": "phantom_archer",
     "type": "ticketing",
-    "license": "Copyright (c) 2016-2023 Splunk Inc.",
+    "license": "Copyright (c) 2016-2024 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "3.0.0",
+    "app_version": "3.0.0-beta",
     "latest_tested_versions": [
-        "On-premise RSA Archer v6.9, API version v5.5"
+        "On-premise RSA Archer v6.14"
     ],
     "utctime_updated": "2022-02-17T21:32:29.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
-    "min_phantom_version": "5.2.0",
+    "min_phantom_version": "6.1.1",
     "fips_compliant": true,
     "python_version": "3",
     "logo": "logo_rsa.svg",
@@ -194,7 +194,7 @@
         {
             "action": "update ticket",
             "description": "Update the value of a field of a record",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json string and field_id and value are specified, preference would be given to json_string parameter.",
             "type": "generic",
             "identifier": "update_ticket",
             "read_only": false,
@@ -240,7 +240,7 @@
                 "value": {
                     "data_type": "string",
                     "order": 5,
-                    "description": "New value of the record's field"
+                    "description": "New value of the record's field (If Users or Groups are updated to any field then Comma-separated values are allowed)"
                 },
                 "json_string": {
                     "data_type": "string",
@@ -726,7 +726,7 @@
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.*.@firstName",
                     "data_type": "string",
                     "example_values": [
-                        "phantom"
+                        "Splunk SOAR"
                     ]
                 },
                 {
@@ -960,14 +960,14 @@
                     "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.Record.Field.@value",
                     "data_type": "string",
                     "example_values": [
-                        "Phantom Test"
+                        "Test"
                     ]
                 },
                 {
                     "data_path": "action_result.data.*.Record.Field.*.Record.Field.*.Users.User.@firstName",
                     "data_type": "string",
                     "example_values": [
-                        "phantom"
+                        "Test"
                     ]
                 },
                 {
@@ -1272,7 +1272,7 @@
                         "archer content id"
                     ],
                     "example_values": [
-                        "210035"
+                        210035
                     ]
                 },
                 {
@@ -1438,7 +1438,7 @@
         {
             "action": "create attachment",
             "description": "Create an attachment",
-            "verbose": "Newly created attachment ID will be returned.",
+            "verbose": "Newly created attachment ID will be returned. Here the attachment would be created on the path specified in file repository section mentioned in the archer instance configuration.",
             "type": "generic",
             "identifier": "create_attachment",
             "read_only": false,
@@ -1493,7 +1493,7 @@
                     "column_name": "Attachment ID",
                     "column_order": 0,
                     "example_values": [
-                        "31"
+                        31
                     ]
                 },
                 {
@@ -1646,7 +1646,7 @@
                         "archer content id"
                     ],
                     "example_values": [
-                        "210035"
+                        210035
                     ]
                 },
                 {
@@ -1837,7 +1837,7 @@
         {
             "action": "on poll",
             "description": "Callback action for the on_poll ingest functionality",
-            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
+            "verbose": "This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Splunk SOAR container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.",
             "type": "ingest",
             "identifier": "on_poll",
             "read_only": true,
@@ -1869,8 +1869,8 @@
         {
             "action": "assign ticket",
             "identifier": "assign_ticket",
-            "description": "Assign users and/or groups to Security Incidents",
-            "verbose": "Assigns users and/or groups to a Security Incident. Users and groups must be specified via ID, and comma separated for multiples.",
+            "description": "Assign users and/or groups to application",
+            "verbose": "Assigns users and/or groups to an application. Users and groups must be specified via ID, and comma separated for multiples.",
             "type": "generic",
             "read_only": false,
             "parameters": {

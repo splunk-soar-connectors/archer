@@ -30,10 +30,9 @@ ARCHER_SORT_TYPE_ASCENDING = 'Ascending'
 ARCHER_SORT_TYPE_DESCENDING = 'Descending'
 
 ARCHER_LAST_RECORD_FILE = 'last_record_{}.txt'
-ARCHER_ENCRYPT_TOKEN = 'Encryptint the {} token'
-ARCHER_DECRYPT_TOKEN = 'Decryptint the {} token'
+ARCHER_ENCRYPT_TOKEN = 'Encrypting the {} token'
+ARCHER_DECRYPT_TOKEN = 'Decrypting the {} token'
 
-ARCHER_ERR_PYTHON_MAJOR_VERSION = "Error occurred while getting the Phantom server's Python major version'"
 ARCHER_ERR_CEF_MAPPING_REQUIRED = 'CEF Mapping is required for ingestion. Please add CEF mapping to the asset config'
 ARCHER_ERR_APPLICATION_NOT_PROVIDED = 'Application is not provided in CEF Mapping (use key: "application")'
 ARCHER_ERR_TRACKING_ID_NOT_PROVIDED = 'Tracking ID Field name not provided in CEF Mapping (use key: "tracking")'
@@ -47,7 +46,7 @@ ARCHER_ERR_NON_NEGATIVE = 'Please provide a valid non-negative integer value in 
 ARCHER_XPATH_AUTH = '/soap:Envelope/soap:Body/dummy:CreateUserSessionFromInstanceResponse/dummy:CreateUserSessionFromInstanceResult'
 ARCHER_XPATH_DOMAIN_USER_AUTH = \
     '/soap:Envelope/soap:Body/dummy:CreateDomainUserSessionFromInstanceResponse/dummy:CreateDomainUserSessionFromInstanceResult'
-ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'
+ARCHER_XPATH_GROUP_OTHER = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult'
 
 ARCHER_CREATE_ATTACHMENT_ENDPOINT = '/api/core/content/attachment'
 ARCHER_UPDATE_CONTENT_ENDPOINT = '/api/core/content/'
@@ -55,3 +54,5 @@ ARCHER_UNAUTHORIZED_USER = 401
 ERR_MSG_UNAVAILABLE = 'Error message unavailable. Please check the asset configuration and|or action parameters'
 ARCHER_OPERATOR_VALUELIST = ["and", "or"]
 ARCHER_EQUALITY_VALUELIST = ["contains", "equals"]
+
+ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'

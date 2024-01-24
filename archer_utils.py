@@ -337,29 +337,24 @@ class ArcherAPISession(object):
             return {'value_id': vlval, 'other_text': othertext}
 
         if fld['Type'] == 8:
-            if isinstance(value, str):
-                uid = self.asoap.find_user(value)
-                if not uid:
-                    W('User not found in local user search')
-                    duid = self.asoap.find_domain_user(value)
+            if value:
+                value = [x.strip() for x in value.split(",")]
+            user_id = []
+            group_id = []
+            for val in value:
+                uid = self.asoap.find_user(val)
+                gid = self.asoap.find_group(val)
+                group_id.append(gid)
+                user_id.append(uid)
+                if not (uid or gid):
+                    W('Users/Groups not found in local user search')
+                    duid = self.asoap.find_domain_user(val)
+                    user_id.append(duid)
                     if not duid:
-                        W('User not found in domain user search')
-                        raise Exception('Failed to find user "{}"'.format(value))
-                    return duid
-                return uid
-            else:
-                user_id = []
-                for val in value:
-                    uid = self.asoap.find_user(val)
-                    user_id.append(uid)
-                    if not uid:
-                        W('User not found in local user search')
-                        duid = self.asoap.find_domain_user(val)
-                        user_id.append(duid)
-                        if not duid:
-                            W('User not found in domain user search')
-                            raise Exception('Failed to find user {}'.format(val))
-                return user_id
+                        W('Users/Groups not found in domain user search')
+                        raise Exception('Failed to find Users/Groups {}'.format(val))
+
+            return [user_id, group_id]
 
         W('Valufying "{}" as cross-reference field {}'.format(value, fld))
 

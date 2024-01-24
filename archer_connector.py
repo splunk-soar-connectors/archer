@@ -273,7 +273,7 @@ class ArcherConnector(BaseConnector):
         """Returns an archer_utils.ArcherAPISession object."""
         if not self.proxy:
             ep, user, pwd, instance, users_domain = self._get_proxy_args()
-            verify = self.get_config().get('verify_ssl')
+            verify = self.get_config().get('verify_ssl', False)
             self.debug_print('New Archer API session at ep:{}, user:{}, '
                              'verify:{}'.format(ep, user, verify))
             self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, users_domain, self)
@@ -305,7 +305,7 @@ class ArcherConnector(BaseConnector):
 
             Takes one param.
 
-            If it's an integer, then it's a container_id.  Use the Phantom
+            If it's an integer, then it's a container_id.  Use the Splunk SOAR
                 REST API to get CEF fields from the container.  Each asset
                 must have a config param mapping CEF<->Archer fields and the
                 new record is created with the data from the CEF fields of the
@@ -344,7 +344,7 @@ class ArcherConnector(BaseConnector):
         if not isinstance(mapping, dict):
             msg = consts.ARCHER_ERR_NON_DICT.format(mapping)
             self.debug_print(msg)
-            return action_result.set_status(phantom.APP_ERROR, msg, err)
+            return action_result.set_status(phantom.APP_ERROR, msg)
 
         app = param['application']
 
@@ -416,8 +416,6 @@ class ArcherConnector(BaseConnector):
             if json_string:
                 pur = self.proxy.update_record_by_json(app, cid, mapping)
             else:
-                if value:
-                    value = [x.strip() for x in value.split(",")]
                 pur = self.proxy.update_record(app, cid, fid, value, mapping)
             if pur:
                 action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
@@ -504,7 +502,7 @@ class ArcherConnector(BaseConnector):
         if results_filter_operator:
             if results_filter_operator.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
                 return action_result.set_status(phantom.APP_ERROR,
-                                                f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
+                    f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
             else:
                 results_filter_operator = results_filter_operator.lower()
         else:
@@ -512,9 +510,9 @@ class ArcherConnector(BaseConnector):
                 if len(results_filter_dict) == 1 and not results_filter_operator:
                     results_filter_operator = "and"
         if results_filter_equality:
-            if results_filter_equality.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
+            if results_filter_equality.lower() not in consts.ARCHER_EQUALITY_VALUELIST:
                 return action_result.set_status(phantom.APP_ERROR,
-                                                f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
+                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
             else:
                 results_filter_equality = results_filter_equality.lower()
 
@@ -585,7 +583,6 @@ class ArcherConnector(BaseConnector):
             try:
                 response = archer_utils.ArcherAPISession._rest_call(self.proxy, endpoint, 'post', data)
                 response = json.loads(response)
-                self.debug_print("response: {}".format(response))
             except Exception:
                 return action_result.set_status(phantom.APP_ERROR,
                                                 consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response))
@@ -672,7 +669,7 @@ class ArcherConnector(BaseConnector):
         if results_filter_operator:
             if results_filter_operator.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
                 return action_result.set_status(phantom.APP_ERROR,
-                                                f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
+                    f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
             else:
                 results_filter_operator = results_filter_operator.lower()
         else:
@@ -682,7 +679,7 @@ class ArcherConnector(BaseConnector):
         if results_filter_equality:
             if results_filter_equality.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
                 return action_result.set_status(phantom.APP_ERROR,
-                                                f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
+                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
             else:
                 results_filter_equality = results_filter_equality.lower()
 
@@ -817,7 +814,6 @@ class ArcherConnector(BaseConnector):
         try:
             r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', assign_ticket_request)
             r = json.loads(r)
-            self.debug_print("Response: {}".format(r))
         except Exception:
             return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), r))
 
@@ -882,6 +878,7 @@ class ArcherConnector(BaseConnector):
 
         # Gathers any existing security alerts in the incident. Blank if not popualted yet. Used for duplicate incidents
         security_alerts = archer_utils.get_record_field(record, "Security Alerts")
+
         record = None
         try:
             # Gets any existing security alerts in security incident
@@ -896,11 +893,8 @@ class ArcherConnector(BaseConnector):
                 record = [record]
             for i in range(len(record)):
                 for k, v in record[i].items():
-                    if k == "@id":
-                        if str(v) not in security_alert_id:
-                            security_alert_id.insert(0, str(v))
-                        else:
-                            pass
+                    if k == "@id" and str(v) not in security_alert_id:
+                        security_alert_id.insert(0, str(v))
 
         # Must be in list form
         field_def['Value'] = security_alert_id
@@ -915,11 +909,9 @@ class ArcherConnector(BaseConnector):
         sec_alert_request['Content'] = contentDetails
 
         # make REST call
-        self.debug_print(f"sec_alert_request: {sec_alert_request}")
         try:
             r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', sec_alert_request)
             r = json.loads(r)
-            self.debug_print("Response : {}".format(r))
         except Exception:
             return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), r))
 
@@ -967,7 +959,7 @@ class ArcherConnector(BaseConnector):
             return phantom.APP_SUCCESS
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            error_message = consts.ARCHER_ERROR_ACTION_EXECUTION.format(action_id, err)
+            error_message = consts.ARCHER_ERR_ACTION_EXECUTION.format(action_id, err)
             self.debug_print(error_message)
             return action_result.set_status(phantom.APP_ERROR, error_message)
 
