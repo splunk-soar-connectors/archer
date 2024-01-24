@@ -65,6 +65,7 @@ The records for a report GUID (guid) are returned.
 
 Here the the behavior would be such that, if each page contains 50 records; if max_pages = 1 and max_results = 100, then the action would fetch only 50 records, and if max_pages = 1 and max_results = 10, then the action would return 10 records. Also, the number of columns and record search depends on the columns displayed for reports on Archer instance's UI, i.e if on UI Summary column is not added to visible columns then it wouldn't be visible in action output nor would it be able to get records by filtering using \"summary\". 
 
+
 ### Configuration Variables
 The below configuration variables are required for this Connector to operate.  These variables are specified when configuring a Archer GRC asset in SOAR.
 
