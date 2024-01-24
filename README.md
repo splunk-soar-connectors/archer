@@ -2,11 +2,11 @@
 # RSA Archer
 
 Publisher: Splunk  
-Connector Version: 3.0.0  
+Connector Version: 3.0.0-beta  
 Product Vendor: RSA  
 Product Name: Archer GRC  
 Product Version Supported (regex): ".\*"  
-Minimum Product Version: 5.2.0  
+Minimum Product Version: 6.1.1  
 
 This app implements ticket management actions on RSA Archer GRC
 
@@ -89,7 +89,7 @@ VARIABLE | REQUIRED | TYPE | DESCRIPTION
 [create attachment](#action-create-attachment) - Create an attachment  
 [get report](#action-get-report) - Get a list of tickets in a report  
 [on poll](#action-on-poll) - Callback action for the on_poll ingest functionality  
-[assign ticket](#action-assign-ticket) - Assign users and/or groups to Security Incidents  
+[assign ticket](#action-assign-ticket) - Assign users and/or groups to application  
 [attach alert](#action-attach-alert) - Attach Security alert to Security Incident  
 
 ## action: 'test connectivity'
@@ -136,7 +136,7 @@ Update the value of a field of a record
 Type: **generic**  
 Read only: **False**
 
-There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive.
+There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json string and field_id and value are specified, preference would be given to json_string parameter.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -146,7 +146,7 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
 **name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
 **field_id** |  optional  | ID or name of the field to update in the record | string | 
-**value** |  optional  | New value of the record's field | string | 
+**value** |  optional  | New value of the record's field (If Users or Groups are updated to any field then Comma-separated values are allowed) | string | 
 **json_string** |  optional  | JSON data string | string | 
 
 #### Action Output
@@ -229,7 +229,7 @@ action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@parentId | string |  |
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@type | string |  |   6 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@value | string |  |   1 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.@valueID | string |  |   406 
-action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@firstName | string |  |   phantom 
+action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@firstName | string |  |   Splunk SOAR 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@id | string |  |   207 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@lastName | string |  |   lab 
 action_result.data.\*.Record.Field.\*.Record.\*.Field.\*.Users.User.\*.@middleName | string |  |  
@@ -265,8 +265,8 @@ action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.\*.@type | st
 action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.\*.@value | string |  |   Soc L1 L1 
 action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@id | string |  |   540 
 action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@type | string |  |   1 
-action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@value | string |  |   Phantom Test 
-action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@firstName | string |  |   phantom 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Record.Field.@value | string |  |   Test 
+action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@firstName | string |  |   Test 
 action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@id | string |  |   207 
 action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@lastName | string |  |   lab 
 action_result.data.\*.Record.Field.\*.Record.Field.\*.Users.User.@middleName | string |  |  
@@ -352,7 +352,7 @@ Create an attachment
 Type: **generic**  
 Read only: **False**
 
-Newly created attachment ID will be returned.
+Newly created attachment ID will be returned. Here the attachment would be created on the path specified in file repository section mentioned in the archer instance configuration.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -434,7 +434,7 @@ Callback action for the on_poll ingest functionality
 Type: **ingest**  
 Read only: **True**
 
-This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Phantom container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.
+This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Splunk SOAR container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -448,12 +448,12 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 No Output  
 
 ## action: 'assign ticket'
-Assign users and/or groups to Security Incidents
+Assign users and/or groups to application
 
 Type: **generic**  
 Read only: **False**
 
-Assigns users and/or groups to a Security Incident. Users and groups must be specified via ID, and comma separated for multiples.
+Assigns users and/or groups to an application. Users and groups must be specified via ID, and comma separated for multiples.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
