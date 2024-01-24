@@ -414,7 +414,7 @@ class ArcherSOAP(object):
                 uri, data=xml, headers=headers, verify=self.verify_cert)
             for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG:
                 if x in response.text:
-                     generate_new_token = True
+                    generate_new_token = True
             if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]

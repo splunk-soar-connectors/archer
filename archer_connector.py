@@ -174,7 +174,7 @@ class ArcherConnector(BaseConnector):
                 if content_id <= max_content_id:
                     continue
                 self.send_progress('On record {}/{}...'.format(i + 1, nrecs))
-                record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
+                record_name = consts.ARCHER_ERROR_RECORD_NOT_FOUND
 
                 cef = {}
                 for field in rec.get('Field', []):
@@ -333,7 +333,7 @@ class ArcherConnector(BaseConnector):
         try:
             mapping = json.loads(json_string)
         except (ValueError, TypeError) as e:
-            msg = consts.ARCHER_ERR_VALID_JSON
+            msg = consts.ARCHER_ERROR_VALID_JSON
             self.debug_print(msg)
             err = self._get_error_message_from_exception(e)
             return action_result.set_status(phantom.APP_ERROR, msg, err)
@@ -470,14 +470,14 @@ class ArcherConnector(BaseConnector):
         if parameter is not None:
             try:
                 if not float(parameter).is_integer() or isinstance(parameter, float):
-                    return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                    return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_VALID_INTEGER.format(key)), None
                 parameter = int(parameter)
             except:
-                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_VALID_INTEGER.format(key)), None
             if parameter < 0:
-                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_NON_NEGATIVE.format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_NON_NEGATIVE.format(key)), None
             if not allow_zero and parameter == 0:
-                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERROR_VALID_INTEGER.format(key)), None
         return phantom.APP_SUCCESS, parameter
 
     def _handle_list_tickets(self, action_result, param):
@@ -967,7 +967,7 @@ class ArcherConnector(BaseConnector):
             return phantom.APP_SUCCESS
         except Exception as e:
             err = self._get_error_message_from_exception(e)
-            error_message = consts.ARCHER_ERR_ACTION_EXECUTION.format(action_id, err)
+            error_message = consts.ARCHER_ERROR_ACTION_EXECUTION.format(action_id, err)
             self.debug_print(error_message)
             return action_result.set_status(phantom.APP_ERROR, error_message)
 
