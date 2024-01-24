@@ -222,6 +222,7 @@ class ArcherConnector(BaseConnector):
                     'source_data_identifier': c['source_data_identifier'],
                     'cef': cef,
                     'run_automation': True,
+                    'name': record_name
                 }
                 self.send_progress('Saving artifact...')
                 status, msg, id_ = self.save_artifact(art)
@@ -487,10 +488,16 @@ class ArcherConnector(BaseConnector):
         search_field_name = param.get('name_field')
         search_value = param.get('search_value')
         results_filter_json = param.get('results_filter_json')
-        if results_filter_json:
-            results_filter_dict = json.loads(results_filter_json)
-        else:
-            results_filter_dict = None
+        try:
+            if results_filter_json:
+                results_filter_dict = json.loads(results_filter_json)
+            else:
+                results_filter_dict = None
+        except Exception as e:
+            msg = consts.ARCHER_ERR_VALID_JSON
+            self.debug_print(msg)
+            err = self._get_error_message_from_exception(e)
+            return action_result.set_status(phantom.APP_ERROR, msg, err)
 
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
@@ -562,10 +569,13 @@ class ArcherConnector(BaseConnector):
                 'AttachmentName': file_name,
                 'AttachmentBytes': attachment_bytes
             }
-
-            response = archer_utils.ArcherAPISession._rest_call(self.proxy, endpoint, 'post', data)
-            response = json.loads(response)
-            self.debug_print("response: {}".format(response))
+            try:
+                response = archer_utils.ArcherAPISession._rest_call(self.proxy, endpoint, 'post', data)
+                response = json.loads(response)
+                self.debug_print("response: {}".format(response))
+            except Exception:
+                return action_result.set_status(phantom.APP_ERROR,
+                                                consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response))
             if response['IsSuccessful']:
                 action_result.add_data({'Attachment_ID': response['RequestedObject']['Id']})
                 action_result.set_status(phantom.APP_SUCCESS, 'Attachment created successfully')
@@ -628,10 +638,16 @@ class ArcherConnector(BaseConnector):
         max_count = param.get('max_results', 100)
         max_pages = param.get('max_pages', 10)
         results_filter_json = param.get('results_filter_json')
-        if results_filter_json:
-            results_filter_dict = json.loads(results_filter_json)
-        else:
-            results_filter_dict = None
+        try:
+            if results_filter_json:
+                results_filter_dict = json.loads(results_filter_json)
+            else:
+                results_filter_dict = None
+        except Exception as e:
+            msg = consts.ARCHER_ERR_VALID_JSON
+            self.debug_print(msg)
+            err = self._get_error_message_from_exception(e)
+            return action_result.set_status(phantom.APP_ERROR, msg, err)
 
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
@@ -724,7 +740,7 @@ class ArcherConnector(BaseConnector):
 
         try:
             field_id = int(field_id)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             field_id = self.proxy.get_fieldId_for_content_and_name(content_id, field_id)
             if field_id is None:
                 return action_result.set_status(phantom.APP_ERROR, "Can't resolve field for application {}".format(application))
@@ -770,9 +786,12 @@ class ArcherConnector(BaseConnector):
         self.debug_print("assign_ticket_request: {}".format(assign_ticket_request))
 
         # make REST call
-        r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', assign_ticket_request)
-        r = json.loads(r)
-        self.debug_print("Response: {}".format(r))
+        try:
+            r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', assign_ticket_request)
+            r = json.loads(r)
+            self.debug_print("Response: {}".format(r))
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), r))
 
         # Add response to action_result for troubleshooting purposes
         action_result.add_data(r)
@@ -869,9 +888,12 @@ class ArcherConnector(BaseConnector):
 
         # make REST call
         self.debug_print(f"sec_alert_request: {sec_alert_request}")
-        r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', sec_alert_request)
-        r = json.loads(r)
-        self.debug_print("Response : {}".format(r))
+        try:
+            r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', sec_alert_request)
+            r = json.loads(r)
+            self.debug_print("Response : {}".format(r))
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), r))
 
         # Add response data to action result for troubleshooting purposes
         action_result.add_data(r)

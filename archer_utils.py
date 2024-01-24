@@ -154,9 +154,9 @@ class ArcherAPISession(object):
             return self._rest_call(ep, meth, data)
         r.raise_for_status
         try:
-            r = r.content.decode()
+            r = r.content.decode() or r.reason
         except (UnicodeDecodeError, AttributeError):
-            return r.text
+            return (r.text or r.reason)
         return r
 
     @memoize
