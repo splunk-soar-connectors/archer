@@ -1,6 +1,6 @@
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2023 Splunk Inc.
+# Copyright (c) 2016-2024 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -412,7 +412,9 @@ class ArcherSOAP(object):
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            generate_new_token = [True for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG if x in response.text]
+            for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG:
+                if x in response.text:
+                     generate_new_token = True
             if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]

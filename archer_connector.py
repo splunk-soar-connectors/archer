@@ -1,6 +1,6 @@
 # File: archer_connector.py
 #
-# Copyright (c) 2016-2023 Splunk Inc.
+# Copyright (c) 2016-2024 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -295,7 +295,6 @@ class ArcherConnector(BaseConnector):
             self.save_progress('Please provide correct URL and credentials')
             return action_result.set_status(phantom.APP_ERROR, 'Test Connectivity failed')
         self.send_progress('Archer login test... SUCCESS')
-        self.send_progress('{}'.format(self.proxy.conn_obj.sessionToken))
         msg = consts.ARCHER_SUCC_CONFIGURATION
         self.save_progress('Test connectivity passed')
 
@@ -444,6 +443,7 @@ class ArcherConnector(BaseConnector):
 
         if not cid:
             if nfid and nfv:
+                self.save_progress("Get Content ID...")
                 cid = self.proxy.get_content_id(app, nfid, nfv)
             else:
                 return action_result.set_status(phantom.APP_ERROR, 'Either content ID or both name field and name value are mandatory')
@@ -502,9 +502,21 @@ class ArcherConnector(BaseConnector):
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
         if results_filter_operator:
-            results_filter_operator = results_filter_operator.lower()
+            if results_filter_operator.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
+                return action_result.set_status(phantom.APP_ERROR,
+                                                f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
+            else:
+                results_filter_operator = results_filter_operator.lower()
+        else:
+            if results_filter_dict:
+                if len(results_filter_dict) == 1 and not results_filter_operator:
+                    results_filter_operator = "and"
         if results_filter_equality:
-            results_filter_equality = results_filter_equality.lower()
+            if results_filter_equality.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
+                return action_result.set_status(phantom.APP_ERROR,
+                                                f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
+            else:
+                results_filter_equality = results_filter_equality.lower()
 
         status, max_count = self._validate_integer(action_result, max_count, 'max_result', False)
         if (phantom.is_fail(status)):
@@ -521,6 +533,7 @@ class ArcherConnector(BaseConnector):
         self.proxy.excluded_fields = [x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',')]
         records = self.proxy.find_records(app, search_field_name, search_value, max_count)
 
+        self.save_progress("Filtering records...")
         if results_filter_dict:
             filtered_records = self.filter_records(results_filter_dict, results_filter_operator, results_filter_equality, records)
         else:
@@ -656,6 +669,23 @@ class ArcherConnector(BaseConnector):
         if results_filter_equality:
             results_filter_equality = results_filter_equality.lower()
 
+        if results_filter_operator:
+            if results_filter_operator.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
+                return action_result.set_status(phantom.APP_ERROR,
+                                                f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
+            else:
+                results_filter_operator = results_filter_operator.lower()
+        else:
+            if results_filter_dict:
+                if len(results_filter_dict) == 1 and not results_filter_operator:
+                    results_filter_operator = "and"
+        if results_filter_equality:
+            if results_filter_equality.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
+                return action_result.set_status(phantom.APP_ERROR,
+                                                f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
+            else:
+                results_filter_equality = results_filter_equality.lower()
+
         status, max_count = self._validate_integer(action_result, max_count, 'max_result', False)
         if (phantom.is_fail(status)):
             return action_result.get_status()
@@ -664,10 +694,7 @@ class ArcherConnector(BaseConnector):
         if (phantom.is_fail(status)):
             return action_result.get_status()
 
-        if results_filter_dict:
-            if len(results_filter_dict) == 1 and not results_filter_operator:
-                results_filter_operator = "and"
-        elif (results_filter_dict or results_filter_operator or results_filter_equality) \
+        if (results_filter_dict or results_filter_operator or results_filter_equality) \
                 and not (results_filter_dict and results_filter_operator and results_filter_equality):
             return action_result.set_status(phantom.APP_ERROR,
                                      'Need results filter json, results filter operator and results filter equality to filter the results')
@@ -679,6 +706,7 @@ class ArcherConnector(BaseConnector):
 
             records = result_dict['records']
 
+            self.save_progress("Filtering records...")
             if results_filter_dict:
                 filtered_records = self.filter_records(results_filter_dict, results_filter_operator, results_filter_equality, records)
             else:
