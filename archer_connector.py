@@ -512,7 +512,7 @@ class ArcherConnector(BaseConnector):
         if results_filter_equality:
             if results_filter_equality.lower() not in consts.ARCHER_EQUALITY_VALUELIST:
                 return action_result.set_status(phantom.APP_ERROR,
-                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
+                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_EQUALITY_VALUELIST}')
             else:
                 results_filter_equality = results_filter_equality.lower()
 
@@ -677,9 +677,9 @@ class ArcherConnector(BaseConnector):
                 if len(results_filter_dict) == 1 and not results_filter_operator:
                     results_filter_operator = "and"
         if results_filter_equality:
-            if results_filter_equality.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
+            if results_filter_equality.lower() not in consts.ARCHER_EQUALITY_VALUELIST:
                 return action_result.set_status(phantom.APP_ERROR,
-                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_OPERATOR_VALUELIST}')
+                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_EQUALITY_VALUELIST}')
             else:
                 results_filter_equality = results_filter_equality.lower()
 
