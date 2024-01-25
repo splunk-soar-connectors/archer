@@ -63,13 +63,15 @@ class ArcherConnector(BaseConnector):
     def initialize(self):
         self._state = self.load_state()
         self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
-        self.sessionToken = self.decrypt_state(str(self.sessionToken), consts.ARCHER_SESSION_TOKEN)
+        if self.sessionToken:
+            self.sessionToken = self.decrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
         self.proxy = self._get_proxy()
         return phantom.APP_SUCCESS
 
     def finalize(self):
         self._state[consts.ARCHER_SESSION_TOKEN] = self.sessionToken
-        self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(str(self.sessionToken), consts.ARCHER_SESSION_TOKEN)
+        if self.sessionToken:
+            self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
         self.save_state(self._state)
         return phantom.APP_SUCCESS
 

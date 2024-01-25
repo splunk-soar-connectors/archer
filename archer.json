@@ -15,7 +15,7 @@
     "type": "ticketing",
     "license": "Copyright (c) 2016-2024 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "3.0.0-beta",
+    "app_version": "3.0.0",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.14"
     ],
@@ -30,7 +30,7 @@
     "logo_dark": "logo_rsa_dark.svg",
     "configuration": {
         "endpoint_url": {
-            "description": "API endpoint (e.g., http://host/RSAarcher)",
+            "description": "API endpoint (e.g., http://host/archer)",
             "data_type": "string",
             "order": 0,
             "required": true
@@ -89,7 +89,7 @@
         {
             "action": "create ticket",
             "description": "Create a new ticket",
-            "verbose": "<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ \"Incident Summary\": \"test incident summary data\", \"Incident Owner\": \"susan\" }</code></pre><br><p>Parameter application is case-sensitive.</p>",
+            "verbose": "<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ \"Incident Summary\": \"test incident summary data\", \"Incident Owner\": \"testuser\" }</code></pre><br><p>Parameter application is case-sensitive. The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records)</li></ul></p>",
             "type": "generic",
             "identifier": "create_ticket",
             "read_only": false,
@@ -194,7 +194,7 @@
         {
             "action": "update ticket",
             "description": "Update the value of a field of a record",
-            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json string and field_id and value are specified, preference would be given to json_string parameter.",
+            "verbose": "There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to update the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json_string, and field_id and value are specified, preference would be given to json_string parameter and ticket will be updated based on that.  The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records)</li></ul>",
             "type": "generic",
             "identifier": "update_ticket",
             "read_only": false,
@@ -240,7 +240,7 @@
                 "value": {
                     "data_type": "string",
                     "order": 5,
-                    "description": "New value of the record's field (If Users or Groups are updated to any field then Comma-separated values are allowed)"
+                    "description": "New value of the record's field (Comma-separated values allowed if Users or Groups to be updated to a field)"
                 },
                 "json_string": {
                     "data_type": "string",
@@ -501,6 +501,20 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.data.*.Record.Field.*.@fileID",
+                    "data_type": "string",
+                    "example_values": [
+                        "21"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Record.Field.*.@fileName",
+                    "data_type": "string",
+                    "example_values": [
+                        "test.png"
+                    ]
+                },
+                {
                     "data_path": "action_result.data.*.Record.Field.*.@height",
                     "data_type": "string"
                 },
@@ -656,20 +670,6 @@
                     ]
                 },
                 {
-                    "data_path": "action_result.data.*.Record.Field.*.@fileID",
-                    "data_type": "string",
-                    "example_values": [
-                        "21"
-                    ]
-                },
-                {
-                    "data_path": "action_result.data.*.Record.Field.*.@fileName",
-                    "data_type": "string",
-                    "example_values": [
-                        "test.png"
-                    ]
-                },
-                {
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.@levelId",
                     "data_type": "string",
                     "example_values": [
@@ -726,7 +726,7 @@
                     "data_path": "action_result.data.*.Record.Field.*.Record.*.Field.*.Users.User.*.@firstName",
                     "data_type": "string",
                     "example_values": [
-                        "Splunk SOAR"
+                        "Test"
                     ]
                 },
                 {
@@ -1146,7 +1146,7 @@
         {
             "action": "list tickets",
             "description": "Get a list of tickets in an application",
-            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive.",
+            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. There are two set of parameters to filter the records: <br><ul><li>search_value and name_filed</li><li>results_filter_json, results_filter_operator and results_filter_equality</li></ul><br>Filters search_value and name_field are applied at the time of fetching the tickets and the results_filter_json, results_filter_operator and results_filter_equality are applied after the data is fetched. If value in both the set of filters are defined then records will be returned which matched both the conditions",
             "type": "investigate",
             "identifier": "list_tickets",
             "read_only": true,
@@ -1184,7 +1184,7 @@
                     "description": "JSON with field names and values of results filter for this application"
                 },
                 "results_filter_operator": {
-                    "description": "Boolean operator of key/value pairs in the results filter JSON for this application",
+                    "description": "Boolean operator of key/value pairs in the results filter JSON for this application (its value would be \"and\" if only one condition is specified)",
                     "order": 5,
                     "data_type": "string",
                     "value_list": [
@@ -1239,8 +1239,7 @@
                     "data_path": "action_result.parameter.results_filter_equality",
                     "data_type": "string",
                     "example_values": [
-                        "Contains",
-                        "Equals"
+                        "Contains"
                     ]
                 },
                 {
@@ -1254,8 +1253,7 @@
                     "data_path": "action_result.parameter.results_filter_operator",
                     "data_type": "string",
                     "example_values": [
-                        "AND",
-                        "OR"
+                        "AND"
                     ]
                 },
                 {
@@ -1438,7 +1436,7 @@
         {
             "action": "create attachment",
             "description": "Create an attachment",
-            "verbose": "Newly created attachment ID will be returned. Here the attachment would be created on the path specified in file repository section mentioned in the archer instance configuration.",
+            "verbose": "Newly created attachment ID will be returned. Here the attachment would be created on the path specified in 'file repository' section mentioned in the archer instance configuration (https://help.archerirm.cloud/610-en/content/archercontrolpanel/acp_inst_gen_file_repository_path_designating.htm).",
             "type": "generic",
             "identifier": "create_attachment",
             "read_only": false,
@@ -1470,6 +1468,10 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.parameter.file_name",
+                    "data_type": "string"
+                },
+                {
                     "data_path": "action_result.parameter.vault_id",
                     "data_type": "string",
                     "contains": [
@@ -1478,10 +1480,6 @@
                     "example_values": [
                         "f0fee71865babe4df97088370e44b7aa76d949d0"
                     ]
-                },
-                {
-                    "data_path": "action_result.parameter.file_name",
-                    "data_type": "string"
                 },
                 {
                     "data_path": "action_result.data",
@@ -1531,8 +1529,8 @@
         },
         {
             "action": "get report",
-            "description": "Get a list of tickets in a report",
-            "verbose": "The records for a report GUID (guid) are returned.",
+            "description": "Get a list of tickets from a report",
+            "verbose": "The records for a report GUID (guid) are returned.Per page, Archer returns 50 records. Here the behavior of max_pages and max_results would be such that, if max_pages = 1 and max_results = 100, then the action would fetch only 50 records i.e. 1st page. If max_pages = 1 and max_results = 10, the action will return 10 records based on the max_results parameter. Also, the number of columns and record search depends on the columns displayed in reports on the Archer instance's UI, i.e if on UI the \"Summary\" column is not added to visible columns, it won't be displayed in action output as well as no records will be fetched if used in the filter parameters.",
             "type": "investigate",
             "identifier": "get_report",
             "read_only": true,
@@ -1565,7 +1563,7 @@
                     "description": "JSON with field names and values of results filter for a report"
                 },
                 "results_filter_operator": {
-                    "description": "Boolean operator of key/value pairs in the results filter JSON for a report",
+                    "description": "Boolean operator of key/value pairs in the results filter JSON for a report (its value would be \"and\" if only one condition is specified)",
                     "order": 4,
                     "data_type": "string",
                     "value_list": [
@@ -1647,13 +1645,6 @@
                     ],
                     "example_values": [
                         210035
-                    ]
-                },
-                {
-                    "data_path": "action_result.data.*.Field.*.ScoreCard.@total",
-                    "data_type": "string",
-                    "example_values": [
-                        "0"
                     ]
                 },
                 {
@@ -1752,6 +1743,13 @@
                     "data_type": "string",
                     "example_values": [
                         "91"
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.Field.*.ScoreCard.@total",
+                    "data_type": "string",
+                    "example_values": [
+                        "0"
                     ]
                 },
                 {
@@ -1869,28 +1867,25 @@
         {
             "action": "assign ticket",
             "identifier": "assign_ticket",
-            "description": "Assign users and/or groups to application",
-            "verbose": "Assigns users and/or groups to an application. Users and groups must be specified via ID, and comma separated for multiples.",
+            "description": "Assign users and/or groups to record",
+            "verbose": "Assigns users and/or groups to an record. Users and groups must be specified via ID (Comma-separated values allowed)",
             "type": "generic",
             "read_only": false,
             "parameters": {
                 "name_field": {
                     "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
                     "data_type": "string",
-                    "order": 0,
-                    "id": 1
+                    "order": 0
                 },
                 "users": {
-                    "description": "Users to assign to incident/tasks. Provide numeric values. If multiple values, then provide comma-separated",
+                    "description": "Users to assign to incident/tasks. Provide numeric values (Comma-separated values allowed)",
                     "data_type": "string",
-                    "order": 1,
-                    "id": 2
+                    "order": 1
                 },
                 "field_id": {
-                    "description": "Field id for field to change",
+                    "description": "Field id of field to add users or groups",
                     "data_type": "string",
-                    "order": 2,
-                    "id": 3
+                    "order": 2
                 },
                 "application": {
                     "description": "Application/Module name (e.g. Incidents)",
@@ -1900,7 +1895,6 @@
                         "archer application"
                     ],
                     "order": 3,
-                    "id": 4,
                     "primary": true
                 },
                 "name_value": {
@@ -1910,14 +1904,12 @@
                     "contains": [
                         "archer user friendly id"
                     ],
-                    "order": 4,
-                    "id": 5
+                    "order": 4
                 },
                 "groups": {
-                    "description": "Groups to assign to incident/tasks. Provide numeric values. If multiple values, then provide comma-separated",
+                    "description": "Groups to assign to incident/tasks. Provide numeric values (Comma-separated values allowed)",
                     "data_type": "string",
-                    "order": 5,
-                    "id": 6
+                    "order": 5
                 },
                 "content_id": {
                     "description": "Content ID (Identifies the specific record)",
@@ -1926,28 +1918,19 @@
                     "contains": [
                         "archer content id"
                     ],
-                    "order": 6,
-                    "id": 7
+                    "order": 6
                 }
             },
             "output": [
                 {
-                    "data_path": "action_result.parameter.name_field",
+                    "data_path": "action_result.status",
                     "data_type": "string",
-                    "column_name": "Name Field",
-                    "column_order": 0
-                },
-                {
-                    "data_path": "action_result.parameter.users",
-                    "data_type": "string",
-                    "column_name": "Users",
-                    "column_order": 1
-                },
-                {
-                    "data_path": "action_result.parameter.field_id",
-                    "data_type": "string",
-                    "column_name": "Field ID",
-                    "column_order": 2
+                    "column_name": "Status",
+                    "column_order": 7,
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.application",
@@ -1959,21 +1942,6 @@
                     "column_order": 3
                 },
                 {
-                    "data_path": "action_result.parameter.name_value",
-                    "data_type": "string",
-                    "contains": [
-                        "archer user friendly id"
-                    ],
-                    "column_name": "Name Value",
-                    "column_order": 4
-                },
-                {
-                    "data_path": "action_result.parameter.groups",
-                    "data_type": "string",
-                    "column_name": "Groups",
-                    "column_order": 5
-                },
-                {
                     "data_path": "action_result.parameter.content_id",
                     "data_type": "numeric",
                     "contains": [
@@ -1983,14 +1951,37 @@
                     "column_order": 6
                 },
                 {
-                    "data_path": "action_result.status",
+                    "data_path": "action_result.parameter.field_id",
                     "data_type": "string",
-                    "column_name": "Status",
-                    "column_order": 7,
-                    "example_values": [
-                        "success",
-                        "failed"
-                    ]
+                    "column_name": "Field ID",
+                    "column_order": 2
+                },
+                {
+                    "data_path": "action_result.parameter.groups",
+                    "data_type": "string",
+                    "column_name": "Groups",
+                    "column_order": 5
+                },
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "column_name": "Name Field",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "column_name": "Name Value",
+                    "column_order": 4
+                },
+                {
+                    "data_path": "action_result.parameter.users",
+                    "data_type": "string",
+                    "column_name": "Users",
+                    "column_order": 1
                 },
                 {
                     "data_path": "action_result.data.*.IsSuccessful",
@@ -2008,6 +1999,10 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
                     "data_path": "action_result.summary.content_id",
                     "data_type": "string",
                     "example_values": [
@@ -2020,10 +2015,6 @@
                     "example_values": [
                         "Groups/Users successfully assigned"
                     ]
-                },
-                {
-                    "data_path": "action_result.summary",
-                    "data_type": "string"
                 },
                 {
                     "data_path": "summary.total_objects",
@@ -2048,16 +2039,14 @@
         {
             "action": "attach alert",
             "identifier": "attach_alert",
-            "description": "Attach Security alert to Security Incident",
-            "verbose": "Attach Security alert to Security Incident. Can assign multiple alerts if comma separated.",
+            "description": "Attach Security alert to the record",
             "type": "generic",
             "read_only": false,
             "parameters": {
                 "name_field": {
                     "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
                     "data_type": "string",
-                    "order": 0,
-                    "id": 1
+                    "order": 0
                 },
                 "application": {
                     "description": "Application/Module name (e.g. Security Incidents)",
@@ -2067,7 +2056,6 @@
                         "archer application"
                     ],
                     "order": 2,
-                    "id": 3,
                     "primary": true
                 },
                 "name_value": {
@@ -2077,14 +2065,12 @@
                     "contains": [
                         "archer user friendly id"
                     ],
-                    "order": 3,
-                    "id": 4
+                    "order": 3
                 },
                 "field_id": {
                     "description": "Field ID of field to edit. If not provided, searches for Field ID of Security Alerts field",
                     "data_type": "string",
-                    "order": 1,
-                    "id": 2
+                    "order": 1
                 },
                 "content_id": {
                     "description": "Content ID (Identifies the specific incident)",
@@ -2093,29 +2079,25 @@
                     "contains": [
                         "archer content id"
                     ],
-                    "order": 4,
-                    "id": 5
+                    "order": 4
                 },
                 "security_alert_id": {
-                    "description": "Security Alert that will be assigned to Incident",
+                    "description": "Security Alert that will be assigned to record (Comma-separated values allowed)",
                     "data_type": "string",
                     "required": true,
-                    "order": 5,
-                    "id": 6
+                    "order": 5
                 }
             },
             "output": [
                 {
-                    "data_path": "action_result.parameter.name_field",
+                    "data_path": "action_result.status",
                     "data_type": "string",
-                    "column_name": "Name Field",
-                    "column_order": 0
-                },
-                {
-                    "data_path": "action_result.parameter.field_id",
-                    "data_type": "string",
-                    "column_name": "Field ID",
-                    "column_order": 1
+                    "column_name": "Status",
+                    "column_order": 6,
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.application",
@@ -2127,15 +2109,6 @@
                     "column_order": 2
                 },
                 {
-                    "data_path": "action_result.parameter.name_value",
-                    "data_type": "string",
-                    "contains": [
-                        "archer user friendly id"
-                    ],
-                    "column_name": "Name Value",
-                    "column_order": 3
-                },
-                {
                     "data_path": "action_result.parameter.content_id",
                     "data_type": "numeric",
                     "contains": [
@@ -2145,20 +2118,31 @@
                     "column_order": 4
                 },
                 {
+                    "data_path": "action_result.parameter.field_id",
+                    "data_type": "string",
+                    "column_name": "Field ID",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.parameter.name_field",
+                    "data_type": "string",
+                    "column_name": "Name Field",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.name_value",
+                    "data_type": "string",
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "column_name": "Name Value",
+                    "column_order": 3
+                },
+                {
                     "data_path": "action_result.parameter.security_alert_id",
                     "data_type": "string",
                     "column_name": "Security Alert ID",
                     "column_order": 5
-                },
-                {
-                    "data_path": "action_result.status",
-                    "data_type": "string",
-                    "column_name": "Status",
-                    "column_order": 6,
-                    "example_values": [
-                        "success",
-                        "failed"
-                    ]
                 },
                 {
                     "data_path": "action_result.data.*.IsSuccessful",
@@ -2176,6 +2160,10 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
                     "data_path": "action_result.summary.content_id",
                     "data_type": "string",
                     "example_values": [
@@ -2188,10 +2176,6 @@
                     "example_values": [
                         "Alert successfully attached to Incident"
                     ]
-                },
-                {
-                    "data_path": "action_result.summary",
-                    "data_type": "string"
                 },
                 {
                     "data_path": "summary.total_objects",

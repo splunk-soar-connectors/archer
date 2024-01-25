@@ -48,7 +48,13 @@ If a field is specified both in the cef_mapping and in the excluded fields list,
 -   When the value of this asset parameter is specified, the application will consider the user specified in the asset parameter [username] as the domain user of a given domain, and all the actions will be executed with the domain user session token created while running the action.
 -   The user will be considered as a local user when the value of this parameter is not present. And if the local user attempts to change/add any of the field value(fields that expect the username value) with the domain user, then the action will fail because it requires a domain user session token to look up the domain user. And this token is generated only if the test connectivity is successfully run by the domain user
 
+### Steps to update the session time on Archer UI:
+By default the session timeout in Archer will be 10 minutes, It is recommended to increase the timeout so that a token generated works for longer time.
+Steps to update the session timeout:
 
-The records for a report GUID (guid) are returned. 
 
-Here the the behavior would be such that, if each page contains 50 records; if max_pages = 1 and max_results = 100, then the action would fetch only 50 records, and if max_pages = 1 and max_results = 10, then the action would return 10 records. Also, the number of columns and record search depends on the columns displayed for reports on Archer instance's UI, i.e if on UI Summary column is not added to visible columns then it wouldn't be visible in action output nor would it be able to get records by filtering using \"summary\". 
+-   Go to Administration settings > Security Parameters
+
+-   Select the Security Parameter name to update session timeout for
+
+-   Under the Authorization Properties, update the “Session Timeout” value
