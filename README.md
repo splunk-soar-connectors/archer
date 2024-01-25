@@ -2,7 +2,7 @@
 # RSA Archer
 
 Publisher: Splunk  
-Connector Version: 3.0.0  
+Connector Version: 3.0.0-beta  
 Product Vendor: RSA  
 Product Name: Archer GRC  
 Product Version Supported (regex): ".\*"  
