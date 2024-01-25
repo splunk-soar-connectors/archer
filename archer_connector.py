@@ -174,7 +174,7 @@ class ArcherConnector(BaseConnector):
                 if content_id <= max_content_id:
                     continue
                 self.send_progress('On record {}/{}...'.format(i + 1, nrecs))
-                record_name = consts.ARCHER_ERROR_RECORD_NOT_FOUND
+                record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
 
                 cef = {}
                 for field in rec.get('Field', []):
