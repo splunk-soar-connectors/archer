@@ -337,7 +337,7 @@ class ArcherAPISession(object):
             return {'value_id': vlval, 'other_text': othertext}
 
         if fld['Type'] == 8:
-            if value:
+            if value and isinstance(value, str):
                 value = [x.strip() for x in value.split(",")]
             user_id = []
             group_id = []
