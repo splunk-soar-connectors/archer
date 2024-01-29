@@ -304,7 +304,7 @@ Get a list of tickets in an application
 Type: **investigate**  
 Read only: **True**
 
-You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. There are two set of parameters to filter the records: <br><ul><li>search_value and name_filed</li><li>results_filter_json, results_filter_operator and results_filter_equality</li></ul><br>Filters search_value and name_field are applied at the time of fetching the tickets and the results_filter_json, results_filter_operator and results_filter_equality are applied after the data is fetched. If value in both the set of filters are defined then records will be returned which matched both the conditions
+You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. There are two set of parameters to filter the records: <br><ul><li>search_value and name_filed</li><li>results_filter_json, results_filter_operator and results_filter_equality</li></ul><br>Filters search_value and name_field are applied at the time of fetching the tickets and the results_filter_json, results_filter_operator and results_filter_equality are applied after the data is fetched. If value in both the set of filters are defined then records will be returned which matched both the conditions.For example, if results_filter_json  {"Subject" : "This is summary", "Description" : "This is description"}, results_filter_operator = 'and' and results_filter_equality = 'Contains', the records would be filtered in such a way that 'Subject' contains the string 'This is summary' init and  'Description' contains 'This is description' init. If results_filter_equality had been 'Equals' then it would check for records where Subject is 'This is summary' entirely and same for description. If results_filter_operator was 'or' then records that have any one of the conditions, either 'Subject' has "This is summary" or "Description" has "This is description" or both would be displayed.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -384,7 +384,7 @@ Get a list of tickets from a report
 Type: **investigate**  
 Read only: **True**
 
-The records for a report GUID (guid) are returned.Per page, Archer returns 50 records. Here the behavior of max_pages and max_results would be such that, if max_pages = 1 and max_results = 100, then the action would fetch only 50 records i.e. 1st page. If max_pages = 1 and max_results = 10, the action will return 10 records based on the max_results parameter. Also, the number of columns and record search depends on the columns displayed in reports on the Archer instance's UI, i.e if on UI the "Summary" column is not added to visible columns, it won't be displayed in action output as well as no records will be fetched if used in the filter parameters.
+The records for a report GUID (guid) are returned. Per page, Archer returns 50 records. Here the behavior of max_pages and max_results would be such that, if max_pages = 1 and max_results = 100, then the action would fetch only 50 records i.e. 1st page. If max_pages = 1 and max_results = 10, the action will return 10 records based on the max_results parameter. Also, the number of columns and record search depends on the columns displayed in reports on the Archer instance's UI, i.e if on UI the "Summary" column is not added to visible columns, it won't be displayed in action output as well as no records will be fetched if used in the filter parameters. For example, if results_filter_json  {"Subject" : "This is summary", "Description" : "This is description"}, results_filter_operator = 'and' and results_filter_equality = 'Contains', the records would be filtered in such a way that 'Subject' contains the string 'This is summary' init and  'Description' contains 'This is description' init. If results_filter_equality had been 'Equals' then it would check for records where Subject is 'This is summary' entirely and same for description. If results_filter_operator was 'or' then records that have any one of the conditions, either 'Subject' has "This is summary" or "Description" has "This is description" or both would be displayed.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -463,13 +463,13 @@ Assigns users and/or groups to an record. Users and groups must be specified via
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 --------- | -------- | ----------- | ---- | --------
-**name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
-**users** |  optional  | Users to assign to incident/tasks. Provide numeric values (Comma-separated values allowed) | string | 
-**field_id** |  optional  | Field id of field to add users or groups | string | 
 **application** |  required  | Application/Module name (e.g. Incidents) | string |  `archer application` 
-**name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
-**groups** |  optional  | Groups to assign to incident/tasks. Provide numeric values (Comma-separated values allowed) | string | 
 **content_id** |  optional  | Content ID (Identifies the specific record) | numeric |  `archer content id` 
+**name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
+**name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
+**field_id** |  optional  | Field id of field to add users or groups | string | 
+**users** |  optional  | Users to assign to incident/tasks. Provide numeric values (Comma-separated values allowed) | string | 
+**groups** |  optional  | Groups to assign to incident/tasks. Provide numeric values (Comma-separated values allowed) | string | 
 
 #### Action Output
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
@@ -499,11 +499,11 @@ Read only: **False**
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 --------- | -------- | ----------- | ---- | --------
-**name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
 **application** |  required  | Application/Module name (e.g. Security Incidents) | string |  `archer application` 
+**content_id** |  optional  | Content ID (Identifies the specific incident) | numeric |  `archer content id` 
+**name_field** |  optional  | Name of Tracking ID field (e.g. "Incident ID") | string | 
 **name_value** |  optional  | Name of record (e.g. "INC-1234") | string |  `archer user friendly id` 
 **field_id** |  optional  | Field ID of field to edit. If not provided, searches for Field ID of Security Alerts field | string | 
-**content_id** |  optional  | Content ID (Identifies the specific incident) | numeric |  `archer content id` 
 **security_alert_id** |  required  | Security Alert that will be assigned to record (Comma-separated values allowed) | string | 
 
 #### Action Output
