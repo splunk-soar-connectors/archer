@@ -115,7 +115,7 @@ Create a new ticket
 Type: **generic**  
 Read only: **False**
 
-<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ "Incident Summary": "test incident summary data", "Incident Owner": "testuser" }</code></pre><br><p>Parameter application is case-sensitive. The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records)</li></ul></p>
+<p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ "Incident Summary": "test incident summary data", "Incident Owner": "testuser" }</code></pre><br><p>Parameter application is case-sensitive. The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records)</li></ul></p>.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -141,7 +141,7 @@ Update the value of a field of a record
 Type: **generic**  
 Read only: **False**
 
-There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to update the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json_string, and field_id and value are specified, preference would be given to json_string parameter and ticket will be updated based on that.  The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records)</li></ul>
+There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to update the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json_string, and field_id and value are specified, preference would be given to json_string parameter and ticket will be updated based on that.  The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records)</li></ul>.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
@@ -458,7 +458,7 @@ Assign users and/or groups to record
 Type: **generic**  
 Read only: **False**
 
-Assigns users and/or groups to an record. Users and groups must be specified via ID (Comma-separated values allowed)
+Assigns users and/or groups to an record. Users and groups must be specified via ID (Comma-separated values allowed).
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
