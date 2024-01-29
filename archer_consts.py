@@ -15,7 +15,7 @@
 ARCHER_ACTION_UPDATE_TICKET = 'update_ticket'
 ARCHER_ACTION_CREATE_TICKET = 'create_ticket'
 ARCHER_ACTION_GET_TICKET = 'get_ticket'
-ARCHER_ACTION_LIST_TICKET = 'list_tickets'
+ARCHER_ACTION_LIST_TICKETS = 'list_tickets'
 ARCHER_ACTION_ON_POLL = 'on_poll'
 ARCHER_ACTION_CREATE_ATTACHMENT = 'create_attachment'
 ARCHER_ACTION_GET_REPORT = 'get_report'
@@ -56,3 +56,4 @@ ARCHER_OPERATOR_VALUELIST = ["and", "or"]
 ARCHER_EQUALITY_VALUELIST = ["contains", "equals"]
 
 ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'
+ARCHER_INVALID_JSON = 'Invalid JSON string. Must be a dictionary containing key-value pairs'

@@ -346,7 +346,7 @@ class ArcherAPISession(object):
                 gid = self.asoap.find_group(val)
                 group_id.append(gid)
                 user_id.append(uid)
-                if not (uid or gid):
+                if not uid and not gid:
                     W('Users/Groups not found in local user search')
                     duid = self.asoap.find_domain_user(val)
                     user_id.append(duid)
@@ -570,7 +570,7 @@ class ArcherAPISession(object):
                         if value_list:
                             if isinstance(value_list, dict):
                                 value_list = [value_list]
-                            value_list = set([x.get('#text', '') for x in value_list])
+                            value_list = set(x.get('#text', '') for x in value_list)
                             v = f.get('@value')
                             if v:
                                 value_list.add(v)
@@ -612,7 +612,7 @@ class ArcherAPISession(object):
                 if field_type == 4:
                     value_list = field.get('MultiValue', [])
                     if value_list:
-                        value_list = set([x.get('@value', '') for x in value_list])
+                        value_list = set(x.get('@value', '') for x in value_list)
                         value_list.add(field.get('@value'))
                         field['multi_value'] = list(value_list)
             except Exception as e:
@@ -660,6 +660,14 @@ class ArcherAPISession(object):
         return cid
 
     def update_record(self, app, contentId, fieldId, value, data={}, doit=True):
+
+        W('In update_record({}, {}, {})'.format(contentId, fieldId, value))
+        moduleId, field = self.get_data(app, fieldId, value, doit)
+        data = self.asoap.update_record(contentId, moduleId, [field])
+        W(data)
+        return bool(data)
+
+    def get_data(self, app, fieldId, value, doit=True):
         """Set the value of the given field in the given content record.
 
             contentId, a number-or-string: ID of the Archer record to update,
@@ -676,7 +684,7 @@ class ArcherAPISession(object):
                 False, return the data that would have been sent.
 
         """
-        W('In update_record({}, {}, {})'.format(contentId, fieldId, value))
+        W('In get_data({}, {})'.format(fieldId, value))
         try:
             fid = int(fieldId)
         except (ValueError, TypeError):
@@ -710,46 +718,15 @@ class ArcherAPISession(object):
         W('Updating to id: {}'.format(fieldId))
         W('Updating to type: {}'.format(fieldType))
 
-        data = self.asoap.update_record(contentId, moduleId, [field])
-        W(data)
-        return bool(data)
+        return moduleId, field
 
     def update_record_by_json(self, app, contentId, data={}, doit=True):
         fields = []
 
         for field, value in list(data.items()):
-            fid = ''
-            try:
-                fid = int(field)
-            except (ValueError, TypeError):
-                fid = self.get_fieldId_for_app_and_name(app, field)
-            try:
-                fid = int(fid)
-                W('fieldId is integer, using as-is: {}'.format(fid))
-            except (ValueError, TypeError):
-                newId = self.get_fieldId_for_app_and_name(app, field)
-                W('Got fieldId from app_and_name: {}'.format(newId))
-                if newId is None:
-                    raise Exception("Can't resolve field: {}".format(field))
-                elif doit:
-                    raise Exception("Can't update without content_id")
-                fid = newId
-
-            fieldType = int(self.get_type_of_field(fid))
-            W('Got fieldType: {}'.format(fieldType))
-            levelId = self.get_level_of_field(fid)
-            W('Got levelId: {}'.format(levelId))
-            value = self.get_valuesetvalue_of_field(fid, value)
-            moduleId = self.get_moduleid(app)
-            field = {
-                'id': fid,
-                'type': fieldType,
-                'value': value
-            }
-            W('Updating to value: {}'.format(value))
-            W('Updating to id: {}'.format(fid))
-            W('Updating to type: {}'.format(fieldType))
+            moduleId, field = self.get_data(app, field, value, doit)
             fields.append(field)
+
         data = self.asoap.update_record(contentId, moduleId, fields)
         return bool(data)
 
@@ -757,11 +734,7 @@ class ArcherAPISession(object):
         """Returns the report with the given guid."""
 
         # Initialize result dictionary
-        result_dict = {}
-        result_dict['status'] = 'failed'
-        result_dict['message'] = 'Failed - default message'
-        result_dict['page_count'] = 0
-        result_dict['records'] = []
+        result_dict = {'status': 'failed', 'message': 'Failed - default message', 'page_count': 0, 'records': []}
 
         # Initialize the current count of records
         total_count = 0
@@ -857,10 +830,7 @@ class ArcherAPISession(object):
         try:
 
             # Initialize result dictionary
-            merge_dict = {}
-            merge_dict['status'] = 'failed'
-            merge_dict['message'] = 'Failed - default message'
-            merge_dict['records'] = []
+            merge_dict = {'status': 'failed', 'message': 'Failed - default message', 'records': []}
 
             if not isinstance(raw_records, list):
                 raw_records = [raw_records]
@@ -892,7 +862,7 @@ class ArcherAPISession(object):
                             if value_list:
                                 if isinstance(value_list, dict):
                                     value_list = [value_list]
-                                value_list = set([ x.get('#text', '') for x in value_list])
+                                value_list = set(x.get('#text', '') for x in value_list)
                                 v = field.get('@value')
                                 if v:
                                     value_list.add(v)

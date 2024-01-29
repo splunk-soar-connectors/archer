@@ -1146,7 +1146,7 @@
         {
             "action": "list tickets",
             "description": "Get a list of tickets in an application",
-            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. There are two set of parameters to filter the records: <br><ul><li>search_value and name_filed</li><li>results_filter_json, results_filter_operator and results_filter_equality</li></ul><br>Filters search_value and name_field are applied at the time of fetching the tickets and the results_filter_json, results_filter_operator and results_filter_equality are applied after the data is fetched. If value in both the set of filters are defined then records will be returned which matched both the conditions",
+            "verbose": "You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. There are two set of parameters to filter the records: <br><ul><li>search_value and name_filed</li><li>results_filter_json, results_filter_operator and results_filter_equality</li></ul><br>Filters search_value and name_field are applied at the time of fetching the tickets and the results_filter_json, results_filter_operator and results_filter_equality are applied after the data is fetched. If value in both the set of filters are defined then records will be returned which matched both the conditions.For example, if results_filter_json  {\"Subject\" : \"This is summary\", \"Description\" : \"This is description\"}, results_filter_operator = 'and' and results_filter_equality = 'Contains', the records would be filtered in such a way that 'Subject' contains the string 'This is summary' init and  'Description' contains 'This is description' init. If results_filter_equality had been 'Equals' then it would check for records where Subject is 'This is summary' entirely and same for description. If results_filter_operator was 'or' then records that have any one of the conditions, either 'Subject' has \"This is summary\" or \"Description\" has \"This is description\" or both would be displayed.",
             "type": "investigate",
             "identifier": "list_tickets",
             "read_only": true,
@@ -1530,7 +1530,7 @@
         {
             "action": "get report",
             "description": "Get a list of tickets from a report",
-            "verbose": "The records for a report GUID (guid) are returned.Per page, Archer returns 50 records. Here the behavior of max_pages and max_results would be such that, if max_pages = 1 and max_results = 100, then the action would fetch only 50 records i.e. 1st page. If max_pages = 1 and max_results = 10, the action will return 10 records based on the max_results parameter. Also, the number of columns and record search depends on the columns displayed in reports on the Archer instance's UI, i.e if on UI the \"Summary\" column is not added to visible columns, it won't be displayed in action output as well as no records will be fetched if used in the filter parameters.",
+            "verbose": "The records for a report GUID (guid) are returned. Per page, Archer returns 50 records. Here the behavior of max_pages and max_results would be such that, if max_pages = 1 and max_results = 100, then the action would fetch only 50 records i.e. 1st page. If max_pages = 1 and max_results = 10, the action will return 10 records based on the max_results parameter. Also, the number of columns and record search depends on the columns displayed in reports on the Archer instance's UI, i.e if on UI the \"Summary\" column is not added to visible columns, it won't be displayed in action output as well as no records will be fetched if used in the filter parameters. For example, if results_filter_json  {\"Subject\" : \"This is summary\", \"Description\" : \"This is description\"}, results_filter_operator = 'and' and results_filter_equality = 'Contains', the records would be filtered in such a way that 'Subject' contains the string 'This is summary' init and  'Description' contains 'This is description' init. If results_filter_equality had been 'Equals' then it would check for records where Subject is 'This is summary' entirely and same for description. If results_filter_operator was 'or' then records that have any one of the conditions, either 'Subject' has \"This is summary\" or \"Description\" has \"This is description\" or both would be displayed.",
             "type": "investigate",
             "identifier": "get_report",
             "read_only": true,
@@ -1872,21 +1872,6 @@
             "type": "generic",
             "read_only": false,
             "parameters": {
-                "name_field": {
-                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
-                    "data_type": "string",
-                    "order": 0
-                },
-                "users": {
-                    "description": "Users to assign to incident/tasks. Provide numeric values (Comma-separated values allowed)",
-                    "data_type": "string",
-                    "order": 1
-                },
-                "field_id": {
-                    "description": "Field id of field to add users or groups",
-                    "data_type": "string",
-                    "order": 2
-                },
                 "application": {
                     "description": "Application/Module name (e.g. Incidents)",
                     "data_type": "string",
@@ -1894,22 +1879,8 @@
                     "contains": [
                         "archer application"
                     ],
-                    "order": 3,
+                    "order": 0,
                     "primary": true
-                },
-                "name_value": {
-                    "description": "Name of record (e.g. \"INC-1234\")",
-                    "data_type": "string",
-                    "primary": true,
-                    "contains": [
-                        "archer user friendly id"
-                    ],
-                    "order": 4
-                },
-                "groups": {
-                    "description": "Groups to assign to incident/tasks. Provide numeric values (Comma-separated values allowed)",
-                    "data_type": "string",
-                    "order": 5
                 },
                 "content_id": {
                     "description": "Content ID (Identifies the specific record)",
@@ -1918,6 +1889,35 @@
                     "contains": [
                         "archer content id"
                     ],
+                    "order": 1
+                },
+                "name_field": {
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
+                    "data_type": "string",
+                    "order": 2
+                },
+                "name_value": {
+                    "description": "Name of record (e.g. \"INC-1234\")",
+                    "data_type": "string",
+                    "primary": true,
+                    "contains": [
+                        "archer user friendly id"
+                    ],
+                    "order": 3
+                },
+                "field_id": {
+                    "description": "Field id of field to add users or groups",
+                    "data_type": "string",
+                    "order": 4
+                },
+                "users": {
+                    "description": "Users to assign to incident/tasks. Provide numeric values (Comma-separated values allowed)",
+                    "data_type": "string",
+                    "order": 5
+                },
+                "groups": {
+                    "description": "Groups to assign to incident/tasks. Provide numeric values (Comma-separated values allowed)",
+                    "data_type": "string",
                     "order": 6
                 }
             },
@@ -2043,11 +2043,6 @@
             "type": "generic",
             "read_only": false,
             "parameters": {
-                "name_field": {
-                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
-                    "data_type": "string",
-                    "order": 0
-                },
                 "application": {
                     "description": "Application/Module name (e.g. Security Incidents)",
                     "data_type": "string",
@@ -2055,8 +2050,22 @@
                     "contains": [
                         "archer application"
                     ],
-                    "order": 2,
+                    "order": 0,
                     "primary": true
+                },
+                "content_id": {
+                    "description": "Content ID (Identifies the specific incident)",
+                    "data_type": "numeric",
+                    "primary": true,
+                    "contains": [
+                        "archer content id"
+                    ],
+                    "order": 1
+                },
+                "name_field": {
+                    "description": "Name of Tracking ID field (e.g. \"Incident ID\")",
+                    "data_type": "string",
+                    "order": 2
                 },
                 "name_value": {
                     "description": "Name of record (e.g. \"INC-1234\")",
@@ -2070,15 +2079,6 @@
                 "field_id": {
                     "description": "Field ID of field to edit. If not provided, searches for Field ID of Security Alerts field",
                     "data_type": "string",
-                    "order": 1
-                },
-                "content_id": {
-                    "description": "Content ID (Identifies the specific incident)",
-                    "data_type": "numeric",
-                    "primary": true,
-                    "contains": [
-                        "archer content id"
-                    ],
                     "order": 4
                 },
                 "security_alert_id": {

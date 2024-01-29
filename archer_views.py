@@ -85,8 +85,8 @@ def get_report(provides, all_results, context):
     for summary, action_results in all_results:
         for result in action_results:
             for record in result.get_data():
-                headers_set.update([f.get('@name', '').strip()
-                                    for f in record.get('Field', [])])
+                headers_set.update(f.get('@name', '').strip()
+                                    for f in record.get('Field', []))
     if not headers_set:
         headers_set.update(headers)
     headers.extend(sorted(headers_set))

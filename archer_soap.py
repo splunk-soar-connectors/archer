@@ -115,7 +115,8 @@ class ArcherSOAP(object):
                     if name_ele.text == groupname:
                         for node in name_ele.itersiblings(tag='Id'):
                             return int(node.text)
-        except Exception:
+
+        except (etree.XPathEvalError, AttributeError):
             grp_id = None
             result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
             if result and isinstance(result, list):
@@ -412,10 +413,8 @@ class ArcherSOAP(object):
             return {'status': 'success', 'result': rec_xml[0].text}
         else:
             rec_xml = resp_root.xpath('//*[local-name()="faultstring"]', namespaces=ALL_NS_MAP)
-            if len(rec_xml) > 0:
-                return {'status': 'failed', 'result': rec_xml[0].text}
-            else:
-                return {'status': 'failed', 'result': 'Unable to find SearchRecordsByReportResult.'}
+            return {'status': 'failed',
+                'result': rec_xml[0].text if len(rec_xml) > 0 else 'Unable to find SearchRecordsByReportResult'}
 
     def _do_request(self, uri, doc, method='post'):
         generate_new_token = False

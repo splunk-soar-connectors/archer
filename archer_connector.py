@@ -340,7 +340,7 @@ class ArcherConnector(BaseConnector):
             err = self._get_error_message_from_exception(e)
             return action_result.set_status(phantom.APP_ERROR, msg, err)
         if not isinstance(mapping, dict):
-            return action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
+            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
 
         self.debug_print('Parsed data: {}'.format(mapping))
         if not isinstance(mapping, dict):
@@ -388,7 +388,7 @@ class ArcherConnector(BaseConnector):
                 err = self._get_error_message_from_exception(e)
                 return action_result.set_status(phantom.APP_ERROR, msg, err)
             if not isinstance(mapping, dict):
-                return action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
+                return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
 
             self.debug_print('Parsed data: {}'.format(mapping))
 
@@ -499,7 +499,7 @@ class ArcherConnector(BaseConnector):
             err = self._get_error_message_from_exception(e)
             return action_result.set_status(phantom.APP_ERROR, msg, err)
         if results_filter_dict and not isinstance(results_filter_dict, dict):
-            return action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
+            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
 
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
@@ -664,7 +664,7 @@ class ArcherConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, msg, err)
 
         if results_filter_dict and not isinstance(results_filter_dict, dict):
-            return action_result.set_status(phantom.APP_ERROR, 'Invalid JSON string. Must be a dictionary containing key-value pairs')
+            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
 
         results_filter_operator = param.get('results_filter_operator')
         results_filter_equality = param.get('results_filter_equality')
@@ -949,7 +949,7 @@ class ArcherConnector(BaseConnector):
                 return self._handle_update_ticket(action_result, param)
             elif (action_id == consts.ARCHER_ACTION_GET_TICKET):
                 return self._handle_get_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_LIST_TICKET):
+            elif (action_id == consts.ARCHER_ACTION_LIST_TICKETS):
                 return self._handle_list_tickets(action_result, param)
             elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
                 return self._handle_test_connectivity(action_result, param)
