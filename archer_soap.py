@@ -431,10 +431,7 @@ class ArcherSOAP(object):
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
-            for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG:
-                if x in response.text:
-                    generate_new_token = True
-                    break
+            generate_new_token = any(x in response.text for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
             if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]
