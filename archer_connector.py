@@ -418,7 +418,7 @@ class ArcherConnector(BaseConnector):
             if json_string:
                 pur = self.proxy.update_record_by_json(app, cid, mapping)
             else:
-                pur = self.proxy.update_record(app, cid, fid, value, mapping)
+                pur = self.proxy.update_record(app, cid, fid, value)
             if pur:
                 action_result.set_status(phantom.APP_SUCCESS, 'Updated ticket')
             else:

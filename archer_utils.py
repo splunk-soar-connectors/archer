@@ -659,9 +659,10 @@ class ArcherAPISession(object):
         cid = self.asoap.create_record(moduleId, fields)
         return cid
 
-    def update_record(self, app, contentId, fieldId, value, data={}, doit=True):
+    def update_record(self, app, contentId, fieldId, value, doit=True):
 
         W('In update_record({}, {}, {})'.format(contentId, fieldId, value))
+        data = {}
         moduleId, field = self.get_data(app, fieldId, value, doit)
         data = self.asoap.update_record(contentId, moduleId, [field])
         W(data)
@@ -720,7 +721,9 @@ class ArcherAPISession(object):
 
         return moduleId, field
 
-    def update_record_by_json(self, app, contentId, data={}, doit=True):
+    def update_record_by_json(self, app, contentId, data=None, doit=True):
+        if data is None:
+            data = {}
         fields = []
 
         for field, value in list(data.items()):
