@@ -324,9 +324,9 @@ action_result.status | string |  |   success  failed
 action_result.parameter.application | string |  `archer application`  |   Incidents 
 action_result.parameter.max_results | numeric |  |   100 
 action_result.parameter.name_field | string |  |   Incident ID 
-action_result.parameter.results_filter_equality | string |  |   Contains 
+action_result.parameter.results_filter_equality | string |  |   Contains  Equals 
 action_result.parameter.results_filter_json | string |  |   {'Incident ID': '10000'} 
-action_result.parameter.results_filter_operator | string |  |   AND 
+action_result.parameter.results_filter_operator | string |  |   AND  OR 
 action_result.parameter.search_value | string |  |   10000 
 action_result.data.\*.@contentId | numeric |  `archer content id`  |   210035 
 action_result.data.\*.@levelGuid | string |  |   b0c2da91-167c-4fee-ad91-4b4e7b098b4b 
@@ -369,7 +369,7 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
 --------- | ---- | -------- | --------------
 action_result.status | string |  |   success  failed 
-action_result.parameter.file_name | string |  |  
+action_result.parameter.file_name | string |  |   test.txt 
 action_result.parameter.vault_id | string |  `vault id`  |   f0fee71865babe4df97088370e44b7aa76d949d0 
 action_result.data | string |  |  
 action_result.data.\*.Attachment_ID | numeric |  |   31 
@@ -475,13 +475,13 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
 --------- | ---- | -------- | --------------
 action_result.status | string |  |   success  failed 
-action_result.parameter.application | string |  `archer application`  |  
-action_result.parameter.content_id | numeric |  `archer content id`  |  
-action_result.parameter.field_id | string |  |  
-action_result.parameter.groups | string |  |  
-action_result.parameter.name_field | string |  |  
-action_result.parameter.name_value | string |  `archer user friendly id`  |  
-action_result.parameter.users | string |  |  
+action_result.parameter.application | string |  `archer application`  |   Incidents 
+action_result.parameter.content_id | numeric |  `archer content id`  |   210035 
+action_result.parameter.field_id | string |  |   Incident Summary 
+action_result.parameter.groups | string |  |   Test Group 
+action_result.parameter.name_field | string |  |   Incident ID 
+action_result.parameter.name_value | string |  `archer user friendly id`  |   INC-10009 
+action_result.parameter.users | string |  |   testuser 
 action_result.data.\*.IsSuccessful | boolean |  |   False  True 
 action_result.data.\*.RequestedObject.Id | numeric |  |   324031 
 action_result.summary | string |  |  
@@ -510,12 +510,12 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
 --------- | ---- | -------- | --------------
 action_result.status | string |  |   success  failed 
-action_result.parameter.application | string |  `archer application`  |  
-action_result.parameter.content_id | numeric |  `archer content id`  |  
-action_result.parameter.field_id | string |  |  
-action_result.parameter.name_field | string |  |  
-action_result.parameter.name_value | string |  `archer user friendly id`  |  
-action_result.parameter.security_alert_id | string |  |  
+action_result.parameter.application | string |  `archer application`  |   Incidents 
+action_result.parameter.content_id | numeric |  `archer content id`  |   210035 
+action_result.parameter.field_id | string |  |   Incident Summary 
+action_result.parameter.name_field | string |  |   Incident ID 
+action_result.parameter.name_value | string |  `archer user friendly id`  |   INC-10009 
+action_result.parameter.security_alert_id | string |  |   325840 
 action_result.data.\*.IsSuccessful | boolean |  |   False  True 
 action_result.data.\*.RequestedObject.Id | numeric |  |   324784 
 action_result.summary | string |  |  
