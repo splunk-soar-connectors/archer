@@ -1239,7 +1239,8 @@
                     "data_path": "action_result.parameter.results_filter_equality",
                     "data_type": "string",
                     "example_values": [
-                        "Contains"
+                        "Contains",
+                        "Equals"
                     ]
                 },
                 {
@@ -1253,7 +1254,8 @@
                     "data_path": "action_result.parameter.results_filter_operator",
                     "data_type": "string",
                     "example_values": [
-                        "AND"
+                        "AND",
+                        "OR"
                     ]
                 },
                 {
@@ -1440,7 +1442,6 @@
             "type": "generic",
             "identifier": "create_attachment",
             "read_only": false,
-            "required": true,
             "parameters": {
                 "vault_id": {
                     "data_type": "string",
@@ -1469,7 +1470,10 @@
                 },
                 {
                     "data_path": "action_result.parameter.file_name",
-                    "data_type": "string"
+                    "data_type": "string",
+                    "example_values": [
+                        "test.txt"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.vault_id",
@@ -1939,7 +1943,10 @@
                         "archer application"
                     ],
                     "column_name": "Application",
-                    "column_order": 3
+                    "column_order": 3,
+                    "example_values": [
+                        "Incidents"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.content_id",
@@ -1948,25 +1955,37 @@
                         "archer content id"
                     ],
                     "column_name": "Content ID",
-                    "column_order": 6
+                    "column_order": 6,
+                    "example_values": [
+                        210035
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.field_id",
                     "data_type": "string",
                     "column_name": "Field ID",
-                    "column_order": 2
+                    "column_order": 2,
+                    "example_values": [
+                        "Incident Summary"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.groups",
                     "data_type": "string",
                     "column_name": "Groups",
-                    "column_order": 5
+                    "column_order": 5,
+                    "example_values": [
+                        "Test Group"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.name_field",
                     "data_type": "string",
                     "column_name": "Name Field",
-                    "column_order": 0
+                    "column_order": 0,
+                    "example_values": [
+                        "Incident ID"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.name_value",
@@ -1975,13 +1994,19 @@
                         "archer user friendly id"
                     ],
                     "column_name": "Name Value",
-                    "column_order": 4
+                    "column_order": 4,
+                    "example_values": [
+                        "INC-10009"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.users",
                     "data_type": "string",
                     "column_name": "Users",
-                    "column_order": 1
+                    "column_order": 1,
+                    "example_values": [
+                        "testuser"
+                    ]
                 },
                 {
                     "data_path": "action_result.data.*.IsSuccessful",
@@ -2106,7 +2131,10 @@
                         "archer application"
                     ],
                     "column_name": "Application",
-                    "column_order": 2
+                    "column_order": 2,
+                    "example_values": [
+                        "Incidents"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.content_id",
@@ -2115,19 +2143,28 @@
                         "archer content id"
                     ],
                     "column_name": "Content ID",
-                    "column_order": 4
+                    "column_order": 4,
+                    "example_values": [
+                        210035
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.field_id",
                     "data_type": "string",
                     "column_name": "Field ID",
-                    "column_order": 1
+                    "column_order": 1,
+                    "example_values": [
+                        "Incident Summary"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.name_field",
                     "data_type": "string",
                     "column_name": "Name Field",
-                    "column_order": 0
+                    "column_order": 0,
+                    "example_values": [
+                        "Incident ID"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.name_value",
@@ -2136,13 +2173,19 @@
                         "archer user friendly id"
                     ],
                     "column_name": "Name Value",
-                    "column_order": 3
+                    "column_order": 3,
+                    "example_values": [
+                        "INC-10009"
+                    ]
                 },
                 {
                     "data_path": "action_result.parameter.security_alert_id",
                     "data_type": "string",
                     "column_name": "Security Alert ID",
-                    "column_order": 5
+                    "column_order": 5,
+                    "example_values": [
+                        "325840"
+                    ]
                 },
                 {
                     "data_path": "action_result.data.*.IsSuccessful",

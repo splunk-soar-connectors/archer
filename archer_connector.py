@@ -65,7 +65,11 @@ class ArcherConnector(BaseConnector):
         self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
         if self.sessionToken:
             self.sessionToken = self.decrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
-        self.proxy = self._get_proxy()
+        try:
+            self.proxy = self._get_proxy()
+        except Exception as e:
+            err = self._get_error_message_from_exception(e)
+            return self.set_status(phantom.APP_ERROR, err)
         return phantom.APP_SUCCESS
 
     def finalize(self):
@@ -480,14 +484,10 @@ class ArcherConnector(BaseConnector):
                 return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_VALID_INTEGER.format(key)), None
         return phantom.APP_SUCCESS, parameter
 
-    def _handle_list_tickets(self, action_result, param):
-        """Handles 'list_tickets' actions"""
-        self.save_progress('Get Archer record...')
-        app = param['application']
-        max_count = param.get('max_results', 100)
-        search_field_name = param.get('name_field')
-        search_value = param.get('search_value')
+    def validate_result_filters(self, action_result, param):
         results_filter_json = param.get('results_filter_json')
+        results_filter_operator = param.get('results_filter_operator')
+        results_filter_equality = param.get('results_filter_equality')
         try:
             if results_filter_json:
                 results_filter_dict = json.loads(results_filter_json)
@@ -497,40 +497,67 @@ class ArcherConnector(BaseConnector):
             msg = consts.ARCHER_ERR_VALID_JSON
             self.debug_print(msg)
             err = self._get_error_message_from_exception(e)
-            return action_result.set_status(phantom.APP_ERROR, msg, err)
-        if results_filter_dict and not isinstance(results_filter_dict, dict):
-            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
+            action_result.set_status(phantom.APP_ERROR, msg, err)
+            return phantom.APP_ERROR, param
 
-        results_filter_operator = param.get('results_filter_operator')
-        results_filter_equality = param.get('results_filter_equality')
+        if results_filter_dict and not isinstance(results_filter_dict, dict):
+            action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
+            return phantom.APP_ERROR, param
         if results_filter_operator:
             if results_filter_operator.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
-                return action_result.set_status(phantom.APP_ERROR,
-                    f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
+                action_result.set_status(phantom.APP_ERROR,
+                    'Please enter a valid value for results_filter_operator from {}'.format(consts.ARCHER_OPERATOR_VALUELIST))
+                return phantom.APP_ERROR, param
             else:
                 results_filter_operator = results_filter_operator.lower()
         else:
-            if results_filter_dict:
-                if len(results_filter_dict) == 1 and not results_filter_operator:
-                    results_filter_operator = "and"
+            if results_filter_dict and len(results_filter_dict) == 1:
+                results_filter_operator = "and"
         if results_filter_equality:
             if results_filter_equality.lower() not in consts.ARCHER_EQUALITY_VALUELIST:
-                return action_result.set_status(phantom.APP_ERROR,
-                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_EQUALITY_VALUELIST}')
+                action_result.set_status(phantom.APP_ERROR,
+                    'Please enter a valid value for results_filter_equality from {}'.format(consts.ARCHER_EQUALITY_VALUELIST))
+                return phantom.APP_ERROR, param
             else:
                 results_filter_equality = results_filter_equality.lower()
 
+        if (results_filter_dict or results_filter_operator or results_filter_equality) \
+                and not (results_filter_dict and results_filter_operator and results_filter_equality):
+            action_result.set_status(phantom.APP_ERROR,
+                                     'Need results filter json, results filter operator and results filter equality to filter the results')
+            return phantom.APP_ERROR, param
+
+        param.update({
+                'results_filter_json': results_filter_dict,
+                'results_filter_operator': results_filter_operator,
+                'results_filter_equality': results_filter_equality
+                })
+
+        return phantom.APP_SUCCESS, param
+
+    def _handle_list_tickets(self, action_result, param):
+        """Handles 'list_tickets' actions"""
+        self.save_progress('Get Archer record...')
+        app = param['application']
+        max_count = param.get('max_results', 100)
+        search_field_name = param.get('name_field')
+        search_value = param.get('search_value')
+
         status, max_count = self._validate_integer(action_result, max_count, 'max_result', False)
-        if (phantom.is_fail(status)):
+        if phantom.is_fail(status):
             return action_result.get_status()
 
         if (search_field_name or search_value) and not (search_field_name and search_value):
             return action_result.set_status(phantom.APP_ERROR, 'Need both the field name and the search value to search')
 
-        if (results_filter_dict or results_filter_operator or results_filter_equality) \
-                and not (results_filter_dict and results_filter_operator and results_filter_equality):
-            return action_result.set_status(phantom.APP_ERROR,
-                                     'Need results filter json, results filter operator and results filter equality to filter the results')
+        status, parameter = self.validate_result_filters(action_result, param.copy())
+
+        if phantom.is_fail(status):
+            return action_result.get_status()
+
+        results_filter_dict = parameter.get('results_filter_json')
+        results_filter_operator = parameter.get('results_filter_operator')
+        results_filter_equality = parameter.get('results_filter_equality')
 
         self.proxy.excluded_fields = [x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',')]
         records = self.proxy.find_records(app, search_field_name, search_value, max_count)
@@ -585,11 +612,12 @@ class ArcherConnector(BaseConnector):
                 'AttachmentBytes': attachment_bytes
             }
             try:
+                response = None
                 response = archer_utils.ArcherAPISession._rest_call(self.proxy, endpoint, 'post', data)
                 response = json.loads(response)
-            except Exception:
+            except Exception as e:
                 return action_result.set_status(phantom.APP_ERROR,
-                                                consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response))
+                    consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response if response else str(e)))
             if response['IsSuccessful']:
                 action_result.add_data({'Attachment_ID': response['RequestedObject']['Id']})
                 action_result.set_status(phantom.APP_SUCCESS, 'Attachment created successfully')
@@ -613,10 +641,10 @@ class ArcherConnector(BaseConnector):
                         try:
                             if results_filter_equality == 'equals':
                                 if field['@name'] == k and v.lower() == field['#text'].lower():
-                                    and_dict_count = and_dict_count + 1
+                                    and_dict_count += 1
                             else:
                                 if field['@name'] == k and v.lower() in field['#text'].lower():
-                                    and_dict_count = and_dict_count + 1
+                                    and_dict_count += 1
                         except Exception:
                             continue
                 if and_dict_count >= and_dict_len:
@@ -651,57 +679,23 @@ class ArcherConnector(BaseConnector):
         guid = param['guid']
         max_count = param.get('max_results', 100)
         max_pages = param.get('max_pages', 10)
-        results_filter_json = param.get('results_filter_json')
-        try:
-            if results_filter_json:
-                results_filter_dict = json.loads(results_filter_json)
-            else:
-                results_filter_dict = None
-        except Exception as e:
-            msg = consts.ARCHER_ERR_VALID_JSON
-            self.debug_print(msg)
-            err = self._get_error_message_from_exception(e)
-            return action_result.set_status(phantom.APP_ERROR, msg, err)
-
-        if results_filter_dict and not isinstance(results_filter_dict, dict):
-            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_INVALID_JSON)
-
-        results_filter_operator = param.get('results_filter_operator')
-        results_filter_equality = param.get('results_filter_equality')
-        if results_filter_operator:
-            results_filter_operator = results_filter_operator.lower()
-        if results_filter_equality:
-            results_filter_equality = results_filter_equality.lower()
-
-        if results_filter_operator:
-            if results_filter_operator.lower() not in consts.ARCHER_OPERATOR_VALUELIST:
-                return action_result.set_status(phantom.APP_ERROR,
-                    f'Please enter a valid value for results_filter_operator from {consts.ARCHER_OPERATOR_VALUELIST}')
-            else:
-                results_filter_operator = results_filter_operator.lower()
-        else:
-            if results_filter_dict:
-                if len(results_filter_dict) == 1 and not results_filter_operator:
-                    results_filter_operator = "and"
-        if results_filter_equality:
-            if results_filter_equality.lower() not in consts.ARCHER_EQUALITY_VALUELIST:
-                return action_result.set_status(phantom.APP_ERROR,
-                    f'Please enter a valid value for results_filter_equality from {consts.ARCHER_EQUALITY_VALUELIST}')
-            else:
-                results_filter_equality = results_filter_equality.lower()
 
         status, max_count = self._validate_integer(action_result, max_count, 'max_result', False)
-        if (phantom.is_fail(status)):
+        if phantom.is_fail(status):
             return action_result.get_status()
 
         status, max_pages = self._validate_integer(action_result, max_pages, 'max_pages', False)
-        if (phantom.is_fail(status)):
+        if phantom.is_fail(status):
             return action_result.get_status()
 
-        if (results_filter_dict or results_filter_operator or results_filter_equality) \
-                and not (results_filter_dict and results_filter_operator and results_filter_equality):
-            return action_result.set_status(phantom.APP_ERROR,
-                                     'Need results filter json, results filter operator and results filter equality to filter the results')
+        status, parameter = self.validate_result_filters(action_result, param.copy())
+
+        if phantom.is_fail(status):
+            return action_result.get_status()
+
+        results_filter_dict = parameter.get('results_filter_json')
+        results_filter_operator = parameter.get('results_filter_operator')
+        results_filter_equality = parameter.get('results_filter_equality')
 
         try:
             result_dict = self.proxy.get_report_by_id(guid, max_count, max_pages)
@@ -819,16 +813,18 @@ class ArcherConnector(BaseConnector):
 
         # make REST call
         try:
-            r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', assign_ticket_request)
-            r = json.loads(r)
-        except Exception:
-            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), r))
+            response = None
+            response = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', assign_ticket_request)
+            response = json.loads(response)
+        except Exception as e:
+            return action_result.set_status(phantom.APP_ERROR,
+                            consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response if response else str(e)))
 
         # Add response to action_result for troubleshooting purposes
-        action_result.add_data(r)
+        action_result.add_data(response)
 
         try:
-            if r["IsSuccessful"]:
+            if response["IsSuccessful"]:
                 action_result.set_status(phantom.APP_SUCCESS, 'Groups/Users successfully assigned')
             else:
                 action_result.set_status(phantom.APP_ERROR, 'Action failed. Groups/Users not assigned.')
@@ -917,16 +913,18 @@ class ArcherConnector(BaseConnector):
 
         # make REST call
         try:
-            r = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', sec_alert_request)
-            r = json.loads(r)
-        except Exception:
-            return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), r))
+            response = None
+            response = archer_utils.ArcherAPISession._rest_call(self.proxy, consts.ARCHER_UPDATE_CONTENT_ENDPOINT, 'put', sec_alert_request)
+            response = json.loads(response)
+        except Exception as e:
+            return action_result.set_status(phantom.APP_ERROR,
+                            consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response if response else str(e)))
 
         # Add response data to action result for troubleshooting purposes
-        action_result.add_data(r)
+        action_result.add_data(response)
 
         try:
-            if r["IsSuccessful"]:
+            if response["IsSuccessful"]:
                 action_result.set_status(phantom.APP_SUCCESS, 'Alert successfully attached to Incident')
             else:
                 action_result.set_status(phantom.APP_ERROR, 'Action failed. Alert not attached to Incident.')
