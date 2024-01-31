@@ -1,1 +1,10 @@
 **Unreleased**
+* Added following new actions:
+    * get report
+    * create attachment
+    * assign ticket
+    * attach alert
+* Added 'results_filter_json', 'results_filter_equality' and 'results_filter_operator' parameters in 'list tickets' action to support filter on multiple fields
+* Added 'json_string' parameter in 'update ticket' action to update multiple fields
+* Added support of special field types in 'create ticket' action
+* Fixed multi-session issue, the connector will now use the existing session instead of creating a new one for every action run [PAPP-29296] [PAPP-30344]

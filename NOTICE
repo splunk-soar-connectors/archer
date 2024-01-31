@@ -1,5 +1,5 @@
 Splunk SOAR RSA Archer
-Copyright (c) 2016-2023 Splunk Inc.
+Copyright (c) 2016-2024 Splunk Inc.
 
 Third-party Software Attributions:
 
@@ -11,7 +11,7 @@ Copyright 2004-2019 Leonard Richardson
 Copyright 2018 Isaac Muse
 
 Library: lxml
-Version: 4.7.2
+Version: 4.9.1
 License: BSD 3
 Copyright 2004 Infrae
 

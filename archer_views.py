@@ -1,6 +1,6 @@
 # File: archer_views.py
 #
-# Copyright (c) 2016-2023 Splunk Inc.
+# Copyright (c) 2016-2024 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,3 +74,44 @@ def list_tickets(provides, all_results, context):
 
     results.append(final_result)
     return 'list_tickets.html'
+
+
+def get_report(provides, all_results, context):
+
+    headers = ['content id']
+    context['results'] = results = []
+
+    headers_set = set()
+    for summary, action_results in all_results:
+        for result in action_results:
+            for record in result.get_data():
+                headers_set.update(f.get('@name', '').strip()
+                                    for f in record.get('Field', []))
+    if not headers_set:
+        headers_set.update(headers)
+    headers.extend(sorted(headers_set))
+
+    final_result = {'headers': headers, 'data': []}
+
+    dyn_headers = headers[1:]
+    for summary, action_results in all_results:
+        for result in action_results:
+            data = result.get_data()
+            for item in data:
+                row = []
+                row.append({'value': item.get('@contentId'),
+                            'contains': ['archer content id']})
+                name_value = {}
+                for f in item.get('Field', []):
+                    name_value[f['@name']] = f.get('#text')
+
+                for h in dyn_headers:
+                    if h == 'IP Address':
+                        row.append({'value': name_value.get(h, ''),
+                                    'contains': ['ip']})
+                    else:
+                        row.append({'value': name_value.get(h, '')})
+                final_result['data'].append(row)
+
+    results.append(final_result)
+    return 'get_report.html'
