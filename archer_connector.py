@@ -531,7 +531,7 @@ class ArcherConnector(BaseConnector):
                 'results_filter_json': results_filter_dict,
                 'results_filter_operator': results_filter_operator,
                 'results_filter_equality': results_filter_equality
-                })
+        })
 
         return phantom.APP_SUCCESS, param
 
