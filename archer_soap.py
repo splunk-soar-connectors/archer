@@ -1,6 +1,6 @@
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2023 Splunk Inc.
+# Copyright (c) 2016-2024 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
+import xml.etree.ElementTree as et
 from io import BytesIO
 
 import requests
@@ -42,15 +43,15 @@ DEBUG = False
 
 
 class ArcherSOAP(object):
-    def __init__(self, host, username, password, instance, session=None, verify_cert=True, usersDomain=None):
+    def __init__(self, host, username, password, instance, verify_cert=True, usersDomain=None, conn_obj=None):
         self.base_uri = host + '/ws'
         self.username = username
         self.password = password
         self.instance = instance
-        self.session = session
         self.verify_cert = verify_cert
         self.users_domain = usersDomain
-        if not session:
+        self.conn_obj = conn_obj
+        if not self.conn_obj.sessionToken:
             self._authenticate()
 
     def _authenticate(self):
@@ -71,7 +72,7 @@ class ArcherSOAP(object):
         sess_root = sess_doc.getroot()
         result = sess_root.xpath(archer_consts.ARCHER_XPATH_AUTH, namespaces=ALL_NS_MAP)
         if result:
-            self.session = result[0].text
+            self.conn_obj.sessionToken = result[0].text
             return
         raise Exception('Failed to authenticate to Archer web services')
 
@@ -92,52 +93,46 @@ class ArcherSOAP(object):
         sess_root = sess_doc.getroot()
         result = sess_root.xpath(archer_consts.ARCHER_XPATH_DOMAIN_USER_AUTH, namespaces=ALL_NS_MAP)
         if result:
-            self.session = result[0].text
+            self.conn_obj.sessionToken = result[0].text
             return
         raise Exception('Failed to authenticate to Archer web services')
 
-    def terminate_session(self, token):
-        self.session = None
-        doc, body = self._generate_xml_stub()
-
-        n = etree.SubElement(
-            body, 'TerminateSession', nsmap=ARCHER_MAP)
-        un = etree.SubElement(n, 'sessionToken')
-        un.text = token
-        sess_doc = self._do_request(self.base_uri + '/general.asmx', doc)
-        sess_root = sess_doc.getroot()
-        result = sess_root.xpath(
-            '/soap:Envelope/soap:Body/dummy:TerminateSessionResponse/dummy:TerminateSessionResult', namespaces=ALL_NS_MAP)
-        if result:
-            return result[0].text
-        raise Exception('Failed to terminate session token to Archer web services')
-
     def find_group(self, groupname):
-        if not self.session:
+        if not self.conn_obj.sessionToken:
             raise Exception('No session')
         doc, body = self._generate_xml_stub()
         lu = etree.SubElement(body, 'LookupGroup', nsmap=ARCHER_MAP)
         to = etree.SubElement(lu, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         u = etree.SubElement(lu, 'keyword')
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
         resp_root = resp_doc.getroot()
-        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
-        if result:
-            for name_ele in result:
-                if name_ele.text == groupname:
-                    for node in name_ele.itersiblings(tag='Id'):
-                        return int(node.text)
+        try:
+            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
+            if result:
+                for name_ele in result:
+                    if name_ele.text == groupname:
+                        for node in name_ele.itersiblings(tag='Id'):
+                            return int(node.text)
+
+        except (etree.XPathEvalError, AttributeError):
+            grp_id = None
+            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
+            if result and isinstance(result, list):
+                result = et.fromstring(result[0].text)
+                grp_id = result.find('.//Id').text
+                return grp_id
+
         return
 
     def find_user(self, username):
-        if not self.session:
+        if not self.conn_obj.sessionToken:
             raise Exception('No session')
         doc, body = self._generate_xml_stub()
         lu = etree.SubElement(body, 'LookupUserId', nsmap=ARCHER_MAP)
         to = etree.SubElement(lu, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         u = etree.SubElement(lu, 'username')
         u.text = username
         resp_doc = self._do_request(self.base_uri + '/accesscontrol.asmx', doc)
@@ -149,12 +144,12 @@ class ArcherSOAP(object):
         return
 
     def find_domain_user(self, username):
-        if not self.session:
+        if not self.conn_obj.sessionToken:
             raise Exception('No session')
         doc, body = self._generate_xml_stub()
         lu = etree.SubElement(body, 'LookupDomainUserId', nsmap=ARCHER_MAP)
         to = etree.SubElement(lu, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         u = etree.SubElement(lu, 'username')
         u.text = username
         u = etree.SubElement(lu, 'usersDomain')
@@ -169,14 +164,14 @@ class ArcherSOAP(object):
 
     def find_records(self, mod_id, mod_name, key_id, key_name, value,
                      filter_type='text', max_count=1000, fields=None, comparison='Equals', sort=None, page=1):
-        if not self.session:
+        if not self.conn_obj.sessionToken:
             raise Exception('No session')
         if fields is None:
             fields = {key_id: key_name}
         doc, body = self._generate_xml_stub()
         se = etree.SubElement(body, 'ExecuteSearch', nsmap=ARCHER_MAP)
         to = etree.SubElement(se, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         pn = etree.SubElement(se, 'pageNumber')
         pn.text = str(page)
         so = etree.SubElement(se, 'searchOptions')
@@ -234,6 +229,7 @@ class ArcherSOAP(object):
         resp_root = resp_doc.getroot()
         result = resp_root.xpath(
             '/soap:Envelope/soap:Body/dummy:ExecuteSearchResponse/dummy:ExecuteSearchResult', namespaces=ALL_NS_MAP)
+
         if not result:
             return []
 
@@ -246,7 +242,7 @@ class ArcherSOAP(object):
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, 'GetRecordById', nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         mi = etree.SubElement(gr, 'moduleId')
         mi.text = str(module_id)
         ci = etree.SubElement(gr, 'contentId')
@@ -276,28 +272,50 @@ class ArcherSOAP(object):
         if isinstance(values, dict):
             o = field.get('other_text')
             values = values['value_id']
-        f.set('value', str(values))
+
+        if isinstance(values, list):
+            f.set('value', str(values[0]))
+            for v in values[1:]:
+                mv = etree.SubElement(f, 'MultiValue')
+                mv.set('value', str(v))
+        else:
+            f.set('value', str(values))
+
         f.set('id', str(field['id']))
         f.set('type', str(field['type']))
         if o:
             f.set('othertext', str(o))
-        # add this when we have proper multi value support.
-        # for v in values[1:]:
-        #    mv = etree.SubElement(f, 'MultiValue')
-        #    mv.set('value', str(v))
 
     def user_field(self, field, parent):
+        user_id, group_id = field['value']
         f = etree.SubElement(parent, 'Field')
         f.set('id', str(field['id']))
-        u = etree.SubElement(f, 'Users')
-        uid = etree.SubElement(u, 'User')
-        uid.set('id', str(field['value']))
+        if user_id:
+            u = etree.SubElement(f, 'Users')
+            if isinstance(user_id, list):
+                for user in user_id:
+                    if user:
+                        uid = etree.SubElement(u, 'User')
+                        uid.set('id', str(user))
+            else:
+                uid = etree.SubElement(u, 'User')
+                uid.set('id', str(user_id))
+        if group_id:
+            g = etree.SubElement(f, 'Groups')
+            if isinstance(group_id, list):
+                for group in group_id:
+                    if group:
+                        gid = etree.SubElement(g, 'Group')
+                        gid.set('id', str(group))
+            else:
+                gid = etree.SubElement(g, 'Group')
+                gid.set('id', str(group_id))
 
     def get_field_map(self):
         type_formatter_map = {}
         for i in (1, 2, 3, 19):
             type_formatter_map[i] = self.plain_field
-        for i in (4, 9, 18):
+        for i in (4, 9, 18, 27, 23):
             type_formatter_map[i] = self.mv_field
         for i in (8,):
             type_formatter_map[i] = self.user_field
@@ -309,7 +327,7 @@ class ArcherSOAP(object):
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, 'UpdateRecord', nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         mi = etree.SubElement(gr, 'moduleId')
         mi.text = str(module_id)
         ci = etree.SubElement(gr, 'contentId')
@@ -343,7 +361,7 @@ class ArcherSOAP(object):
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, 'CreateRecord', nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, 'sessionToken')
-        to.text = self.session
+        to.text = self.conn_obj.sessionToken
         mi = etree.SubElement(gr, 'moduleId')
         mi.text = str(moduleid)
         fv = etree.SubElement(gr, 'fieldValues')
@@ -375,20 +393,50 @@ class ArcherSOAP(object):
         body = etree.SubElement(envelope, etree.QName(SOAPNS, 'Body'))
         return document, body
 
+    def get_report(self, guid, page_number):
+        if not self.conn_obj.sessionToken:
+            raise Exception('No session')
+        doc, body = self._generate_xml_stub()
+        gr = etree.SubElement(body, 'SearchRecordsByReport', nsmap=ARCHER_MAP)
+        to = etree.SubElement(gr, 'sessionToken')
+        to.text = self.conn_obj.sessionToken
+        gi = etree.SubElement(gr, 'reportIdOrGuid')
+        gi.text = str(guid)
+        pn = etree.SubElement(gr, 'pageNumber')
+        pn.text = str(page_number)
+        resp_doc = self._do_request(self.base_uri + '/search.asmx', doc)
+        resp_root = resp_doc.getroot()
+        rec_xml = resp_root.xpath(
+            '/soap:Envelope/soap:Body/dummy:SearchRecordsByReportResponse/dummy:SearchRecordsByReportResult', namespaces=ALL_NS_MAP)
+
+        if len(rec_xml) > 0:
+            return {'status': 'success', 'result': rec_xml[0].text}
+        else:
+            rec_xml = resp_root.xpath('//*[local-name()="faultstring"]', namespaces=ALL_NS_MAP)
+            return {'status': 'failed',
+                'result': rec_xml[0].text if len(rec_xml) > 0 else 'Unable to find SearchRecordsByReportResult'}
+
     def _do_request(self, uri, doc, method='post'):
+        generate_new_token = False
         if method == 'post':
             xml = etree.tostring(doc, pretty_print=True)
             api = doc.xpath('/soap:Envelope/soap:Body', namespaces=NS_MAP)
             api = api[0].getchildren()
             if not api:
                 raise Exception('Could not find API node')
-            api = api[0].tag
+            api_tag = api[0].tag
             headers = {
                 'Content-Type': 'text/xml; charset=utf-8',
-                'SOAPAction': '"http://archer-tech.com/webservices/{}"'.format(api),
+                'SOAPAction': '"http://archer-tech.com/webservices/{}"'.format(api_tag),
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert)
+            generate_new_token = any(x in response.text for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
+            if generate_new_token:
+                self._authenticate()
+                session_token = api[0].getchildren()[0]
+                session_token.text = self.conn_obj.sessionToken
+                return self._do_request(uri, doc, method='post')
             r_io = BytesIO(response.text.encode('UTF8'))
             resp_doc = etree.parse(r_io)
             return resp_doc

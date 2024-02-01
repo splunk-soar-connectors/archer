@@ -1,6 +1,6 @@
 # File: phantom_utils.py
 #
-# Copyright (c) 2016-2023 Splunk Inc.
+# Copyright (c) 2016-2024 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
 def get_blank_container():
-    '''Returns a blank container per [the docs]/docs/rest/create_container'''
+    """Returns a blank container per [the docs]/docs/rest/create_container"""
     return {'asset_id': 0,
             'data': {},
             'description': '',
@@ -30,7 +30,7 @@ def get_blank_container():
 
 
 def get_blank_artifact():
-    '''Returns a blank artifact per [the docs]/docs/rest/artifacts'''
+    """Returns a blank artifact per [the docs]/docs/rest/artifacts"""
     return {'asset_id': None,
             'cef': {
                 'ApplicationProtocol': '',
