@@ -37,6 +37,7 @@ class ArcherConnector(BaseConnector):
     """
 
     POLLING_PAGE_SIZE = 100
+    LIST_TICKETS_PAGE_SIZE = 500
 
     def __init__(self):
         """Initialize persistent state (used only to store latest record
@@ -558,9 +559,30 @@ class ArcherConnector(BaseConnector):
         results_filter_dict = parameter.get('results_filter_json')
         results_filter_operator = parameter.get('results_filter_operator')
         results_filter_equality = parameter.get('results_filter_equality')
+        records = []
 
         self.proxy.excluded_fields = [x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',')]
-        records = self.proxy.find_records(app, search_field_name, search_value, max_count)
+        num_iterations = max_count // self.LIST_TICKETS_PAGE_SIZE
+        rem_count = max_count % self.LIST_TICKETS_PAGE_SIZE
+        if rem_count != 0:
+            num_iterations = num_iterations + 1
+        last_page = 1
+        for iter_count in range(num_iterations):
+            records_req = self.LIST_TICKETS_PAGE_SIZE
+            if rem_count != 0 and iter_count == num_iterations - 1:
+                records_req = rem_count
+
+            lst_records = self.proxy.find_records(app, search_field_name, search_value, max_count=records_req, page=last_page)
+            num_records = len(lst_records)
+
+            if lst_records:
+                records.extend(lst_records)
+            else:
+                break
+            if num_records < self.LIST_TICKETS_PAGE_SIZE:
+                break
+            else:
+                last_page += 1
 
         self.save_progress("Filtering records...")
         if results_filter_dict:
