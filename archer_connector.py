@@ -63,6 +63,12 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
+
+        if not isinstance(self._state, dict):
+            self.debug_print("Resetting the state file with the default format")
+            self._state = {"app_version": self.get_app_json().get("app_version")}
+            return self.set_status(phantom.APP_ERROR, consts.ARCHER_STATE_FILE_CORRUPT_ERR)
+
         self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
         if self.sessionToken:
             self.sessionToken = self.decrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
