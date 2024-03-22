@@ -135,9 +135,7 @@ class ArcherAPISession(object):
     def get_token(self):
         self.asoap._authenticate()
 
-    def _rest_call(self, ep, meth='get', data=None):
-        if data is None:
-            data = {}
+    def _rest_call(self, ep, meth='get', data={}):
         hdrs = self.headers.copy()
         hdrs.update({'X-Http-Method-Override': meth})
         hdrs.update({'Authorization': 'Archer session-id="{}"'.format(
