@@ -58,8 +58,4 @@ ARCHER_EQUALITY_VALUELIST = ["contains", "equals"]
 ARCHER_XPATH_GROUP = '/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name'
 ARCHER_INVALID_JSON = 'Invalid JSON string. Must be a dictionary containing key-value pairs'
 
-ARCHER_STATE_FILE_CORRUPT_ERR = (
-    "Error occurred while loading the state file due to its unexpected format. "
-    "Resetting the state file with the default format. Please try again."
-)
 DEFAULT_TIMEOUT = 30

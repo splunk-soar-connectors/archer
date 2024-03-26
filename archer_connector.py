@@ -571,13 +571,13 @@ class ArcherConnector(BaseConnector):
         rem_count = max_count % self.LIST_TICKETS_PAGE_SIZE
         if rem_count != 0:
             num_iterations = num_iterations + 1
-        last_page = 1
+        page = 1
         for iter_count in range(num_iterations):
             records_req = self.LIST_TICKETS_PAGE_SIZE
             if rem_count != 0 and iter_count == num_iterations - 1:
                 records_req = rem_count
 
-            lst_records = self.proxy.find_records(app, search_field_name, search_value, max_count=records_req, page=last_page)
+            lst_records = self.proxy.find_records(app, search_field_name, search_value, max_count=records_req, page=page)
             num_records = len(lst_records)
 
             if lst_records:
@@ -587,7 +587,7 @@ class ArcherConnector(BaseConnector):
             if num_records < self.LIST_TICKETS_PAGE_SIZE:
                 break
 
-            last_page += 1
+            page += 1
 
         self.save_progress("Filtering records...")
         if results_filter_dict:

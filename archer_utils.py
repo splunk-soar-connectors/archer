@@ -149,7 +149,6 @@ class ArcherAPISession(object):
                             json=data,
                             verify=self.verifySSL)
         else:
-            self.conn_obj.debug_print("inside second condition for making rest call")
             r = request_func(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                             headers=hdrs,
                             verify=self.verifySSL)
