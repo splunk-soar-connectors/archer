@@ -143,12 +143,15 @@ class ArcherAPISession(object):
         url = '{}{}'.format(self.base_url, ep)
 
         request_func = getattr(requests, meth)
-
-        r = request_func(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                        headers=hdrs,
-                        json=data,
-                        verify=self.verifySSL)
-
+        if data:
+            r = request_func(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                            headers=hdrs,
+                            json=data,
+                            verify=self.verifySSL)
+        else:
+            r = request_func(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                            headers=hdrs,
+                            verify=self.verifySSL)
         if r.status_code == consts.ARCHER_UNAUTHORIZED_USER:
             self.get_token()
             return self._rest_call(ep, meth, data)
