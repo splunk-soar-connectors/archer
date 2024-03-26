@@ -586,8 +586,8 @@ class ArcherConnector(BaseConnector):
                 break
             if num_records < self.LIST_TICKETS_PAGE_SIZE:
                 break
-            else:
-                last_page += 1
+
+            last_page += 1
 
         self.save_progress("Filtering records...")
         if results_filter_dict:
