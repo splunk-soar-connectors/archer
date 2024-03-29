@@ -1053,7 +1053,7 @@ if __name__ == '__main__':
         connector = ArcherConnector()
         connector.print_progress_message = True
 
-        if (session_id is not None):
+        if session_id is not None:
             in_json['user_session_token'] = session_id
             connector._set_csrf_info(csrftoken, headers['Referer'])
 
