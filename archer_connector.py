@@ -968,25 +968,25 @@ class ArcherConnector(BaseConnector):
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
         try:
-            if (action_id == consts.ARCHER_ACTION_CREATE_TICKET):
+            if action_id == consts.ARCHER_ACTION_CREATE_TICKET:
                 return self._handle_create_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_UPDATE_TICKET):
+            elif action_id == consts.ARCHER_ACTION_UPDATE_TICKET:
                 return self._handle_update_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_GET_TICKET):
+            elif action_id == consts.ARCHER_ACTION_GET_TICKET:
                 return self._handle_get_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_LIST_TICKETS):
+            elif action_id == consts.ARCHER_ACTION_LIST_TICKETS:
                 return self._handle_list_tickets(action_result, param)
-            elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
+            elif action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY:
                 return self._handle_test_connectivity(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_ON_POLL):
+            elif action_id == consts.ARCHER_ACTION_ON_POLL:
                 return self._handle_on_poll(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_CREATE_ATTACHMENT):
+            elif action_id == consts.ARCHER_ACTION_CREATE_ATTACHMENT:
                 return self._handle_create_attachment(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_GET_REPORT):
+            elif action_id == consts.ARCHER_ACTION_GET_REPORT:
                 return self._handle_get_report(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_ASSIGN_TICKET):
+            elif action_id == consts.ARCHER_ACTION_ASSIGN_TICKET:
                 return self._handle_assign_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_ATTACH_ALERT):
+            elif action_id == consts.ARCHER_ACTION_ATTACH_ALERT:
                 return self._handle_attach_alert(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
@@ -1017,12 +1017,12 @@ if __name__ == '__main__':
     password = args.password
     verify = args.verify
 
-    if (username is not None and password is None):
+    if username is not None and password is None:
         # User specified a username but not a password, so ask
         import getpass
         password = getpass.getpass("Password: ")
 
-    if (username and password):
+    if username and password:
         try:
             login_url = BaseConnector._get_phantom_base_url()
 
