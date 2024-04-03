@@ -37,6 +37,7 @@ class ArcherConnector(BaseConnector):
     """
 
     POLLING_PAGE_SIZE = 100
+    LIST_TICKETS_PAGE_SIZE = 500
 
     def __init__(self):
         """Initialize persistent state (used only to store latest record
@@ -62,6 +63,11 @@ class ArcherConnector(BaseConnector):
 
     def initialize(self):
         self._state = self.load_state()
+
+        if not isinstance(self._state, dict):
+            self.debug_print("Resetting the state file with the default format")
+            self._state = {"app_version": self.get_app_json().get("app_version")}
+
         self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
         if self.sessionToken:
             self.sessionToken = self.decrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
@@ -558,9 +564,30 @@ class ArcherConnector(BaseConnector):
         results_filter_dict = parameter.get('results_filter_json')
         results_filter_operator = parameter.get('results_filter_operator')
         results_filter_equality = parameter.get('results_filter_equality')
+        records = []
 
         self.proxy.excluded_fields = [x.lower().strip() for x in self.get_config().get('exclude_fields', '').split(',')]
-        records = self.proxy.find_records(app, search_field_name, search_value, max_count)
+        num_iterations = max_count // self.LIST_TICKETS_PAGE_SIZE
+        rem_count = max_count % self.LIST_TICKETS_PAGE_SIZE
+        if rem_count != 0:
+            num_iterations = num_iterations + 1
+        page = 1
+        for iter_count in range(num_iterations):
+            records_req = self.LIST_TICKETS_PAGE_SIZE
+            if rem_count != 0 and iter_count == num_iterations - 1:
+                records_req = rem_count
+
+            lst_records = self.proxy.find_records(app, search_field_name, search_value, max_count=records_req, page=page)
+            num_records = len(lst_records)
+
+            if lst_records:
+                records.extend(lst_records)
+            else:
+                break
+            if num_records < self.LIST_TICKETS_PAGE_SIZE:
+                break
+
+            page += 1
 
         self.save_progress("Filtering records...")
         if results_filter_dict:
@@ -941,25 +968,25 @@ class ArcherConnector(BaseConnector):
         action_result = ActionResult(dict(param))
         self.add_action_result(action_result)
         try:
-            if (action_id == consts.ARCHER_ACTION_CREATE_TICKET):
+            if action_id == consts.ARCHER_ACTION_CREATE_TICKET:
                 return self._handle_create_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_UPDATE_TICKET):
+            elif action_id == consts.ARCHER_ACTION_UPDATE_TICKET:
                 return self._handle_update_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_GET_TICKET):
+            elif action_id == consts.ARCHER_ACTION_GET_TICKET:
                 return self._handle_get_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_LIST_TICKETS):
+            elif action_id == consts.ARCHER_ACTION_LIST_TICKETS:
                 return self._handle_list_tickets(action_result, param)
-            elif (action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
+            elif action_id == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY:
                 return self._handle_test_connectivity(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_ON_POLL):
+            elif action_id == consts.ARCHER_ACTION_ON_POLL:
                 return self._handle_on_poll(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_CREATE_ATTACHMENT):
+            elif action_id == consts.ARCHER_ACTION_CREATE_ATTACHMENT:
                 return self._handle_create_attachment(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_GET_REPORT):
+            elif action_id == consts.ARCHER_ACTION_GET_REPORT:
                 return self._handle_get_report(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_ASSIGN_TICKET):
+            elif action_id == consts.ARCHER_ACTION_ASSIGN_TICKET:
                 return self._handle_assign_ticket(action_result, param)
-            elif (action_id == consts.ARCHER_ACTION_ATTACH_ALERT):
+            elif action_id == consts.ARCHER_ACTION_ATTACH_ALERT:
                 return self._handle_attach_alert(action_result, param)
             return phantom.APP_SUCCESS
         except Exception as e:
@@ -970,22 +997,67 @@ class ArcherConnector(BaseConnector):
 
 
 if __name__ == '__main__':
-    from traceback import format_exc
+    import argparse
 
     import pudb
+    import requests
     pudb.set_trace()
-    if (len(sys.argv) < 2):
-        print('No test json specified as input')
-        sys.exit(0)
-    with open(sys.argv[1]) as f:
+
+    argparser = argparse.ArgumentParser()
+
+    argparser.add_argument('input_test_json', help='Input Test JSON file')
+    argparser.add_argument('-u', '--username', help='username', required=False)
+    argparser.add_argument('-p', '--password', help='password', required=False)
+    argparser.add_argument('-v', '--verify', action='store_true', help='verify', required=False, default=False)
+
+    args = argparser.parse_args()
+    session_id = None
+
+    username = args.username
+    password = args.password
+    verify = args.verify
+
+    if username is not None and password is None:
+        # User specified a username but not a password, so ask
+        import getpass
+        password = getpass.getpass("Password: ")
+
+    if username and password:
+        try:
+            login_url = BaseConnector._get_phantom_base_url()
+
+            print("Accessing the Login page")
+            r = requests.get(BaseConnector._get_phantom_base_url() + "login", verify=verify)
+            csrftoken = r.cookies['csrftoken']
+
+            data = dict()
+            data['username'] = username
+            data['password'] = password
+            data['csrfmiddlewaretoken'] = csrftoken
+
+            headers = dict()
+            headers['Cookie'] = 'csrftoken=' + csrftoken
+            headers['Referer'] = BaseConnector._get_phantom_base_url() + 'login'
+
+            print("Logging into Platform to get the session id")
+            r2 = requests.post(login_url, verify=verify, data=data, headers=headers, timeout=consts.DEFAULT_TIMEOUT)
+            session_id = r2.cookies['sessionid']
+        except Exception as e:
+            print("Unable to get session id from the platfrom. Error: " + str(e))
+            sys.exit(1)
+
+    with open(args.input_test_json) as f:
         in_json = f.read()
         in_json = json.loads(in_json)
         print(json.dumps(in_json, indent=4))
         connector = ArcherConnector()
         connector.print_progress_message = True
-        try:
-            ret_val = connector._handle_action(json.dumps(in_json), None)
-        except:
-            print(format_exc())
+
+        if session_id is not None:
+            in_json['user_session_token'] = session_id
+            connector._set_csrf_info(csrftoken, headers['Referer'])
+
+        ret_val = connector._handle_action(json.dumps(in_json), None)
         print(json.dumps(json.loads(ret_val), indent=4))
+
     sys.exit(0)
