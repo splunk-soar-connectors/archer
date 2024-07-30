@@ -203,7 +203,7 @@ class ArcherAPISession(object):
                 mid = self.get_levelId_for_app(mid)
                 W('Got level id: {}'.format(mid))
                 flds = self.get_fields_for_level(mid)
-        if not isinstance(type(flds), list):
+        if type(flds) != list:
             return None
         if not flds[0]['IsSuccessful']:
             W('No fields for level {}, returning None'.format(mid))
@@ -471,17 +471,8 @@ class ArcherAPISession(object):
 
         levelid = self.get_levelId_for_app(mid)
         q_fields = self.get_fields_for_level(levelid)
-        if (
-            not q_fields
-            or not isinstance(type(q_fields), list)
-            or not isinstance(type(q_fields[0]), dict)
-            or "RequestedObject" not in q_fields[0]
-        ):
-            raise Exception(
-                'Could not find any fields for application "{}". Please verify the application is correct.'.format(
-                    app
-                )
-            )
+        if not q_fields or type(q_fields) != list or type(q_fields[0]) != dict or 'RequestedObject' not in q_fields[0]:
+            raise Exception('Could not find any fields for application "{}". Please verify the application is correct.'.format(app))
         fields = {}
         for f in q_fields:
             try:
@@ -649,17 +640,8 @@ class ArcherAPISession(object):
 
         levelid = self.get_levelId_for_app(moduleId)
         q_fields = self.get_fields_for_level(levelid)
-        if (
-            not q_fields
-            or not isinstance(type(q_fields), list)
-            or not isinstance(type(q_fields[0]), dict)
-            or "RequestedObject" not in q_fields[0]
-        ):
-            raise Exception(
-                'Could not find any fields for application "{}". Please verify the application is correct.'.format(
-                    app
-                )
-            )
+        if not q_fields or type(q_fields) != list or type(q_fields[0]) != dict or 'RequestedObject' not in q_fields[0]:
+            raise Exception('Could not find any fields for application "{}". Please verify the application is correct.'.format(app))
         field_data = {}
         for f in q_fields:
             try:
