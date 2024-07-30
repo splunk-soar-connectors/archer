@@ -6,7 +6,7 @@ Connector Version: 3.2.0
 Product Vendor: RSA  
 Product Name: Archer GRC  
 Product Version Supported (regex): ".\*"  
-Minimum Product Version: 6.1.1  
+Minimum Product Version: 6.2.1  
 
 This app implements ticket management actions on RSA Archer GRC
 
