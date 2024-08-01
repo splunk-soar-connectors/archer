@@ -79,7 +79,7 @@ class ArcherAPISession(object):
 
     BLACKLIST_TYPES = (24, 25)
 
-    def __init__(self, base_url, userName, password, instanceName, usersDomain, obj):
+    def __init__(self, base_url, userName, password, instanceName, usersDomain, verify_ssl, obj):
         """Initializes an API session.
 
             base, a string: base endpoint for the Archer APIs.  E.g.,
@@ -93,7 +93,7 @@ class ArcherAPISession(object):
         self.password = password
         self.instanceName = instanceName
         self.conn_obj = obj
-        self.verifySSL = True
+        self.verifySSL = verify_ssl
         self.excluded_fields = []
         self.headers = {'Accept': 'application/json,text/html,'
                                   'application/xhtml+xml,application/xml;'
