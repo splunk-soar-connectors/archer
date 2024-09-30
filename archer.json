@@ -15,11 +15,11 @@
     "type": "ticketing",
     "license": "Copyright (c) 2016-2024 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "3.2.0",
+    "app_version": "3.2.1",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.14"
     ],
-    "utctime_updated": "2022-02-17T21:32:29.000000Z",
+    "utctime_updated": "2024-09-30T06:45:04.000000Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
@@ -2241,19 +2241,19 @@
             "versions": "EQ(*)"
         }
     ],
-    "pip_dependencies": {
-        "wheel": [
-            {
-                "module": "lxml",
-                "input_file": "wheels/py36/lxml-4.9.2-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl"
-            }
-        ]
-    },
     "pip39_dependencies": {
         "wheel": [
             {
                 "module": "lxml",
-                "input_file": "wheels/py39/lxml-4.9.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl"
+                "input_file": "wheels/py39/lxml-4.9.2-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_24_x86_64.whl"
+            }
+        ]
+    },
+    "pip_dependencies": {
+        "wheel": [
+            {
+                "module": "lxml",
+                "input_file": "wheels/py36/lxml-4.9.2-cp36-cp36m-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_24_x86_64.whl"
             }
         ]
     }
