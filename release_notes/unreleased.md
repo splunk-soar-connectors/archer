@@ -1,1 +1,3 @@
 **Unreleased**
+
+* [PAPP-34763] - update dependencies

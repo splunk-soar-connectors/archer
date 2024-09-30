@@ -35,10 +35,10 @@ last_message_length = 0
 def W(msg):
     """Console-based status updater."""
     global last_message_length
-    sys.stderr.write('\b' * last_message_length)
-    sys.stderr.write(' ' * last_message_length)
-    sys.stderr.write('\b' * last_message_length)
-    msg = '--[ {}'.format(msg.strip())
+    sys.stderr.write("\b" * last_message_length)
+    sys.stderr.write(" " * last_message_length)
+    sys.stderr.write("\b" * last_message_length)
+    msg = "--[ {}".format(msg.strip())
     last_message_length = len(msg)
     sys.stderr.write(msg)
 
@@ -46,8 +46,8 @@ def W(msg):
 def memoize(f):
     """Naive memoizer, since Python2's functools doesn't have a memoizer.
 
-        TODO: persistence would vastly improve performance, but we'll want a
-            mechanism to clear the cache when the schema changes upstream.
+    TODO: persistence would vastly improve performance, but we'll want a
+        mechanism to clear the cache when the schema changes upstream.
     """
     cache = {}
 
@@ -56,21 +56,22 @@ def memoize(f):
         if args not in cache:
             cache[args] = f(*args)
         return cache[args]
+
     return cache_on_delivery
 
 
 def get_record_field(record, field):
     """Utility to return the field (as OrderedDict) with the given name in the
-        given record.  Returns None if the field isn't found.
+    given record.  Returns None if the field isn't found.
     """
-    W('Getting field {} from record {}'.format(field, record))
-    if 'Record' in record:
-        record = record['Record']
-    for f in record['Field']:
-        if f.get('@name', None) == field:
-            W('--- got {}'.format(f))
+    W("Getting field {} from record {}".format(field, record))
+    if "Record" in record:
+        record = record["Record"]
+    for f in record["Field"]:
+        if f.get("@name", None) == field:
+            W("--- got {}".format(f))
             return f
-    W('--- got nothing!')
+    W("--- got nothing!")
     return None
 
 
@@ -82,11 +83,11 @@ class ArcherAPISession(object):
     def __init__(self, base_url, userName, password, instanceName, usersDomain, verify_ssl, obj):
         """Initializes an API session.
 
-            base, a string: base endpoint for the Archer APIs.  E.g.,
-                http://1.2.3.4
-            user, a string: userName for authentication
-            password, a string: password for authentication
-            instance, a string: Archer instanceName (e.g., 'Default')
+        base, a string: base endpoint for the Archer APIs.  E.g.,
+            http://1.2.3.4
+        user, a string: userName for authentication
+        password, a string: password for authentication
+        instance, a string: Archer instanceName (e.g., 'Default')
         """
         self.base_url = base_url
         self.userName = userName
@@ -95,13 +96,20 @@ class ArcherAPISession(object):
         self.conn_obj = obj
         self.verifySSL = verify_ssl
         self.excluded_fields = []
-        self.headers = {'Accept': 'application/json,text/html,'
-                                  'application/xhtml+xml,application/xml;'
-                                  'q=0.9,*/*;q=0.8',
-                        'Content-Type': 'application/json'}
+        self.headers = {
+            "Accept": "application/json,text/html," "application/xhtml+xml,application/xml;" "q=0.9,*/*;q=0.8",
+            "Content-Type": "application/json",
+        }
         self.users_domain = usersDomain
-        self.asoap = ArcherSOAP(self.base_url, self.userName, self.password, self.instanceName,
-                                verify_cert=self.verifySSL, usersDomain=self.users_domain, conn_obj=obj)
+        self.asoap = ArcherSOAP(
+            self.base_url,
+            self.userName,
+            self.password,
+            self.instanceName,
+            verify_cert=self.verifySSL,
+            usersDomain=self.users_domain,
+            conn_obj=obj,
+        )
 
     def _get_error_message_from_exception(self, e):
         """
@@ -113,45 +121,41 @@ class ArcherAPISession(object):
         error_code = None
         error_msg = consts.ERR_MSG_UNAVAILABLE
 
-        self.conn_obj.error_print('Error occurred.', e)
+        self.conn_obj.error_print("Error occurred.", e)
 
         try:
-            if hasattr(e, 'args'):
+            if hasattr(e, "args"):
                 if len(e.args) > 1:
                     error_code = e.args[0]
                     error_msg = e.args[1]
                 elif len(e.args) == 1:
                     error_msg = e.args[0]
         except Exception as e:
-            self.error_print('Error occurred while fetching exception information. Details: {}'.format(str(e)))
+            self.error_print("Error occurred while fetching exception information. Details: {}".format(str(e)))
 
         if not error_code:
-            error_text = 'Error Message: {}'.format(error_msg)
+            error_text = "Error Message: {}".format(error_msg)
         else:
-            error_text = 'Error Code: {}. Error Message: {}'.format(error_code, error_msg)
+            error_text = "Error Code: {}. Error Message: {}".format(error_code, error_msg)
 
         return error_text
 
     def get_token(self):
         self.asoap._authenticate()
 
-    def _rest_call(self, ep, meth='get', data={}):
+    def _rest_call(self, ep, meth="get", data={}):
         hdrs = self.headers.copy()
-        hdrs.update({'X-Http-Method-Override': meth})
-        hdrs.update({'Authorization': 'Archer session-id="{}"'.format(
-            self.conn_obj.sessionToken)})
-        url = '{}{}'.format(self.base_url, ep)
+        hdrs.update({"X-Http-Method-Override": meth})
+        hdrs.update({"Authorization": 'Archer session-id="{}"'.format(self.conn_obj.sessionToken)})
+        url = "{}{}".format(self.base_url, ep)
 
         request_func = getattr(requests, meth)
         if data:
-            r = request_func(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                            headers=hdrs,
-                            json=data,
-                            verify=self.verifySSL)
+            r = request_func(
+                url, headers=hdrs, json=data, verify=self.verifySSL  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+            )
         else:
-            r = request_func(url,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                            headers=hdrs,
-                            verify=self.verifySSL)
+            r = request_func(url, headers=hdrs, verify=self.verifySSL)  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
         if r.status_code == consts.ARCHER_UNAUTHORIZED_USER:
             self.get_token()
             return self._rest_call(ep, meth, data)
@@ -159,60 +163,59 @@ class ArcherAPISession(object):
         try:
             r = r.content.decode() or r.reason
         except (UnicodeDecodeError, AttributeError):
-            return (r.text or r.reason)
+            return r.text or r.reason
         return r
 
     @memoize
     def get_fieldId_for_content_and_name(self, cid, fname):
         """Returns ID of the field with the given name in the given record.
-            Return None if not found.
+        Return None if not found.
         """
-        W('Getting fieldId for {} in record {}'.format(fname, cid))
-        j = json.loads(self._rest_call('/api/core/content/{}'.format(cid)))
-        if not ('RequestedObject' in j and 'FieldContents' in j['RequestedObject']):
+        W("Getting fieldId for {} in record {}".format(fname, cid))
+        j = json.loads(self._rest_call("/api/core/content/{}".format(cid)))
+        if not ("RequestedObject" in j and "FieldContents" in j["RequestedObject"]):
             return None
-        for fid in j['RequestedObject']['FieldContents']:
-            j2 = json.loads(self._rest_call(
-                '/api/core/system/fielddefinition/{}'.format(fid)))
-            n = j2['RequestedObject']['Name']
+        for fid in j["RequestedObject"]["FieldContents"]:
+            j2 = json.loads(self._rest_call("/api/core/system/fielddefinition/{}".format(fid)))
+            n = j2["RequestedObject"]["Name"]
             W('...matching "{}" == "{}"'.format(fname, n))
             if n == fname:
-                id_ = j2['RequestedObject']['Id']
-                W('...Matched!  Returning ID {}'.format(id_))
+                id_ = j2["RequestedObject"]["Id"]
+                W("...Matched!  Returning ID {}".format(id_))
                 return id_
-        W('...NO MATCH!  Returning None')
+        W("...NO MATCH!  Returning None")
         return None
 
     @memoize
     def get_fieldId_for_app_and_name(self, mid, fname):
         """Returns ID of the field with the given name in the given module.
-            `mid` will be interpreted as app_name, level_id, then app_id.
-            Return None if not found.
+        `mid` will be interpreted as app_name, level_id, then app_id.
+        Return None if not found.
         """
-        W('Getting fieldId for {} in module {}'.format(mid, fname))
+        W("Getting fieldId for {} in module {}".format(mid, fname))
         try:
             mid = int(mid)
         except (ValueError, TypeError):
             mid = self.get_levelId_for_app(mid)
-            W('Got level id: {}'.format(mid))
+            W("Got level id: {}".format(mid))
             flds = self.get_fields_for_level(mid)
         else:
             flds = self.get_fields_for_level(mid)
-            if not flds[0]['IsSuccessful']:
-                W('No fields for level {}'.format(mid))
+            if not flds[0]["IsSuccessful"]:
+                W("No fields for level {}".format(mid))
                 mid = self.get_levelId_for_app(mid)
-                W('Got level id: {}'.format(mid))
+                W("Got level id: {}".format(mid))
                 flds = self.get_fields_for_level(mid)
-        if type(flds) != list:
+        if type(flds) is not list:
             return None
-        if not flds[0]['IsSuccessful']:
-            W('No fields for level {}, returning None'.format(mid))
+        if not flds[0]["IsSuccessful"]:
+            W("No fields for level {}, returning None".format(mid))
             return None
         for fld in flds:
-            if fld['RequestedObject']['Name'] == fname:
-                W('Found a match!')
-                return fld['RequestedObject']['Id']
-        W('Found no match')
+            if fld["RequestedObject"]["Name"] == fname:
+                W("Found a match!")
+                return fld["RequestedObject"]["Id"]
+        W("Found no match")
         return None
 
     def get_module_name(self, mid):
@@ -226,36 +229,35 @@ class ArcherAPISession(object):
                 return None
         mid = str(mid)
         for a in self.get_applications():
-            if mid == a['RequestedObject']['Id']:
-                return a['RequestedObject']['Name']
+            if mid == a["RequestedObject"]["Id"]:
+                return a["RequestedObject"]["Name"]
         return None
 
     @memoize
     def get_applications(self):
         """Return an array of all modules/apps"""
-        return json.loads(self._rest_call('/api/core/system/application'))
+        return json.loads(self._rest_call("/api/core/system/application"))
 
     def get_moduleid(self, name):
         """Return the ID of the Archer module/app with the given name.  Returns
-            None if the module name isn't found.
+        None if the module name isn't found.
         """
         for j in self.get_applications():
-            if name in (j['RequestedObject'][x] for x in ('Name', 'Alias')):
-                return j['RequestedObject']['Id']
+            if name in (j["RequestedObject"][x] for x in ("Name", "Alias")):
+                return j["RequestedObject"]["Id"]
         return None
 
     @memoize
     def get_fields_for_level(self, levelId):
         """Return array of fields for the given level"""
-        return json.loads(self._rest_call(
-            '/api/core/system/fielddefinition/level/{}'.format(levelId)))
+        return json.loads(self._rest_call("/api/core/system/fielddefinition/level/{}".format(levelId)))
 
     @memoize
     def get_levelId_for_app(self, name):
         """Return the ID of the base level for the named module/app.  Returns
-            None if the module's name or level isn't found.
+        None if the module's name or level isn't found.
 
-            name, a string-or-number: Module ID or name
+        name, a string-or-number: Module ID or name
         """
         try:
             mid = int(name)
@@ -263,15 +265,15 @@ class ArcherAPISession(object):
             mid = self.get_moduleid(name)
         if mid is None:
             return None
-        j = self._rest_call('/api/core/system/level/module/{}'.format(mid))
+        j = self._rest_call("/api/core/system/level/module/{}".format(mid))
         j = json.loads(j)[0]
-        if not j['IsSuccessful']:
+        if not j["IsSuccessful"]:
             return None
-        return j['RequestedObject']['Id']
+        return j["RequestedObject"]["Id"]
 
     def concatenate_list_data(self, fv_list):
         """Concatenates list values and create string"""
-        result = ''
+        result = ""
         for element in fv_list:
             result += str(element)
         return result
@@ -279,9 +281,8 @@ class ArcherAPISession(object):
     @memoize
     def get_field_details(self, fieldId):
         """Returns details about the field with the given ID."""
-        r = self._rest_call('/api/core/system/fielddefinition/{}'.format(
-            fieldId))
-        return json.loads(r)['RequestedObject']
+        r = self._rest_call("/api/core/system/fielddefinition/{}".format(fieldId))
+        return json.loads(r)["RequestedObject"]
 
     def get_content_id(self, app, field_name, field_value):
         try:
@@ -295,51 +296,50 @@ class ArcherAPISession(object):
         modid = self.get_moduleid(app)
 
         if not field_value:
-            raise TypeError('Either content id or Tracking ID field and record name are required')
+            raise TypeError("Either content id or Tracking ID field and record name are required")
         fv = filter(lambda x: x.isdigit(), field_value)
         fv = self.concatenate_list_data(list(fv))
         if not fv:
             return None
         fv = int(fv)
 
-        records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type='numeric')
+        records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type="numeric")
         # should only get one
         if records:
-            return records[0].get('contentId')
+            return records[0].get("contentId")
         return None
 
     def get_name_of_field(self, fieldId):
         """Returns the name of the field with the given ID."""
-        return self.get_field_details(fieldId)['Name']
+        return self.get_field_details(fieldId)["Name"]
 
     def get_level_of_field(self, fieldId):
         """Returns the level of the field with the given ID."""
-        return self.get_field_details(fieldId)['LevelId']
+        return self.get_field_details(fieldId)["LevelId"]
 
     def get_type_of_field(self, fieldId):
         """Returns the type of the field with the given ID."""
-        return self.get_field_details(fieldId)['Type']
+        return self.get_field_details(fieldId)["Type"]
 
     def get_valuesetvalue_of_field(self, fieldId, value):
         """Returns the value set appropriately to update the given filedId
 
-            TODO: support subforms
+        TODO: support subforms
         """
         fld = self.get_field_details(fieldId)
 
-        if fld['Type'] not in (4, 8, 6):
+        if fld["Type"] not in (4, 8, 6):
             return value
 
-        if fld['Type'] in (4, 6):
+        if fld["Type"] in (4, 6):
             W('Valufying "{}" as values-list field {}'.format(value, fld))
-            vlid = fld['RelatedValuesListId']
+            vlid = fld["RelatedValuesListId"]
             vlval, othertext = self.get_valueslistvalue_id(vlid, value)
             if not vlval:
-                raise Exception('Failed to set valueslist field '
-                                'vlid:{}/val:{}'.format(vlid, value))
-            return {'value_id': vlval, 'other_text': othertext}
+                raise Exception("Failed to set valueslist field " "vlid:{}/val:{}".format(vlid, value))
+            return {"value_id": vlval, "other_text": othertext}
 
-        if fld['Type'] == 8:
+        if fld["Type"] == 8:
             if value and isinstance(value, str):
                 value = [x.strip() for x in value.split(",")]
             user_id = []
@@ -350,12 +350,12 @@ class ArcherAPISession(object):
                 group_id.append(gid)
                 user_id.append(uid)
                 if not uid and not gid:
-                    W('Users/Groups not found in local user search')
+                    W("Users/Groups not found in local user search")
                     duid = self.asoap.find_domain_user(val)
                     user_id.append(duid)
                     if not duid:
-                        W('Users/Groups not found in domain user search')
-                        raise Exception('Failed to find Users/Groups {}'.format(val))
+                        W("Users/Groups not found in domain user search")
+                        raise Exception("Failed to find Users/Groups {}".format(val))
 
             return [user_id, group_id]
 
@@ -364,46 +364,41 @@ class ArcherAPISession(object):
         try:
             value = int(value)
         except (ValueError, TypeError):
-            W('Cross-reference values must be integers: {}'.format(value))
+            W("Cross-reference values must be integers: {}".format(value))
             return None
         # refrecs = self.get_referenced_records(fld.get('ReferencedFieldId'))
-        refrecs = self.get_referenced_records(fld.get('Id'))
+        refrecs = self.get_referenced_records(fld.get("Id"))
         if refrecs:
-            rec = [x['Id'] for x in refrecs if x['SequentialId'] == value]
+            rec = [x["Id"] for x in refrecs if x["SequentialId"] == value]
             if len(rec) != 1:
-                W('Zero or multiple referenced records found by SeqId: '
-                  '{} in reference records: {}'.format(rec, refrecs))
-                with open('/tmp/this.json', 'w') as of:
+                W("Zero or multiple referenced records found by SeqId: " "{} in reference records: {}".format(rec, refrecs))
+                with open("/tmp/this.json", "w") as of:
                     json.dump(refrecs, of)
             else:
-                W('Cross-reference is a Sequential ID: {}'.format(value))
+                W("Cross-reference is a Sequential ID: {}".format(value))
                 return rec[0]
-        content = self._rest_call('/api/core/content/{}'.format(value), 'get')
-        if json.loads(content)['IsSuccessful']:
-            W('Cross-reference is a content ID: {}'.format(value))
+        content = self._rest_call("/api/core/content/{}".format(value), "get")
+        if json.loads(content)["IsSuccessful"]:
+            W("Cross-reference is a content ID: {}".format(value))
             return value
-        raise Exception('Failed to set Cross-Reference field '
-                        'vlid:{}/val:{}'.format(vlid, value))
+        raise Exception("Failed to set Cross-Reference field " "vlid:{}/val:{}".format(vlid, value))
 
     def get_referenced_records(self, rfid):
         """Returns records that could be linked by the given reference field"""
-        j = json.loads(self._rest_call(
-            '/api/core/content/referencefield/{}'.format(rfid), 'get'))
-        if 'Message' in j or not j[0]['IsSuccessful']:
-            W('Failed to get referenced records for rfid {}'.format(rfid))
+        j = json.loads(self._rest_call("/api/core/content/referencefield/{}".format(rfid), "get"))
+        if "Message" in j or not j[0]["IsSuccessful"]:
+            W("Failed to get referenced records for rfid {}".format(rfid))
             return None
-        return [x['RequestedObject'] for x in j]
+        return [x["RequestedObject"] for x in j]
 
     @memoize
     def get_valueslist(self, vlid):
         """Returns the ValuesList with the give Id"""
-        j = json.loads(self._rest_call(
-            '/api/core/system/valueslistvalue/flat/valueslist/{}'.format(vlid),
-            'get'))
-        if 'Message' in j:
-            W('Error getting valueslist {}: {}'.format(vlid, j['Message']))
+        j = json.loads(self._rest_call("/api/core/system/valueslistvalue/flat/valueslist/{}".format(vlid), "get"))
+        if "Message" in j:
+            W("Error getting valueslist {}: {}".format(vlid, j["Message"]))
             return None
-        return [x['RequestedObject'] for x in j]
+        return [x["RequestedObject"] for x in j]
 
     def get_value(self, value):
         """
@@ -415,16 +410,16 @@ class ArcherAPISession(object):
 
     def get_valueslistvalue_id(self, vlid, value):
         """Returns (ValueId,OtherText) for the given value in the given
-            valuelist, matched by Name/Alias/NumericValue/Description/ID.  If
-            the value doesn't match a valueid in the valueslist, we'll look
-            for an "other" field who's name/alias/etc is matched as the part of
-            value before the first ':' - in which case that's the valueid
-            returned, and OtherText is set to the value with prefix removed.
+        valuelist, matched by Name/Alias/NumericValue/Description/ID.  If
+        the value doesn't match a valueid in the valueslist, we'll look
+        for an "other" field who's name/alias/etc is matched as the part of
+        value before the first ':' - in which case that's the valueid
+        returned, and OtherText is set to the value with prefix removed.
 
-            Case-insensitive match.
+        Case-insensitive match.
         """
         values = self.get_valueslist(vlid)
-        match_flds = ('Name', 'Alias', 'NumericValue', 'Description', 'Id')
+        match_flds = ("Name", "Alias", "NumericValue", "Description", "Id")
         vlid = []
 
         if isinstance(value, list):
@@ -439,56 +434,52 @@ class ArcherAPISession(object):
                 for lv in lval:
                     if lv in (self.get_value(val[y]) for y in match_flds if val[y]):
                         W(f"Get value : {self.get_value(val['Id'])}")
-                        vlid.append(val['Id'])
+                        vlid.append(val["Id"])
                         break
 
             return vlid, None
 
-        if ':' in value:
-            vname, vval = value.split(':', 1)
+        if ":" in value:
+            vname, vval = value.split(":", 1)
             vname = vname.lower()
-            for other in (x for x in values if x['EnableOtherText']):
-                if vname in (self.get_value(other[x]) for x in match_flds
-                             if other[x]):
+            for other in (x for x in values if x["EnableOtherText"]):
+                if vname in (self.get_value(other[x]) for x in match_flds if other[x]):
                     W(f"get_valueslistvalue_id other['Id'] {other['Id']}")
-                    return other['Id'], vval
-        W('No valueslistvalue found for vlid:{} and value:{}'.format(
-            vlid, value))
+                    return other["Id"], vval
+        W("No valueslistvalue found for vlid:{} and value:{}".format(vlid, value))
         return None, None
 
     def get_content_by_id(self, cid):
         """Returns the full record with the given id."""
-        j = json.loads(self._rest_call('/api/core/content/{}'.format(cid),
-                                       'get'))
-        if not j['IsSuccessful']:
-            W('Failed to fetch record with cid {}: {}'.format(
-                cid, j['ValidationMessages'][0]['ResourcedMessage']))
+        j = json.loads(self._rest_call("/api/core/content/{}".format(cid), "get"))
+        if not j["IsSuccessful"]:
+            W("Failed to fetch record with cid {}: {}".format(cid, j["ValidationMessages"][0]["ResourcedMessage"]))
             return None
-        return j['RequestedObject']
+        return j["RequestedObject"]
 
     def _get_field_id_map(self, app):
         mid = self.get_moduleid(app)
 
         levelid = self.get_levelId_for_app(mid)
         q_fields = self.get_fields_for_level(levelid)
-        if not q_fields or type(q_fields) != list or type(q_fields[0]) != dict or 'RequestedObject' not in q_fields[0]:
+        if not q_fields or type(q_fields) is not list or type(q_fields[0]) is not dict or "RequestedObject" not in q_fields[0]:
             raise Exception('Could not find any fields for application "{}". Please verify the application is correct.'.format(app))
         fields = {}
         for f in q_fields:
             try:
-                ftype = int(f['RequestedObject']['Type'])
+                ftype = int(f["RequestedObject"]["Type"])
                 if ftype not in (1, 2, 3, 4, 6, 8, 9, 11, 19, 20, 21, 22, 23, 26, 27, 29, 1001):
-                    W('Unexpected field type {} trying anyway: {}'.format(ftype, json.dumps(f)))
-                if f['RequestedObject']['Name'].lower() in self.excluded_fields:
-                    W('Skipping {}'.format(f['RequestedObject']['Name']))
+                    W("Unexpected field type {} trying anyway: {}".format(ftype, json.dumps(f)))
+                if f["RequestedObject"]["Name"].lower() in self.excluded_fields:
+                    W("Skipping {}".format(f["RequestedObject"]["Name"]))
                     continue
                 elif ftype not in self.BLACKLIST_TYPES:
-                    fields[int(f['RequestedObject']['Id'])] = f['RequestedObject']['Name']
+                    fields[int(f["RequestedObject"]["Id"])] = f["RequestedObject"]["Name"]
                 else:
-                    W('unable to parse field {}, type {}: {}'.format(f['RequestedObject']['Name'], f['RequestedObject']['Type'], json.dumps(f)))
+                    W("unable to parse field {}, type {}: {}".format(f["RequestedObject"]["Name"], f["RequestedObject"]["Type"], json.dumps(f)))
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
-                W('Failed to parse: {}: {}'.format(f, err))
+                W("Failed to parse: {}: {}".format(f, err))
         return fields
 
     def get_records(self, app, field_name, value, max_count, mid, fid, fields, comparison=None, sort=None, page=1):
@@ -505,14 +496,36 @@ class ArcherAPISession(object):
                 records_req = rem_count
 
             if comparison is None:
-                lst_records = self.asoap.find_records(mid, app, fid, field_name, value, filter_type='text',
-                                                      max_count=records_req, fields=fields, comparison=comparison, sort=sort, page=page)
+                lst_records = self.asoap.find_records(
+                    mid,
+                    app,
+                    fid,
+                    field_name,
+                    value,
+                    filter_type="text",
+                    max_count=records_req,
+                    fields=fields,
+                    comparison=comparison,
+                    sort=sort,
+                    page=page,
+                )
                 if lst_records:
                     records.extend(lst_records)
             if not lst_records:
                 try:
-                    lst_inter_records = self.asoap.find_records(mid, app, fid, field_name, int(value), filter_type='numeric',
-                                                            max_count=records_req, fields=fields, comparison=comparison, sort=sort, page=page)
+                    lst_inter_records = self.asoap.find_records(
+                        mid,
+                        app,
+                        fid,
+                        field_name,
+                        int(value),
+                        filter_type="numeric",
+                        max_count=records_req,
+                        fields=fields,
+                        comparison=comparison,
+                        sort=sort,
+                        page=page,
+                    )
                     if lst_inter_records:
                         records.extend(lst_inter_records)
                     else:
@@ -524,7 +537,7 @@ class ArcherAPISession(object):
 
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
-        err = ''
+        err = ""
 
         try:
             fid = int(field_name)
@@ -543,14 +556,14 @@ class ArcherAPISession(object):
         if not records:
             return records
 
-        recs = etree.Element('Records')
+        recs = etree.Element("Records")
         document = etree.ElementTree(recs)
         for r in records:
             recs.append(r)
         rec_xml = etree.tostring(document, pretty_print=True)
 
         rec_dict = records and xmltodict.parse(rec_xml) or {}
-        records = rec_dict.get('Records', {}).get('Record')
+        records = rec_dict.get("Records", {}).get("Record")
         # remove blanks and add readable name
         if not records:
             return []
@@ -559,33 +572,33 @@ class ArcherAPISession(object):
             records = [records]
 
         for r in records:
-            cur_fields = r.get('Field', [])
+            cur_fields = r.get("Field", [])
             new_fields = []
             for f in cur_fields:
                 try:
-                    t = f.get('#text')
+                    t = f.get("#text")
                     if t:
-                        f['@name'] = fields.get(int(f['@id']), f['@id'])
+                        f["@name"] = fields.get(int(f["@id"]), f["@id"])
                         new_fields.append(f)
-                    elif f.get('@type') == '4':
-                        f['@name'] = fields.get(int(f['@id']), f['@id'])
-                        value_list = f.get('ListValues', {}).get('ListValue', {})
+                    elif f.get("@type") == "4":
+                        f["@name"] = fields.get(int(f["@id"]), f["@id"])
+                        value_list = f.get("ListValues", {}).get("ListValue", {})
                         if value_list:
                             if isinstance(value_list, dict):
                                 value_list = [value_list]
-                            value_list = set(x.get('#text', '') for x in value_list)
-                            v = f.get('@value')
+                            value_list = set(x.get("#text", "") for x in value_list)
+                            v = f.get("@value")
                             if v:
                                 value_list.add(v)
-                            f['multi_value'] = list(value_list)
-                            f['#text'] = ', '.join(f['multi_value'])
+                            f["multi_value"] = list(value_list)
+                            f["#text"] = ", ".join(f["multi_value"])
                         else:
-                            f['#text'] = None
+                            f["#text"] = None
                         new_fields.append(f)
                 except Exception as e:
                     err = self._get_error_message_from_exception(e)
-                    W('Failed to parse {}: {}'.format(f, err))
-            r['Field'] = new_fields
+                    W("Failed to parse {}: {}".format(f, err))
+            r["Field"] = new_fields
 
         return records
 
@@ -598,65 +611,65 @@ class ArcherAPISession(object):
 
         rec_dict = xmltodict.parse(data) or {}
 
-        rec_dict['@moduleId'] = moduleId
-        rec_dict['@contentId'] = contentId
+        rec_dict["@moduleId"] = moduleId
+        rec_dict["@contentId"] = contentId
         empty_name_count = 0
-        for i, field in enumerate(rec_dict['Record']['Field']):
+        for i, field in enumerate(rec_dict["Record"]["Field"]):
             try:
-                field_type = int(field.get('@type'))
-                field['@name'] = fields.get(int(field.get('@id')))
-                if field['@name'] is None:
+                field_type = int(field.get("@type"))
+                field["@name"] = fields.get(int(field.get("@id")))
+                if field["@name"] is None:
                     empty_name_count += 1
-                if field.get('@value', '').startswith('<p>'):
-                    field['@value'] = field['@value'][3:-4]
+                if field.get("@value", "").startswith("<p>"):
+                    field["@value"] = field["@value"][3:-4]
                 if field_type in self.BLACKLIST_TYPES:
-                    W('Skpping field (unsupported type): {}'.format(field))
+                    W("Skpping field (unsupported type): {}".format(field))
                     continue
                 if field_type == 4:
-                    value_list = field.get('MultiValue', [])
+                    value_list = field.get("MultiValue", [])
                     if value_list:
-                        value_list = set(x.get('@value', '') for x in value_list)
-                        value_list.add(field.get('@value'))
-                        field['multi_value'] = list(value_list)
+                        value_list = set(x.get("@value", "") for x in value_list)
+                        value_list.add(field.get("@value"))
+                        field["multi_value"] = list(value_list)
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
-                W('Failed to parse {}: {}'.format(field, err))
+                W("Failed to parse {}: {}".format(field, err))
         # All name fields should not be None for valid record
-        if empty_name_count == len(rec_dict['Record']['Field']):
-            W('Failed to get name field. Check input parameters')
-            raise Exception('Failed to get name field. Check input parameters')
+        if empty_name_count == len(rec_dict["Record"]["Field"]):
+            W("Failed to get name field. Check input parameters")
+            raise Exception("Failed to get name field. Check input parameters")
         return rec_dict
 
     def create_record(self, app, data={}):
         """Create a new record at the given level with the given data.
 
-            data has fieldId/value pairs with which to call `update_record`.
+        data has fieldId/value pairs with which to call `update_record`.
         """
-        W('In create_record({},{})'.format(app, data))
+        W("In create_record({},{})".format(app, data))
 
-        W('Crafting data for new record...')
+        W("Crafting data for new record...")
         moduleId = self.get_moduleid(app)
         fields = []
 
         levelid = self.get_levelId_for_app(moduleId)
         q_fields = self.get_fields_for_level(levelid)
-        if not q_fields or type(q_fields) != list or type(q_fields[0]) != dict or 'RequestedObject' not in q_fields[0]:
+        if not q_fields or type(q_fields) is not list or type(q_fields[0]) is not dict or "RequestedObject" not in q_fields[0]:
             raise Exception('Could not find any fields for application "{}". Please verify the application is correct.'.format(app))
         field_data = {}
         for f in q_fields:
             try:
-                ftype = int(f['RequestedObject']['Type'])
-                field_data[f['RequestedObject']['Name']] = {'id': int(f['RequestedObject']['Id']), 'type': ftype}
+                ftype = int(f["RequestedObject"]["Type"])
+                field_data[f["RequestedObject"]["Name"]] = {"id": int(f["RequestedObject"]["Id"]), "type": ftype}
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
-                W('Failed to parse: {}: {}'.format(f, err))
+                W("Failed to parse: {}: {}".format(f, err))
         for field, value in list(data.items()):
             fd = field_data.get(field)
             if not fd:
-                raise Exception('Could not identify field {}'.format(field))
-            value = self.get_valuesetvalue_of_field(fd['id'], value)
+                raise Exception("Could not identify field {}".format(field))
+            value = self.get_valuesetvalue_of_field(fd["id"], value)
 
-            field = {'value': value}
+            field = {"value": value}
             field.update(fd)
             fields.append(field)
         cid = self.asoap.create_record(moduleId, fields)
@@ -664,7 +677,7 @@ class ArcherAPISession(object):
 
     def update_record(self, app, contentId, fieldId, value, doit=True):
 
-        W('In update_record({}, {}, {})'.format(contentId, fieldId, value))
+        W("In update_record({}, {}, {})".format(contentId, fieldId, value))
         data = {}
         moduleId, field = self.get_data(app, fieldId, value, doit)
         data = self.asoap.update_record(contentId, moduleId, [field])
@@ -674,21 +687,21 @@ class ArcherAPISession(object):
     def get_data(self, app, fieldId, value, doit=True):
         """Set the value of the given field in the given content record.
 
-            contentId, a number-or-string: ID of the Archer record to update,
-                or the ID/name of the App in which to find the fieldId.  Note
-                that the latter case can only work with doit=False
+        contentId, a number-or-string: ID of the Archer record to update,
+            or the ID/name of the App in which to find the fieldId.  Note
+            that the latter case can only work with doit=False
 
-            fieldId, a string-or-number: ID or name of the field to update
-                within the given Archer record
+        fieldId, a string-or-number: ID or name of the field to update
+            within the given Archer record
 
-            value, a string-or-number: value to which the given field in the
-                given Archer record will be set
+        value, a string-or-number: value to which the given field in the
+            given Archer record will be set
 
-            doit, a boolean: whether to actually issue the update command.  If
-                False, return the data that would have been sent.
+        doit, a boolean: whether to actually issue the update command.  If
+            False, return the data that would have been sent.
 
         """
-        W('In get_data({}, {})'.format(fieldId, value))
+        W("In get_data({}, {})".format(fieldId, value))
         try:
             fid = int(fieldId)
         except (ValueError, TypeError):
@@ -696,10 +709,10 @@ class ArcherAPISession(object):
 
         try:
             fieldId = int(fid)
-            W('fieldId is integer, using as-is: {}'.format(fieldId))
+            W("fieldId is integer, using as-is: {}".format(fieldId))
         except (ValueError, TypeError):
             newId = self.get_fieldId_for_app_and_name(app, fieldId)
-            W('Got fieldId from app_and_name: {}'.format(newId))
+            W("Got fieldId from app_and_name: {}".format(newId))
             if newId is None:
                 raise Exception("Can't resolve field: {}".format(fieldId))
             elif doit:
@@ -707,20 +720,16 @@ class ArcherAPISession(object):
             fieldId = newId
 
         fieldType = int(self.get_type_of_field(fieldId))
-        W('Got fieldType: {}'.format(fieldType))
+        W("Got fieldType: {}".format(fieldType))
         levelId = self.get_level_of_field(fieldId)
-        W('Got levelId: {}'.format(levelId))
+        W("Got levelId: {}".format(levelId))
         value = self.get_valuesetvalue_of_field(fieldId, value)
         moduleId = self.get_moduleid(app)
 
-        field = {
-            'id': fieldId,
-            'type': fieldType,
-            'value': value
-        }
-        W('Updating to value: {}'.format(value))
-        W('Updating to id: {}'.format(fieldId))
-        W('Updating to type: {}'.format(fieldType))
+        field = {"id": fieldId, "type": fieldType, "value": value}
+        W("Updating to value: {}".format(value))
+        W("Updating to id: {}".format(fieldId))
+        W("Updating to type: {}".format(fieldType))
 
         return moduleId, field
 
@@ -740,7 +749,7 @@ class ArcherAPISession(object):
         """Returns the report with the given guid."""
 
         # Initialize result dictionary
-        result_dict = {'status': 'failed', 'message': 'Failed - default message', 'page_count': 0, 'records': []}
+        result_dict = {"status": "failed", "message": "Failed - default message", "page_count": 0, "records": []}
 
         # Initialize the current count of records
         total_count = 0
@@ -754,13 +763,13 @@ class ArcherAPISession(object):
                 # Try to get current report page
                 try:
                     data_dict = self.asoap.get_report(guid, page_number)
-                    if data_dict['status'] != 'success':
-                        result_dict['message'] = data_dict['result']
+                    if data_dict["status"] != "success":
+                        result_dict["message"] = data_dict["result"]
                         return result_dict
-                    data = data_dict['result']
+                    data = data_dict["result"]
 
                 except Exception as e:
-                    result_dict['message'] = 'Failed to get page {} of report. Check input parameters are valid. e = {}'.format(page_number, e)
+                    result_dict["message"] = "Failed to get page {} of report. Check input parameters are valid. e = {}".format(page_number, e)
                     return result_dict
 
                 # Try to parse current report page from xml to a dictionary
@@ -770,14 +779,13 @@ class ArcherAPISession(object):
                     else:
                         raw_dict = xmltodict.parse(data) or {}
                 except Exception as e:
-                    result_dict['message'] = 'Failed to parse report page {} to dict - e = {}'. \
-                        format(page_number, e)
+                    result_dict["message"] = "Failed to parse report page {} to dict - e = {}".format(page_number, e)
                     return result_dict
 
                 # Try to get tickets/records from current report page
                 try:
                     try:
-                        raw_records = raw_dict['Records']['Record']
+                        raw_records = raw_dict["Records"]["Record"]
                         num_raw_records = len(raw_records)
                     except:
                         num_raw_records = 0
@@ -785,50 +793,47 @@ class ArcherAPISession(object):
                     # If no report records were found in the current
                     # page, assume all records have been found
                     if num_raw_records < 1:
-                        result_dict['status'] = 'success'
-                        if len(result_dict['records']) < 1:
-                            result_dict['message'] = 'No report tickets found'
+                        result_dict["status"] = "success"
+                        if len(result_dict["records"]) < 1:
+                            result_dict["message"] = "No report tickets found"
                         else:
-                            result_dict['message'] = 'Report retrieved'
-                            result_dict['page_count'] = page_number - 1
+                            result_dict["message"] = "Report retrieved"
+                            result_dict["page_count"] = page_number - 1
                         return result_dict
 
                 except Exception as e:
-                    result_dict['message'] = 'Failed to get tickets from report page {} - {}'. \
-                        format(page_number, e)
+                    result_dict["message"] = "Failed to get tickets from report page {} - {}".format(page_number, e)
                     return result_dict
 
                 # Try to get field definitions for current report page
                 try:
-                    field_defs = raw_dict['Records']['Metadata']['FieldDefinitions']['FieldDefinition']
+                    field_defs = raw_dict["Records"]["Metadata"]["FieldDefinitions"]["FieldDefinition"]
 
                 except Exception as e:
-                    result_dict['message'] = 'Failed to get field definitions for report page {} - e = {}'. \
-                        format(page_number, e)
+                    result_dict["message"] = "Failed to get field definitions for report page {} - e = {}".format(page_number, e)
                     return result_dict
 
                 # Merge the field definitions with the record/ticket data for the current report page
                 merge_dict = self.merge_field_defs(field_defs, raw_records, max_count, total_count, page_number)
-                result_dict['records'].extend(merge_dict['records'])
-                total_count = len(result_dict['records'])
-                if merge_dict['status'] == 'max records reached':
-                    result_dict['status'] = 'success'
-                    result_dict['page_count'] = page_number
-                    result_dict['message'] = merge_dict['message']
+                result_dict["records"].extend(merge_dict["records"])
+                total_count = len(result_dict["records"])
+                if merge_dict["status"] == "max records reached":
+                    result_dict["status"] = "success"
+                    result_dict["page_count"] = page_number
+                    result_dict["message"] = merge_dict["message"]
                     return result_dict
-                elif merge_dict['status'] != 'success':
-                    result_dict['message'] = merge_dict['message']
+                elif merge_dict["status"] != "success":
+                    result_dict["message"] = merge_dict["message"]
                     return result_dict
 
-            result_dict['status'] = 'success'
-            result_dict['message'] = 'Report retrieved'
-            result_dict['page_count'] = page_number
+            result_dict["status"] = "success"
+            result_dict["message"] = "Report retrieved"
+            result_dict["page_count"] = page_number
             return result_dict
 
         except Exception as e:
-            result_dict['status'] = 'failed'
-            result_dict['message'] = 'Failed while getting report page(s) - e = {}'. \
-                format(e)
+            result_dict["status"] = "failed"
+            result_dict["message"] = "Failed while getting report page(s) - e = {}".format(e)
             return result_dict
 
     def merge_field_defs(self, field_defs, raw_records, max_count, total_count, page_number):
@@ -836,7 +841,7 @@ class ArcherAPISession(object):
         try:
 
             # Initialize result dictionary
-            merge_dict = {'status': 'failed', 'message': 'Failed - default message', 'records': []}
+            merge_dict = {"status": "failed", "message": "Failed - default message", "records": []}
 
             if not isinstance(raw_records, list):
                 raw_records = [raw_records]
@@ -849,83 +854,82 @@ class ArcherAPISession(object):
                 total_count = total_count + 1
 
                 # Merge the field definitions into the current record
-                for field in raw_record['Field']:
+                for field in raw_record["Field"]:
 
                     try:
 
-                        field_id = int(field.get('@id'))
+                        field_id = int(field.get("@id"))
                         field_name = None
                         for field_def in field_defs:
-                            if field_id == int(field_def.get('@id')):
-                                field_name = str(field_def.get('@name'))
+                            if field_id == int(field_def.get("@id")):
+                                field_name = str(field_def.get("@name"))
                                 break
                         if field_name is not None:
                             valid_name_count += 1
-                        field['@name'] = field_name
-                        field_type = int(field.get('@type'))
+                        field["@name"] = field_name
+                        field_type = int(field.get("@type"))
                         if field_type == 4:
-                            value_list = field.get('ListValues', {}).get('ListValue', {})
+                            value_list = field.get("ListValues", {}).get("ListValue", {})
                             if value_list:
                                 if isinstance(value_list, dict):
                                     value_list = [value_list]
-                                value_list = set(x.get('#text', '') for x in value_list)
-                                v = field.get('@value')
+                                value_list = set(x.get("#text", "") for x in value_list)
+                                v = field.get("@value")
                                 if v:
                                     value_list.add(v)
-                                field['multi_value'] = list(value_list)
-                                field['#text'] = ', '.join(field['multi_value'])
+                                field["multi_value"] = list(value_list)
+                                field["#text"] = ", ".join(field["multi_value"])
                         elif field_type == 8:
-                            value_list = field.get('Users', {}).get('User', {})
+                            value_list = field.get("Users", {}).get("User", {})
                             if value_list:
                                 if isinstance(value_list, dict):
                                     value_list = [value_list]
-                                value_list = set([ self.process_user_multivalue(x) for x in value_list])
-                                v = field.get('@value')
+                                value_list = set([self.process_user_multivalue(x) for x in value_list])
+                                v = field.get("@value")
                                 if v:
                                     value_list.add(v)
-                                field['multi_value'] = list(value_list)
-                                field['#text'] = ', '.join(field['multi_value'])
+                                field["multi_value"] = list(value_list)
+                                field["#text"] = ", ".join(field["multi_value"])
                         elif field_type == 9:
-                            field['#text'] = field.get('Reference', {}).get('#text', '')
+                            field["#text"] = field.get("Reference", {}).get("#text", "")
 
                     except Exception as e:
                         err = self._get_error_message_from_exception(e)
-                        W('Failed to parse {}: {}'.format(field, err))
-                        field['@name'] = None
+                        W("Failed to parse {}: {}".format(field, err))
+                        field["@name"] = None
                     new_fields.append(field)
 
                 # If none of the name fields were merged, return fail
                 if valid_name_count < 1:
-                    merge_dict['message'] = 'Failed to merge any field name(s). Check Archer report configuration'
+                    merge_dict["message"] = "Failed to merge any field name(s). Check Archer report configuration"
                     return merge_dict
 
                 # Append merged record to the results record dictionary
-                raw_record['Field'] = new_fields
-                merge_dict['records'].append(raw_record)
+                raw_record["Field"] = new_fields
+                merge_dict["records"].append(raw_record)
 
                 # If the record count is reached, return
                 if total_count >= max_count:
-                    merge_dict['status'] = 'max records reached'
-                    merge_dict['message'] = 'Report retrieved - max results reached'
+                    merge_dict["status"] = "max records reached"
+                    merge_dict["message"] = "Report retrieved - max results reached"
                     return merge_dict
 
-            merge_dict['status'] = 'success'
-            merge_dict['message'] = 'Report retrieved'
+            merge_dict["status"] = "success"
+            merge_dict["message"] = "Report retrieved"
             return merge_dict
 
         except Exception as e:
-            merge_dict['message'] = 'Failed to merge field definitions with report page {} ticket data - e = {}'. \
-                format(page_number, e)
+            merge_dict["message"] = "Failed to merge field definitions with report page {} ticket data - e = {}".format(page_number, e)
             return merge_dict
 
     def process_user_multivalue(self, x):
 
-        firstname = x.get('@firstName', '')
-        middlename = x.get('@middleName', '')
-        lastname = x.get('@lastName', '')
+        firstname = x.get("@firstName", "")
+        middlename = x.get("@middleName", "")
+        lastname = x.get("@lastName", "")
         name = firstname
-        if middlename != '':
-            name = '{} {}'.format(name, middlename)
-        if lastname != '':
-            name = '{} {}'.format(name, lastname)
+        if middlename != "":
+            name = "{} {}".format(name, middlename)
+        if lastname != "":
+            name = "{} {}".format(name, lastname)
         return name
