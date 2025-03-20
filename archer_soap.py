@@ -1,6 +1,6 @@
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2024 Splunk Inc.
+# Copyright (c) 2016-2025 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from bs4 import UnicodeDammit
 from lxml import etree
 
 import archer_consts
+
 
 SOAPNS = "http://schemas.xmlsoap.org/soap/envelope/"
 XSINS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -42,7 +43,7 @@ ALL_NS_MAP["dummy"] = ARCHERNS
 DEBUG = False
 
 
-class ArcherSOAP(object):
+class ArcherSOAP:
     def __init__(self, host, username, password, instance, verify_cert=True, usersDomain=None, conn_obj=None):
         self.base_uri = host + "/ws"
         self.username = username
@@ -421,7 +422,7 @@ class ArcherSOAP(object):
             api_tag = api[0].tag
             headers = {
                 "Content-Type": "text/xml; charset=utf-8",
-                "SOAPAction": '"http://archer-tech.com/webservices/{}"'.format(api_tag),
+                "SOAPAction": f'"http://archer-tech.com/webservices/{api_tag}"',
             }
             response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
                 uri, data=xml, headers=headers, verify=self.verify_cert

@@ -1,6 +1,6 @@
 # File: archer_views.py
 #
-# Copyright (c) 2016-2024 Splunk Inc.
+# Copyright (c) 2016-2025 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
 def get_ticket(provides, all_results, context):
-
     context["results"] = results = []
     for summary, action_results in all_results:
         for result in action_results:
@@ -32,7 +31,6 @@ def get_ticket(provides, all_results, context):
 
 
 def list_tickets(provides, all_results, context):
-
     headers = ["application", "content id"]
     context["results"] = results = []
 
@@ -72,7 +70,6 @@ def list_tickets(provides, all_results, context):
 
 
 def get_report(provides, all_results, context):
-
     headers = ["content id"]
     context["results"] = results = []
 

@@ -13,7 +13,7 @@
     ],
     "package_name": "phantom_archer",
     "type": "ticketing",
-    "license": "Copyright (c) 2016-2024 Splunk Inc.",
+    "license": "Copyright (c) 2016-2025 Splunk Inc.",
     "main_module": "archer_connector.py",
     "app_version": "3.2.1",
     "latest_tested_versions": [
