@@ -1,14 +1,9 @@
 Splunk SOAR RSA Archer
-Copyright (c) 2016-2024 Splunk Inc.
+Copyright (c) 2016-2025 Splunk Inc.
 
-Third-party Software Attributions:
+Third Party Software Attributions:
 
-Library: lxml
-Version: 4.9.1
-License: BSD 3
-Copyright 2004 Infrae
-
-Library: xmltodict
-Version: 0.12.0
-License: MIT
-Copyright 2012 Martin Blech and individual contributors
+Name: lxml
+Version: 4.9.2
+Author: lxml dev team
+License: BSD-3-Clause
