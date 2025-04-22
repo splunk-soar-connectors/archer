@@ -15,7 +15,7 @@
     "type": "ticketing",
     "license": "Copyright (c) 2016-2025 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "3.2.1",
+    "app_version": "3.2.2",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.14"
     ],
