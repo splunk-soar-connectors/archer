@@ -39,9 +39,9 @@ def W(msg):
     sys.stderr.write("\b" * last_message_length)
     sys.stderr.write(" " * last_message_length)
     sys.stderr.write("\b" * last_message_length)
-    msg = f"--[ {msg.strip()}"
-    last_message_length = len(msg)
-    sys.stderr.write(msg)
+    new_msg = f"--[ {msg.strip()}"
+    last_message_length = len(new_msg)
+    sys.stderr.write(new_msg)
 
 
 def memoize(f):
@@ -132,7 +132,7 @@ class ArcherAPISession:
                 elif len(e.args) == 1:
                     error_msg = e.args[0]
         except Exception as e:
-            self.error_print(f"Error occurred while fetching exception information. Details: {e!s}")
+            self.conn_obj.error_print(f"Error occurred while fetching exception information. Details: {e!s}")
 
         if not error_code:
             error_text = f"Error Message: {error_msg}"

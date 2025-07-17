@@ -1,4 +1,3 @@
 **Unreleased**
 
-* chore(ci): Pre-commit config updates
-* update dependencies in requirements [PSAAS-22812]
+* fix: Updates to the archer app to make it python 3.13 compliant
