@@ -1,9 +1,9 @@
 # RSA Archer
 
-Publisher: Splunk \
-Connector Version: 3.2.2 \
-Product Vendor: RSA \
-Product Name: Archer GRC \
+Publisher: Splunk <br>
+Connector Version: 3.2.2 <br>
+Product Vendor: RSA <br>
+Product Name: Archer GRC <br>
 Minimum Product Version: 6.2.1
 
 This app implements ticket management actions on RSA Archer GRC
@@ -73,22 +73,22 @@ VARIABLE | REQUIRED | TYPE | DESCRIPTION
 
 ### Supported Actions
 
-[test connectivity](#action-test-connectivity) - Validate the asset configuration for connectivity and field mapping \
-[create ticket](#action-create-ticket) - Create a new ticket \
-[update ticket](#action-update-ticket) - Update the value of a field of a record \
-[get ticket](#action-get-ticket) - Get ticket information \
-[list tickets](#action-list-tickets) - Get a list of tickets in an application \
-[create attachment](#action-create-attachment) - Create an attachment \
-[get report](#action-get-report) - Get a list of tickets from a report \
-[on poll](#action-on-poll) - Callback action for the on_poll ingest functionality \
-[assign ticket](#action-assign-ticket) - Assign users and/or groups to record \
+[test connectivity](#action-test-connectivity) - Validate the asset configuration for connectivity and field mapping <br>
+[create ticket](#action-create-ticket) - Create a new ticket <br>
+[update ticket](#action-update-ticket) - Update the value of a field of a record <br>
+[get ticket](#action-get-ticket) - Get ticket information <br>
+[list tickets](#action-list-tickets) - Get a list of tickets in an application <br>
+[create attachment](#action-create-attachment) - Create an attachment <br>
+[get report](#action-get-report) - Get a list of tickets from a report <br>
+[on poll](#action-on-poll) - Callback action for the on_poll ingest functionality <br>
+[assign ticket](#action-assign-ticket) - Assign users and/or groups to record <br>
 [attach alert](#action-attach-alert) - Attach Security alert to the record
 
 ## action: 'test connectivity'
 
 Validate the asset configuration for connectivity and field mapping
 
-Type: **test** \
+Type: **test** <br>
 Read only: **True**
 
 #### Action Parameters
@@ -103,7 +103,7 @@ No Output
 
 Create a new ticket
 
-Type: **generic** \
+Type: **generic** <br>
 Read only: **False**
 
 <p>JSON specifying the field names and values for a new Archer record (key/value pairs). For Cross-Reference fields, the value must be the content id of the referenced content.</p><p>Create record sample JSON: </p><pre><code>{ "Incident Summary": "test incident summary data", "Incident Owner": "testuser" }</code></pre><br><p>Parameter application is case-sensitive. The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records).</li></ul></p>
@@ -132,7 +132,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Update the value of a field of a record
 
-Type: **generic** \
+Type: **generic** <br>
 Read only: **False**
 
 There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to update the ticket. Parameters application, name_field, name_value, field_id, and value are case-sensitive. Here, if both json_string, and field_id and value are specified, preference would be given to json_string parameter and ticket will be updated based on that. The following field types are supported for creating a ticket:<ul><li>Type 1 (TextString)</li><li>Type 2 (Numeric)</li><li>Type 3 (Date with Time)</li><li>Type 4 (Values List)</li><li>Type 8 (Users/Groups List)</li><li>Type 9 (Cross-Reference)</li><li>Type 23 (Related Records).</li></ul>
@@ -171,7 +171,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Get ticket information
 
-Type: **investigate** \
+Type: **investigate** <br>
 Read only: **True**
 
 There are multiple ways of locating a ticket to update. You must either give the content ID for the record, which can be obtained from Archer, or by specifying both the name of the Tracking ID field (name_field) and the Tracking ID (name_value). If all three parameters are provided, the content ID will be used as an overriding parameter to fetch the ticket. Parameters application, name_field, and name_value are case-sensitive.
@@ -301,7 +301,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Get a list of tickets in an application
 
-Type: **investigate** \
+Type: **investigate** <br>
 Read only: **True**
 
 <p>You must provide both the field name/ID (name_field) and the value to search for (search_value) to search in records. If the combination of field name and search value is incorrect or the user provides neither of them, you may get an unfiltered list. Parameters application, name_field, and search_value are case-sensitive. <br>There are two set of parameters to filter the records: <br><ul><li>search_value and name_filed</li><li>results_filter_json, results_filter_operator and results_filter_equality</li></ul><br>Filters search_value and name_field are applied at the time of fetching the tickets and the results_filter_json, results_filter_operator and results_filter_equality are applied after the data is fetched. If value in both the set of filters are defined then records will be returned which matched both the conditions. <br>For example, if results_filter_json =  <pre>{"Subject" : "This is summary", "Description" : "This is description"}</pre> results_filter_operator = 'and' and results_filter_equality = 'Contains', the records would be filtered in such a way that 'Subject' contains the string 'This is summary' in it and  'Description' contains 'This is description' in it. <br>In results_filter_equality, if 'Equals' is selected then it will check if the field value is same as provided. <br>In results_filter_equality, if 'Contains' is selected then it will check if the given field value contains the provided value. <br>In results_filter_operator, if 'Or' is selected then it will return the records matching at least one of the provided conditions. <br>In results_filter_operator, if 'And' is selected then it will return the records matching all of the provided conditions.</p>
@@ -357,7 +357,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Create an attachment
 
-Type: **generic** \
+Type: **generic** <br>
 Read only: **False**
 
 <p>Newly created attachment ID will be returned. Here the attachment would be created on the path specified in 'file repository' section mentioned in the archer instance configuration <br> (https://help.archerirm.cloud/610-en/content/archercontrolpanel/acp_inst_gen_file_repository_path_designating.htm).</p>
@@ -387,7 +387,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Get a list of tickets from a report
 
-Type: **investigate** \
+Type: **investigate** <br>
 Read only: **True**
 
 <p>The records for a report GUID (guid) are returned. Per page, Archer returns 50 records. Here the behavior of max_pages and max_results would be such that, if max_pages = 1 and max_results = 100, then the action would fetch only 50 records i.e. 1st page. If max_pages = 1 and max_results = 10, the action will return 10 records based on the max_results parameter. <br>Also, the number of columns and record search depends on the columns displayed in reports on the Archer instance's UI, i.e if on UI the "Summary" column is not added to visible columns, it won't be displayed in action output as well as no records will be fetched if used in the filter parameters. <br>For example, if results_filter_json =  <pre>{"Subject" : "This is summary", "Description" : "This is description"}</pre> results_filter_operator = 'and' and results_filter_equality = 'Contains', the records would be filtered in such a way that 'Subject' contains the string 'This is summary' in it and  'Description' contains 'This is description' in it. <br>In results_filter_equality, if 'Equals' is selected then it will check if the field value is same as provided. <br>In results_filter_equality, if 'Contains' is selected then it will check if the given field value contains the provided value. <br>In results_filter_operator, if 'Or' is selected then it will return the records matching at least one of the provided conditions. <br>In results_filter_operator, if 'And' is selected then it will return the records matching all of the provided conditions.</p>
@@ -445,7 +445,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Callback action for the on_poll ingest functionality
 
-Type: **ingest** \
+Type: **ingest** <br>
 Read only: **True**
 
 This action has a persistent copy of the most recent 'Date Created' value it's seen on any successfully processed record. It uses this to pull all records created since then and creates a Splunk SOAR container for each. Records are pulled by referencing that 'poll_report' key of each cef_mapping entry. If any such entry does not have a 'poll_report' key, it is skipped; otherwise, the Archer report named by that key's value will be used as a list of records to pull and process according to that mapping.
@@ -467,7 +467,7 @@ No Output
 
 Assign users and/or groups to record
 
-Type: **generic** \
+Type: **generic** <br>
 Read only: **False**
 
 Assigns users and/or groups to an record. Users and groups must be specified via ID (Comma-separated values allowed).
@@ -508,7 +508,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Attach Security alert to the record
 
-Type: **generic** \
+Type: **generic** <br>
 Read only: **False**
 
 #### Action Parameters
