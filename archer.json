@@ -25,7 +25,7 @@
     "product_version_regex": ".*",
     "min_phantom_version": "6.2.1",
     "fips_compliant": true,
-    "python_version": "3",
+    "python_version": "3.9, 3.13",
     "logo": "logo_rsa.svg",
     "logo_dark": "logo_rsa_dark.svg",
     "configuration": {
@@ -2245,7 +2245,7 @@
         "wheel": [
             {
                 "module": "lxml",
-                "input_file": "wheels/py39/lxml-5.3.0-cp39-cp39-manylinux_2_28_x86_64.whl"
+                "input_file": "wheels/py39/lxml-6.0.0-cp39-cp39-manylinux_2_26_x86_64.manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
             }
         ]
     },
@@ -2253,7 +2253,7 @@
         "wheel": [
             {
                 "module": "lxml",
-                "input_file": "wheels/py313/lxml-5.3.0-cp313-cp313-manylinux_2_28_x86_64.whl"
+                "input_file": "wheels/py313/lxml-6.0.0-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
             }
         ]
     }
