@@ -221,7 +221,7 @@ class ArcherSOAP:
             else:
                 fc = etree.SubElement(co, "TextFilterCondition")
                 op = etree.SubElement(fc, "Operator")
-                op.text = "Contains"
+                op.text = comparison
             fi = etree.SubElement(fc, "Field")
             fi.text = str(key_id)
             v = etree.SubElement(fc, "Value")

@@ -10,3 +10,4 @@
 * Reported Archer REST HTTP errors instead of treating their response bodies as successful results.
 * Preserved the current Archer page checkpoint when scheduled ingestion reaches its record cap mid-page.
 * Rejected ambiguous tracking ID values and multiple record matches instead of silently targeting the first result.
+* Honored exact-match operators for Archer text searches instead of forcing substring matching.
