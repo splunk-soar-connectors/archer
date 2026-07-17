@@ -1,6 +1,6 @@
 # File: archer_connector.py
 #
-# Copyright (c) 2016-2025 Splunk Inc.
+# Copyright (c) 2016-2026 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -190,12 +190,7 @@ class ArcherConnector(BaseConnector):
                 cef = {}
                 for field in rec.get("Field", []):
                     name = field.get("@name")
-                    ftype = field.get("@type")
-                    content = None
-                    if ftype in []:
-                        pass
-                    else:
-                        content = field.get("#text")
+                    content = field.get("#text")
                     if name.lower() in cef_mapping:
                         cef[cef_mapping.get(name.lower(), name)] = content
                     if name == tracking_id_field:
