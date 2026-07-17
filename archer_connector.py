@@ -767,6 +767,10 @@ class ArcherConnector(BaseConnector):
         name_value = param.get("name_value")
         groups = param.get("groups")
         content_id = param.get("content_id")
+        if content_id:
+            status, content_id = self._validate_integer(action_result, content_id, "content_id", False)
+            if phantom.is_fail(status):
+                return action_result.get_status()
         lid = self.proxy.get_levelId_for_app(application)
         if lid is None:
             return action_result.set_status(phantom.APP_ERROR, f"Error: Could not identify application {application}")
@@ -870,6 +874,10 @@ class ArcherConnector(BaseConnector):
         field_id = param.get("field_id")
         name_value = param.get("name_value")
         content_id = param.get("content_id")
+        if content_id:
+            status, content_id = self._validate_integer(action_result, content_id, "content_id", False)
+            if phantom.is_fail(status):
+                return action_result.get_status()
         lid = self.proxy.get_levelId_for_app(application)
 
         if lid is None:

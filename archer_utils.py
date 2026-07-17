@@ -173,6 +173,9 @@ class ArcherAPISession:
         """Returns ID of the field with the given name in the given record.
         Return None if not found.
         """
+        cid = int(cid)
+        if cid <= 0:
+            raise ValueError("Content ID must be a positive integer")
         W(f"Getting fieldId for {fname} in record {cid}")
         j = json.loads(self._rest_call(f"/api/core/content/{cid}"))
         if not ("RequestedObject" in j and "FieldContents" in j["RequestedObject"]):

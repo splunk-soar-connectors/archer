@@ -4,3 +4,4 @@
 * Enabled TLS certificate verification by default for RSA Archer connections.
 * Rejected DTDs and bounded RSA Archer XML responses before parsing them with external entities disabled.
 * Hardened embedded Archer group lookup XML and corrected its primary XPath expression.
+* Required positive numeric content IDs before constructing Archer record API paths.
