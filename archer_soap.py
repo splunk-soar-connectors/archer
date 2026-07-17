@@ -41,6 +41,26 @@ ALL_NS_MAP = NS_MAP.copy()
 ALL_NS_MAP["dummy"] = ARCHERNS
 
 DEBUG = False
+MAX_XML_RESPONSE_BYTES = 10 * 1024 * 1024
+
+
+def parse_untrusted_xml(xml_data):
+    if isinstance(xml_data, str):
+        xml_data = xml_data.encode("utf-8")
+    if len(xml_data) > MAX_XML_RESPONSE_BYTES:
+        raise ValueError("Archer XML response exceeds the 10 MiB safety limit")
+    if b"<!DOCTYPE" in xml_data.upper():
+        raise ValueError("Archer XML responses must not contain a DTD")
+    parser = etree.XMLParser(
+        resolve_entities=False,
+        no_network=True,
+        load_dtd=False,
+        huge_tree=False,
+    )
+    document = etree.parse(BytesIO(xml_data), parser=parser)
+    if document.docinfo.doctype:
+        raise ValueError("Archer XML responses must not contain a DTD")
+    return document
 
 
 class ArcherSOAP:
@@ -231,9 +251,7 @@ class ArcherSOAP:
         if not result:
             return []
 
-        r_io = BytesIO(result[0].text.encode("UTF8"))
-        xmlp = etree.XMLParser(encoding="utf-8")
-        search_result = etree.parse(r_io, parser=xmlp)
+        search_result = parse_untrusted_xml(result[0].text)
         return search_result.xpath("/Records/Record")
 
     def get_record(self, content_id, module_id):
@@ -433,7 +451,5 @@ class ArcherSOAP:
                 session_token = api[0].getchildren()[0]
                 session_token.text = self.conn_obj.sessionToken
                 return self._do_request(uri, doc, method="post")
-            r_io = BytesIO(response.text.encode("UTF8"))
-            resp_doc = etree.parse(r_io)
-            return resp_doc
+            return parse_untrusted_xml(response.text)
         raise ValueError("Invalid Method")
