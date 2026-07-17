@@ -57,7 +57,7 @@
             "description": "Verify server certificate",
             "data_type": "boolean",
             "order": 4,
-            "default": false
+            "default": true
         },
         "cef_mapping": {
             "description": "CEF to Archer mapping",
