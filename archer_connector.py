@@ -186,6 +186,7 @@ class ArcherConnector(BaseConnector):
                     continue
                 break
             self.send_progress(f"Processing {nrecs} records, page {last_page}...")
+            page_fully_scanned = True
             for i, rec in enumerate(records):
                 content_id = int(rec["@contentId"])
                 if content_id <= max_content_id:
@@ -243,12 +244,14 @@ class ArcherConnector(BaseConnector):
                 max_ingested_id = max(max_ingested_id, c["data"]["archer_content_id"])
                 completed_records += 1
                 if completed_records >= max_records:
+                    if i < nrecs - 1:
+                        page_fully_scanned = False
+                        self.send_progress(f"Reached ingestion limit with records still pending on Archer page {last_page}")
                     break
 
-            if nrecs < self.POLLING_PAGE_SIZE:
+            if not page_fully_scanned or nrecs < self.POLLING_PAGE_SIZE:
                 break
-            else:
-                last_page += 1
+            last_page += 1
 
         self.save_progress(f"Ingested {completed_records} records")
         if not self.is_poll_now():
