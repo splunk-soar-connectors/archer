@@ -161,7 +161,7 @@ class ArcherAPISession:
         if r.status_code == consts.ARCHER_UNAUTHORIZED_USER:
             self.get_token()
             return self._rest_call(ep, meth, data)
-        r.raise_for_status
+        r.raise_for_status()
         try:
             r = r.content.decode() or r.reason
         except (UnicodeDecodeError, AttributeError):

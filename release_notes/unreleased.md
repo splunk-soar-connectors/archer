@@ -7,3 +7,4 @@
 * Required positive numeric content IDs before constructing Archer record API paths.
 * Restarted scheduled ingestion from page one when a persisted Archer page no longer exists.
 * Serialized Type 6 values-list fields and rejected unsupported field types instead of silently dropping writes.
+* Reported Archer REST HTTP errors instead of treating their response bodies as successful results.
