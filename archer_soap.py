@@ -12,7 +12,6 @@
 # the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
-import xml.etree.ElementTree as et
 from io import BytesIO
 
 import requests
@@ -127,21 +126,20 @@ class ArcherSOAP:
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + "/accesscontrol.asmx", doc)
         resp_root = resp_doc.getroot()
-        try:
-            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
-            if result:
-                for name_ele in result:
-                    if name_ele.text == groupname:
-                        for node in name_ele.itersiblings(tag="Id"):
-                            return int(node.text)
+        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
+        for name_element in result:
+            if name_element.text == groupname:
+                for node in name_element.itersiblings(tag="Id"):
+                    return int(node.text)
 
-        except (etree.XPathEvalError, AttributeError):
-            grp_id = None
-            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
-            if result and isinstance(result, list):
-                result = et.fromstring(result[0].text)
-                grp_id = result.find(".//Id").text
-                return grp_id
+        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
+        if result and result[0].text:
+            inner_document = parse_untrusted_xml(result[0].text)
+            for group in inner_document.xpath("//*[local-name()='Group']"):
+                names = group.xpath("./*[local-name()='Name']")
+                identifiers = group.xpath("./*[local-name()='Id']")
+                if names and identifiers and names[0].text == groupname:
+                    return int(identifiers[0].text)
 
         return
 

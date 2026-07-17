@@ -56,7 +56,7 @@ ERR_MSG_UNAVAILABLE = "Error message unavailable. Please check the asset configu
 ARCHER_OPERATOR_VALUELIST = ["and", "or"]
 ARCHER_EQUALITY_VALUELIST = ["contains", "equals"]
 
-ARCHER_XPATH_GROUP = "/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:/Group/dummy:Name"
+ARCHER_XPATH_GROUP = "/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:Group/dummy:Name"
 ARCHER_INVALID_JSON = "Invalid JSON string. Must be a dictionary containing key-value pairs"
 
 DEFAULT_TIMEOUT = 30
