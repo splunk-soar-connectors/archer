@@ -5,3 +5,4 @@
 * Rejected DTDs and bounded RSA Archer XML responses before parsing them with external entities disabled.
 * Hardened embedded Archer group lookup XML and corrected its primary XPath expression.
 * Required positive numeric content IDs before constructing Archer record API paths.
+* Restarted scheduled ingestion from page one when a persisted Archer page no longer exists.

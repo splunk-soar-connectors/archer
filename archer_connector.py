@@ -173,11 +173,17 @@ class ArcherConnector(BaseConnector):
 
         completed_records = 0
         max_ingested_id = max_content_id
+        restarted_from_first_page = False
         self.proxy.excluded_fields = [x.lower().strip() for x in config.get("exclude_fields", "").split(",")]
         while completed_records < max_records:
             records = self.proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort=sort_type, page=last_page)
             nrecs = len(records)
             if not records:
+                if last_page > 1 and not restarted_from_first_page:
+                    self.send_progress(f"Archer page {last_page} is empty; restarting ingestion scan from page 1")
+                    last_page = 1
+                    restarted_from_first_page = True
+                    continue
                 break
             self.send_progress(f"Processing {nrecs} records, page {last_page}...")
             for i, rec in enumerate(records):
