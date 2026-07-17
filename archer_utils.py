@@ -19,6 +19,7 @@ we use them both as necessary.
 
 import functools
 import json
+import re
 import sys
 
 import requests
@@ -276,13 +277,6 @@ class ArcherAPISession:
             return None
         return j["RequestedObject"]["Id"]
 
-    def concatenate_list_data(self, fv_list):
-        """Concatenates list values and create string"""
-        result = ""
-        for element in fv_list:
-            result += str(element)
-        return result
-
     @memoize
     def get_field_details(self, fieldId):
         """Returns details about the field with the given ID."""
@@ -302,14 +296,14 @@ class ArcherAPISession:
 
         if not field_value:
             raise TypeError("Either content id or Tracking ID field and record name are required")
-        fv = filter(lambda x: x.isdigit(), field_value)
-        fv = self.concatenate_list_data(list(fv))
-        if not fv:
-            return None
-        fv = int(fv)
+        match = re.fullmatch(r"\D*([0-9]+)\D*", str(field_value).strip())
+        if not match:
+            raise ValueError("Tracking ID values must contain exactly one contiguous numeric identifier")
+        fv = int(match.group(1))
 
         records = self.asoap.find_records(modid, app, fid, field_name, fv, filter_type="numeric")
-        # should only get one
+        if len(records) > 1:
+            raise ValueError(f'Multiple records matched tracking ID "{field_value}"')
         if records:
             return records[0].get("contentId")
         return None

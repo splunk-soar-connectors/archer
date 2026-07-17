@@ -9,3 +9,4 @@
 * Serialized Type 6 values-list fields and rejected unsupported field types instead of silently dropping writes.
 * Reported Archer REST HTTP errors instead of treating their response bodies as successful results.
 * Preserved the current Archer page checkpoint when scheduled ingestion reaches its record cap mid-page.
+* Rejected ambiguous tracking ID values and multiple record matches instead of silently targeting the first result.
