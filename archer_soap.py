@@ -328,7 +328,7 @@ class ArcherSOAP:
         type_formatter_map = {}
         for i in (1, 2, 3, 19):
             type_formatter_map[i] = self.plain_field
-        for i in (4, 9, 18, 27, 23):
+        for i in (4, 6, 9, 18, 27, 23):
             type_formatter_map[i] = self.mv_field
         for i in (8,):
             type_formatter_map[i] = self.user_field
@@ -351,8 +351,9 @@ class ArcherSOAP:
         update_doc = etree.ElementTree(r)
         for field in fields:
             fn = type_formatter_map.get(field["type"])
-            if fn:
-                fn(field, r)
+            if not fn:
+                raise ValueError(f"Unsupported Archer field type {field['type']} for field {field['id']}")
+            fn(field, r)
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
 
@@ -382,8 +383,9 @@ class ArcherSOAP:
         update_doc = etree.ElementTree(r)
         for field in fields:
             fn = type_formatter_map.get(field["type"])
-            if fn:
-                fn(field, r)
+            if not fn:
+                raise ValueError(f"Unsupported Archer field type {field['type']} for field {field['id']}")
+            fn(field, r)
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
 
