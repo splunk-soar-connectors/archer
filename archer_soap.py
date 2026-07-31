@@ -1,6 +1,6 @@
 # File: archer_soap.py
 #
-# Copyright (c) 2016-2025 Splunk Inc.
+# Copyright (c) 2016-2026 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
-import xml.etree.ElementTree as et
 from io import BytesIO
 
 import requests
@@ -41,6 +40,26 @@ ALL_NS_MAP = NS_MAP.copy()
 ALL_NS_MAP["dummy"] = ARCHERNS
 
 DEBUG = False
+MAX_XML_RESPONSE_BYTES = 10 * 1024 * 1024
+
+
+def parse_untrusted_xml(xml_data):
+    if isinstance(xml_data, str):
+        xml_data = xml_data.encode("utf-8")
+    if len(xml_data) > MAX_XML_RESPONSE_BYTES:
+        raise ValueError("Archer XML response exceeds the 10 MiB safety limit")
+    if b"<!DOCTYPE" in xml_data.upper():
+        raise ValueError("Archer XML responses must not contain a DTD")
+    parser = etree.XMLParser(
+        resolve_entities=False,
+        no_network=True,
+        load_dtd=False,
+        huge_tree=False,
+    )
+    document = etree.parse(BytesIO(xml_data), parser=parser)
+    if document.docinfo.doctype:
+        raise ValueError("Archer XML responses must not contain a DTD")
+    return document
 
 
 class ArcherSOAP:
@@ -107,21 +126,20 @@ class ArcherSOAP:
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + "/accesscontrol.asmx", doc)
         resp_root = resp_doc.getroot()
-        try:
-            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
-            if result:
-                for name_ele in result:
-                    if name_ele.text == groupname:
-                        for node in name_ele.itersiblings(tag="Id"):
-                            return int(node.text)
+        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP, namespaces=ALL_NS_MAP)
+        for name_element in result:
+            if name_element.text == groupname:
+                for node in name_element.itersiblings(tag="Id"):
+                    return int(node.text)
 
-        except (etree.XPathEvalError, AttributeError):
-            grp_id = None
-            result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
-            if result and isinstance(result, list):
-                result = et.fromstring(result[0].text)
-                grp_id = result.find(".//Id").text
-                return grp_id
+        result = resp_root.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP)
+        if result and result[0].text:
+            inner_document = parse_untrusted_xml(result[0].text)
+            for group in inner_document.xpath("//*[local-name()='Group']"):
+                names = group.xpath("./*[local-name()='Name']")
+                identifiers = group.xpath("./*[local-name()='Id']")
+                if names and identifiers and names[0].text == groupname:
+                    return int(identifiers[0].text)
 
         return
 
@@ -203,7 +221,7 @@ class ArcherSOAP:
             else:
                 fc = etree.SubElement(co, "TextFilterCondition")
                 op = etree.SubElement(fc, "Operator")
-                op.text = "Contains"
+                op.text = comparison
             fi = etree.SubElement(fc, "Field")
             fi.text = str(key_id)
             v = etree.SubElement(fc, "Value")
@@ -231,9 +249,7 @@ class ArcherSOAP:
         if not result:
             return []
 
-        r_io = BytesIO(result[0].text.encode("UTF8"))
-        xmlp = etree.XMLParser(encoding="utf-8")
-        search_result = etree.parse(r_io, parser=xmlp)
+        search_result = parse_untrusted_xml(result[0].text)
         return search_result.xpath("/Records/Record")
 
     def get_record(self, content_id, module_id):
@@ -312,7 +328,7 @@ class ArcherSOAP:
         type_formatter_map = {}
         for i in (1, 2, 3, 19):
             type_formatter_map[i] = self.plain_field
-        for i in (4, 9, 18, 27, 23):
+        for i in (4, 6, 9, 18, 27, 23):
             type_formatter_map[i] = self.mv_field
         for i in (8,):
             type_formatter_map[i] = self.user_field
@@ -335,8 +351,9 @@ class ArcherSOAP:
         update_doc = etree.ElementTree(r)
         for field in fields:
             fn = type_formatter_map.get(field["type"])
-            if fn:
-                fn(field, r)
+            if not fn:
+                raise ValueError(f"Unsupported Archer field type {field['type']} for field {field['id']}")
+            fn(field, r)
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
 
@@ -366,8 +383,9 @@ class ArcherSOAP:
         update_doc = etree.ElementTree(r)
         for field in fields:
             fn = type_formatter_map.get(field["type"])
-            if fn:
-                fn(field, r)
+            if not fn:
+                raise ValueError(f"Unsupported Archer field type {field['type']} for field {field['id']}")
+            fn(field, r)
 
         fv.text = etree.tostring(update_doc, pretty_print=True)
 
@@ -433,7 +451,5 @@ class ArcherSOAP:
                 session_token = api[0].getchildren()[0]
                 session_token.text = self.conn_obj.sessionToken
                 return self._do_request(uri, doc, method="post")
-            r_io = BytesIO(response.text.encode("UTF8"))
-            resp_doc = etree.parse(r_io)
-            return resp_doc
+            return parse_untrusted_xml(response.text)
         raise ValueError("Invalid Method")

@@ -1,6 +1,6 @@
 # File: archer_connector.py
 #
-# Copyright (c) 2016-2025 Splunk Inc.
+# Copyright (c) 2016-2026 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -173,13 +173,20 @@ class ArcherConnector(BaseConnector):
 
         completed_records = 0
         max_ingested_id = max_content_id
+        restarted_from_first_page = False
         self.proxy.excluded_fields = [x.lower().strip() for x in config.get("exclude_fields", "").split(",")]
         while completed_records < max_records:
             records = self.proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort=sort_type, page=last_page)
             nrecs = len(records)
             if not records:
+                if last_page > 1 and not restarted_from_first_page:
+                    self.send_progress(f"Archer page {last_page} is empty; restarting ingestion scan from page 1")
+                    last_page = 1
+                    restarted_from_first_page = True
+                    continue
                 break
             self.send_progress(f"Processing {nrecs} records, page {last_page}...")
+            page_fully_scanned = True
             for i, rec in enumerate(records):
                 content_id = int(rec["@contentId"])
                 if content_id <= max_content_id:
@@ -190,12 +197,7 @@ class ArcherConnector(BaseConnector):
                 cef = {}
                 for field in rec.get("Field", []):
                     name = field.get("@name")
-                    ftype = field.get("@type")
-                    content = None
-                    if ftype in []:
-                        pass
-                    else:
-                        content = field.get("#text")
+                    content = field.get("#text")
                     if name.lower() in cef_mapping:
                         cef[cef_mapping.get(name.lower(), name)] = content
                     if name == tracking_id_field:
@@ -242,12 +244,14 @@ class ArcherConnector(BaseConnector):
                 max_ingested_id = max(max_ingested_id, c["data"]["archer_content_id"])
                 completed_records += 1
                 if completed_records >= max_records:
+                    if i < nrecs - 1:
+                        page_fully_scanned = False
+                        self.send_progress(f"Reached ingestion limit with records still pending on Archer page {last_page}")
                     break
 
-            if nrecs < self.POLLING_PAGE_SIZE:
+            if not page_fully_scanned or nrecs < self.POLLING_PAGE_SIZE:
                 break
-            else:
-                last_page += 1
+            last_page += 1
 
         self.save_progress(f"Ingested {completed_records} records")
         if not self.is_poll_now():
@@ -281,7 +285,7 @@ class ArcherConnector(BaseConnector):
         """Returns an archer_utils.ArcherAPISession object."""
         if not self.proxy:
             ep, user, pwd, instance, users_domain = self._get_proxy_args()
-            verify = self.get_config().get("verify_ssl", False)
+            verify = self.get_config().get("verify_ssl", True)
             self.debug_print(f"New Archer API session at ep:{ep}, user:{user}, verify:{verify}")
             self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, users_domain, verify, self)
             archer_utils.W = self.debug_print
@@ -772,6 +776,10 @@ class ArcherConnector(BaseConnector):
         name_value = param.get("name_value")
         groups = param.get("groups")
         content_id = param.get("content_id")
+        if content_id:
+            status, content_id = self._validate_integer(action_result, content_id, "content_id", False)
+            if phantom.is_fail(status):
+                return action_result.get_status()
         lid = self.proxy.get_levelId_for_app(application)
         if lid is None:
             return action_result.set_status(phantom.APP_ERROR, f"Error: Could not identify application {application}")
@@ -875,6 +883,10 @@ class ArcherConnector(BaseConnector):
         field_id = param.get("field_id")
         name_value = param.get("name_value")
         content_id = param.get("content_id")
+        if content_id:
+            status, content_id = self._validate_integer(action_result, content_id, "content_id", False)
+            if phantom.is_fail(status):
+                return action_result.get_status()
         lid = self.proxy.get_levelId_for_app(application)
 
         if lid is None:
