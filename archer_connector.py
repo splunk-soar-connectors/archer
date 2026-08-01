@@ -155,13 +155,12 @@ class ArcherConnector(BaseConnector):
 
         state = self._state.get(application, {})
         max_content_id = state.get("max_content_id", -1)
-        last_page = state.get("last_page", 1)
         max_records = self.POLLING_PAGE_SIZE
         sort_type = consts.ARCHER_SORT_TYPE_ASCENDING
+        poll_now = self.is_poll_now()
 
-        if self.is_poll_now():
+        if poll_now:
             max_content_id = 0
-            last_page = 1
             max_records = param.get("container_count")
             sort_type = consts.ARCHER_SORT_TYPE_DESCENDING
 
@@ -171,91 +170,106 @@ class ArcherConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, consts.ARCHER_ERR_TRACKING_ID_NOT_PROVIDED)
         tracking_id_field = cef_mapping.pop("tracking")
 
-        completed_records = 0
-        max_ingested_id = max_content_id
-        restarted_from_first_page = False
         self.proxy.excluded_fields = [x.lower().strip() for x in config.get("exclude_fields", "").split(",")]
-        while completed_records < max_records:
-            records = self.proxy.find_records(application, tracking_id_field, None, self.POLLING_PAGE_SIZE, sort=sort_type, page=last_page)
+
+        # A page position is not a stable checkpoint because Archer records can
+        # be deleted or reordered. Scheduled polling therefore scans from page
+        # one and retains only the lowest new content IDs. Advancing the high
+        # water mark after that ordered selection cannot skip an unseen lower
+        # content ID, regardless of the configured tracking field's text order.
+        candidate_records = {}
+        page = 1
+        while True:
+            records = self.proxy.find_records(
+                application,
+                tracking_id_field,
+                None,
+                self.POLLING_PAGE_SIZE,
+                sort=sort_type,
+                page=page,
+            )
             nrecs = len(records)
             if not records:
-                if last_page > 1 and not restarted_from_first_page:
-                    self.send_progress(f"Archer page {last_page} is empty; restarting ingestion scan from page 1")
-                    last_page = 1
-                    restarted_from_first_page = True
-                    continue
                 break
-            self.send_progress(f"Processing {nrecs} records, page {last_page}...")
-            page_fully_scanned = True
-            for i, rec in enumerate(records):
+            self.send_progress(f"Scanning {nrecs} records, page {page}...")
+            for rec in records:
                 content_id = int(rec["@contentId"])
                 if content_id <= max_content_id:
                     continue
-                self.send_progress(f"On record {i + 1}/{nrecs}...")
-                record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
+                candidate_records[content_id] = rec
+                if len(candidate_records) > max_records:
+                    discard_id = min(candidate_records) if poll_now else max(candidate_records)
+                    candidate_records.pop(discard_id)
 
-                cef = {}
-                for field in rec.get("Field", []):
-                    name = field.get("@name")
-                    content = field.get("#text")
-                    if name.lower() in cef_mapping:
-                        cef[cef_mapping.get(name.lower(), name)] = content
-                    if name == tracking_id_field:
-                        record_num = str(field.get("#text"))
-                        record_name = f"{application} - {record_num}"
-
-                c = {
-                    "data": {},
-                    "description": "Ingested from Archer",
-                }
-                c["name"] = record_name
-                c["data"]["archer_record"] = rec
-                c["data"]["archer_url"] = self._get_proxy_args()
-                c["data"]["archer_instance"] = c["data"]["archer_url"][0]
-                c["data"]["archer_url"] = c["data"]["archer_url"][3]
-                c["data"]["archer_content_id"] = int(rec["@contentId"])
-                c["source_data_identifier"] = '{}@"{}"/{}'.format(
-                    c["data"]["archer_content_id"], c["data"]["archer_instance"], c["data"]["archer_url"]
-                )
-                c["data"]["raw"] = dict(rec)
-
-                self.send_progress("Saving container {}...".format(c["data"]["archer_content_id"]))
-                status, msg, id_ = self.save_container(c)
-                if status == phantom.APP_ERROR:
-                    self.debug_print(f"Failed to store: {c}")
-                    self.debug_print(f"stat/msg {status}/{msg}")
-                    action_result.set_status(phantom.APP_ERROR, f"Container creation failed: {msg}")
-                    return status
-                art = {
-                    "container_id": id_,
-                    "label": "event",
-                    "source_data_identifier": c["source_data_identifier"],
-                    "cef": cef,
-                    "run_automation": True,
-                    "name": record_name,
-                }
-                self.send_progress("Saving artifact...")
-                status, msg, id_ = self.save_artifact(art)
-                if status == phantom.APP_ERROR:
-                    self.debug_print(f"Failed to store: {c}")
-                    self.debug_print(f"stat/msg {status}/{msg}")
-                    action_result.set_status(phantom.APP_ERROR, f"Artifact creation failed: {msg}")
-                    return status
-                max_ingested_id = max(max_ingested_id, c["data"]["archer_content_id"])
-                completed_records += 1
-                if completed_records >= max_records:
-                    if i < nrecs - 1:
-                        page_fully_scanned = False
-                        self.send_progress(f"Reached ingestion limit with records still pending on Archer page {last_page}")
-                    break
-
-            if not page_fully_scanned or nrecs < self.POLLING_PAGE_SIZE:
+            if poll_now and len(candidate_records) >= max_records:
                 break
-            last_page += 1
+            if nrecs < self.POLLING_PAGE_SIZE:
+                break
+            page += 1
+
+        ordered_content_ids = sorted(candidate_records, reverse=poll_now)
+        records_to_ingest = [candidate_records[content_id] for content_id in ordered_content_ids]
+
+        completed_records = 0
+        max_ingested_id = max_content_id
+        for i, rec in enumerate(records_to_ingest):
+            content_id = int(rec["@contentId"])
+            self.send_progress(f"On record {i + 1}/{len(records_to_ingest)}...")
+            record_name = consts.ARCHER_ERR_RECORD_NOT_FOUND
+
+            cef = {}
+            for field in rec.get("Field", []):
+                name = field.get("@name")
+                content = field.get("#text")
+                if name.lower() in cef_mapping:
+                    cef[cef_mapping.get(name.lower(), name)] = content
+                if name == tracking_id_field:
+                    record_num = str(field.get("#text"))
+                    record_name = f"{application} - {record_num}"
+
+            c = {
+                "data": {},
+                "description": "Ingested from Archer",
+            }
+            c["name"] = record_name
+            c["data"]["archer_record"] = rec
+            c["data"]["archer_url"] = self._get_proxy_args()
+            c["data"]["archer_instance"] = c["data"]["archer_url"][0]
+            c["data"]["archer_url"] = c["data"]["archer_url"][3]
+            c["data"]["archer_content_id"] = int(rec["@contentId"])
+            c["source_data_identifier"] = '{}@"{}"/{}'.format(
+                c["data"]["archer_content_id"], c["data"]["archer_instance"], c["data"]["archer_url"]
+            )
+            c["data"]["raw"] = dict(rec)
+
+            self.send_progress("Saving container {}...".format(c["data"]["archer_content_id"]))
+            status, msg, id_ = self.save_container(c)
+            if status == phantom.APP_ERROR:
+                self.debug_print(f"Failed to store: {c}")
+                self.debug_print(f"stat/msg {status}/{msg}")
+                action_result.set_status(phantom.APP_ERROR, f"Container creation failed: {msg}")
+                return status
+            art = {
+                "container_id": id_,
+                "label": "event",
+                "source_data_identifier": c["source_data_identifier"],
+                "cef": cef,
+                "run_automation": True,
+                "name": record_name,
+            }
+            self.send_progress("Saving artifact...")
+            status, msg, id_ = self.save_artifact(art)
+            if status == phantom.APP_ERROR:
+                self.debug_print(f"Failed to store: {c}")
+                self.debug_print(f"stat/msg {status}/{msg}")
+                action_result.set_status(phantom.APP_ERROR, f"Artifact creation failed: {msg}")
+                return status
+            max_ingested_id = max(max_ingested_id, c["data"]["archer_content_id"])
+            completed_records += 1
 
         self.save_progress(f"Ingested {completed_records} records")
-        if not self.is_poll_now():
-            self._state[application] = {"max_content_id": max_ingested_id, "last_page": last_page}
+        if not poll_now:
+            self._state[application] = {"max_content_id": max_ingested_id}
         self.save_progress("Import complete.")
         return action_result.set_status(phantom.APP_SUCCESS, "Import complete")
 
