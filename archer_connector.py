@@ -16,6 +16,7 @@
 
 import base64
 import fcntl
+import hashlib
 import json
 import os
 import sys
@@ -37,6 +38,7 @@ class ArcherConnector(BaseConnector):
     """
 
     POLLING_PAGE_SIZE = 100
+    POLLING_STABILITY_ATTEMPTS = 3
     LIST_TICKETS_PAGE_SIZE = 500
 
     def __init__(self):
@@ -172,40 +174,59 @@ class ArcherConnector(BaseConnector):
 
         self.proxy.excluded_fields = [x.lower().strip() for x in config.get("exclude_fields", "").split(",")]
 
-        # A page position is not a stable checkpoint because Archer records can
-        # be deleted or reordered. Scheduled polling therefore scans from page
-        # one and retains only the lowest new content IDs. Advancing the high
-        # water mark after that ordered selection cannot skip an unseen lower
-        # content ID, regardless of the configured tracking field's text order.
+        # Offset pages are not a stable checkpoint because records can be
+        # deleted or reordered while a scan is running. Keep the candidate set
+        # bounded, fingerprint the complete result ordering, and require two
+        # identical multi-page scans before advancing scheduled state. A busy
+        # data set fails closed after bounded retries and is retried from the
+        # previous high-water mark on the next poll.
         candidate_records = {}
-        page = 1
-        while True:
-            records = self.proxy.find_records(
-                application,
-                tracking_id_field,
-                None,
-                self.POLLING_PAGE_SIZE,
-                sort=sort_type,
-                page=page,
-            )
-            nrecs = len(records)
-            if not records:
-                break
-            self.send_progress(f"Scanning {nrecs} records, page {page}...")
-            for rec in records:
-                content_id = int(rec["@contentId"])
-                if content_id <= max_content_id:
-                    continue
-                candidate_records[content_id] = rec
-                if len(candidate_records) > max_records:
-                    discard_id = min(candidate_records) if poll_now else max(candidate_records)
-                    candidate_records.pop(discard_id)
+        previous_fingerprint = None
+        for attempt in range(1, self.POLLING_STABILITY_ATTEMPTS + 1):
+            candidate_records = {}
+            scan_hash = hashlib.sha256()
+            page = 1
+            while True:
+                records = self.proxy.find_records(
+                    application,
+                    tracking_id_field,
+                    None,
+                    self.POLLING_PAGE_SIZE,
+                    sort=sort_type,
+                    page=page,
+                )
+                nrecs = len(records)
+                scan_hash.update(f"page:{page}:count:{nrecs};".encode())
+                if not records:
+                    break
+                self.send_progress(f"Scanning {nrecs} records, page {page} (attempt {attempt})...")
+                for rec in records:
+                    content_id = int(rec["@contentId"])
+                    scan_hash.update(f"{content_id},".encode())
+                    if content_id <= max_content_id:
+                        continue
+                    candidate_records[content_id] = rec
+                    if len(candidate_records) > max_records:
+                        discard_id = min(candidate_records) if poll_now else max(candidate_records)
+                        candidate_records.pop(discard_id)
 
-            if poll_now and len(candidate_records) >= max_records:
+                if nrecs < self.POLLING_PAGE_SIZE:
+                    break
+                page += 1
+
+            if poll_now or page == 1:
                 break
-            if nrecs < self.POLLING_PAGE_SIZE:
+            fingerprint = scan_hash.digest()
+            if fingerprint == previous_fingerprint:
                 break
-            page += 1
+            previous_fingerprint = fingerprint
+            if attempt < self.POLLING_STABILITY_ATTEMPTS:
+                self.send_progress("Archer results changed or require confirmation; rescanning before checkpointing")
+        else:
+            return action_result.set_status(
+                phantom.APP_ERROR,
+                "Archer results changed during polling; state was not advanced and the poll can be retried",
+            )
 
         ordered_content_ids = sorted(candidate_records, reverse=poll_now)
         records_to_ingest = [candidate_records[content_id] for content_id in ordered_content_ids]
