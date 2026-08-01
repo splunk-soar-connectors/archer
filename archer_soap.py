@@ -41,6 +41,8 @@ ALL_NS_MAP["dummy"] = ARCHERNS
 
 DEBUG = False
 MAX_XML_RESPONSE_BYTES = 10 * 1024 * 1024
+REQUEST_TIMEOUT_SECONDS = 30
+RESPONSE_CHUNK_BYTES = 64 * 1024
 
 
 def parse_untrusted_xml(xml_data):
@@ -60,6 +62,26 @@ def parse_untrusted_xml(xml_data):
     if document.docinfo.doctype:
         raise ValueError("Archer XML responses must not contain a DTD")
     return document
+
+
+def read_bounded_response(response):
+    content_length = response.headers.get("Content-Length")
+    if content_length:
+        try:
+            content_length = int(content_length)
+        except ValueError:
+            content_length = None
+        if content_length is not None and content_length > MAX_XML_RESPONSE_BYTES:
+            raise ValueError("Archer XML response exceeds the 10 MiB safety limit")
+
+    body = bytearray()
+    for chunk in response.iter_content(chunk_size=RESPONSE_CHUNK_BYTES):
+        if not chunk:
+            continue
+        if len(body) + len(chunk) > MAX_XML_RESPONSE_BYTES:
+            raise ValueError("Archer XML response exceeds the 10 MiB safety limit")
+        body.extend(chunk)
+    return bytes(body)
 
 
 class ArcherSOAP:
@@ -442,14 +464,24 @@ class ArcherSOAP:
                 "Content-Type": "text/xml; charset=utf-8",
                 "SOAPAction": f'"http://archer-tech.com/webservices/{api_tag}"',
             }
-            response = requests.post(  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                uri, data=xml, headers=headers, verify=self.verify_cert
+            response = requests.post(
+                uri,
+                data=xml,
+                headers=headers,
+                verify=self.verify_cert,
+                stream=True,
+                timeout=REQUEST_TIMEOUT_SECONDS,
             )
-            generate_new_token = any(x in response.text for x in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
+            try:
+                response.raise_for_status()
+                response_body = read_bounded_response(response)
+            finally:
+                response.close()
+            generate_new_token = any(message.encode() in response_body for message in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
             if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]
                 session_token.text = self.conn_obj.sessionToken
                 return self._do_request(uri, doc, method="post")
-            return parse_untrusted_xml(response.text)
+            return parse_untrusted_xml(response_body)
         raise ValueError("Invalid Method")
