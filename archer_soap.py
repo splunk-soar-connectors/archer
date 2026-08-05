@@ -473,11 +473,12 @@ class ArcherSOAP:
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
             try:
-                response.raise_for_status()
                 response_body = read_bounded_response(response)
+                generate_new_token = any(message.encode() in response_body for message in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
+                if not generate_new_token:
+                    response.raise_for_status()
             finally:
                 response.close()
-            generate_new_token = any(message.encode() in response_body for message in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
             if generate_new_token:
                 self._authenticate()
                 session_token = api[0].getchildren()[0]
