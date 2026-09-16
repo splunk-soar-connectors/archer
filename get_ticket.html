@@ -1,4 +1,4 @@
-{% extends 'widgets/widget_template.html' %}
+{% extends "widgets/widget_template.html" %}
 {% load custom_template %}
 {% block custom_title_prop %}
   {% if title_logo %}
@@ -147,7 +147,7 @@ and limitations under the License.
             <th>Value</th>
           </tr>
           {% for f in result.record %}
-            {% if f|by_key:'@value' %}
+            {% if f|by_key:"@value" %}
               <tr>
                 <td>{{ f|by_key:'@name' }}</td>
                 {% if f.multi_value %}
