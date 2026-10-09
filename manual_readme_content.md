@@ -15,11 +15,8 @@ credential sets are populated. The PAT is stored as a secret in the asset, and
 is not copied into connector state. Changing authentication type clears the
 cached login session while retaining ingestion checkpoints.
 
-This customer validation build targets Archer v2025.12.01 under the assumption
-that its existing REST and SOAP endpoints accept
-`Authorization: Archer session-id="<PAT>"`. SOAP requests also supply the PAT
-in their existing `sessionToken` XML parameter. This combination must be
-validated on the target deployment before production use.
+The app sends the PAT in Archer's session-id Authorization header. SOAP
+requests also supply it in the existing `sessionToken` XML parameter.
 
 In PAT mode, **test connectivity** checks REST application metadata and SOAP
 group lookup separately. An empty application or group result can still be
