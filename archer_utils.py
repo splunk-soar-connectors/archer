@@ -28,6 +28,7 @@ from bs4 import UnicodeDammit
 from lxml import etree
 
 import archer_consts as consts
+from archer_auth import ArcherAPIError, ArcherPermissionError, controlled_error_message, request_failure_reason
 from archer_soap import ArcherSOAP
 
 
@@ -94,6 +95,7 @@ class ArcherAPISession:
         self.password = password
         self.instanceName = instanceName
         self.conn_obj = obj
+        self.auth = obj.auth
         self.verifySSL = verify_ssl
         self.excluded_fields = []
         self.headers = {
@@ -118,56 +120,53 @@ class ArcherAPISession:
         :return: error message
         """
 
-        error_code = None
-        error_msg = consts.ERR_MSG_UNAVAILABLE
-
-        self.conn_obj.error_print("Error occurred.", e)
-
-        try:
-            if hasattr(e, "args"):
-                if len(e.args) > 1:
-                    error_code = e.args[0]
-                    error_msg = e.args[1]
-                elif len(e.args) == 1:
-                    error_msg = e.args[0]
-        except Exception as e:
-            self.conn_obj.error_print(f"Error occurred while fetching exception information. Details: {e!s}")
-
-        if not error_code:
-            error_text = f"Error Message: {error_msg}"
-        else:
-            error_text = f"Error Code: {error_code}. Error Message: {error_msg}"
-
-        return error_text
+        error_message = controlled_error_message(e)
+        self.conn_obj.error_print("Archer operation failed.", error_message)
+        return error_message
 
     def get_token(self):
+        if self.auth.is_pat:
+            raise ArcherAPIError("Password login is unavailable when PAT authentication is selected")
         self.asoap._authenticate()
 
-    def _rest_call(self, ep, meth="get", data={}):
-        hdrs = self.headers.copy()
-        hdrs.update({"X-Http-Method-Override": meth})
-        hdrs.update({"Authorization": f'Archer session-id="{self.conn_obj.sessionToken}"'})
-        url = f"{self.base_url}{ep}"
+    def validate_pat_rest(self):
+        applications = json.loads(self._rest_call("/api/core/system/application"))
+        if not isinstance(applications, list) or any(
+            not isinstance(application, dict) or application.get("IsSuccessful") is not True for application in applications
+        ):
+            raise ArcherAPIError("REST PAT validation failed: Archer did not return a successful application metadata response")
 
+    def _rest_call(self, ep, meth="get", data=None):
+        url = f"{self.base_url}{ep}"
         request_func = getattr(requests, meth)
-        if data:
-            r = request_func(
-                url,
-                headers=hdrs,
-                json=data,
-                verify=self.verifySSL,  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-            )
-        else:
-            r = request_func(url, headers=hdrs, verify=self.verifySSL)  # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-        if r.status_code == consts.ARCHER_UNAUTHORIZED_USER:
+        for attempt in range(2):
+            hdrs = self.headers.copy()
+            hdrs.update({"X-Http-Method-Override": meth})
+            hdrs.update(self.auth.headers("rest"))
+            kwargs = {"headers": hdrs, "verify": self.verifySSL, "timeout": consts.DEFAULT_TIMEOUT}
+            if data:
+                kwargs["json"] = data
+            try:
+                response = request_func(url, **kwargs)
+                try:
+                    if response.status_code == consts.ARCHER_UNAUTHORIZED_USER:
+                        if self.auth.is_pat or attempt:
+                            raise self.auth.authentication_error()
+                    elif response.status_code == 403:
+                        raise ArcherPermissionError(consts.ARCHER_PERMISSION_ERROR)
+                    else:
+                        response.raise_for_status()
+                        try:
+                            return response.content.decode() or response.reason
+                        except (UnicodeDecodeError, AttributeError):
+                            return response.text or response.reason
+                finally:
+                    response.close()
+            except requests.RequestException as e:
+                status_code = getattr(getattr(e, "response", None), "status_code", None)
+                status = f" (HTTP {status_code})" if status_code is not None else ""
+                raise ArcherAPIError(f"Archer REST request {request_failure_reason(e)}{status}") from None
             self.get_token()
-            return self._rest_call(ep, meth, data)
-        r.raise_for_status()
-        try:
-            r = r.content.decode() or r.reason
-        except (UnicodeDecodeError, AttributeError):
-            return r.text or r.reason
-        return r
 
     @memoize
     def get_fieldId_for_content_and_name(self, cid, fname):
@@ -289,6 +288,8 @@ class ArcherAPISession:
         except (ValueError, TypeError):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
+            except ArcherAPIError:
+                raise
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
                 raise Exception(f'Failed to find field "{field_name}" in "{app}": {err}')
@@ -395,7 +396,7 @@ class ArcherAPISession:
         """Returns the ValuesList with the give Id"""
         j = json.loads(self._rest_call(f"/api/core/system/valueslistvalue/flat/valueslist/{vlid}", "get"))
         if "Message" in j:
-            W("Error getting valueslist {}: {}".format(vlid, j["Message"]))
+            W("Archer returned an unsuccessful values-list response")
             return None
         return [x["RequestedObject"] for x in j]
 
@@ -452,7 +453,7 @@ class ArcherAPISession:
         """Returns the full record with the given id."""
         j = json.loads(self._rest_call(f"/api/core/content/{cid}", "get"))
         if not j["IsSuccessful"]:
-            W("Failed to fetch record with cid {}: {}".format(cid, j["ValidationMessages"][0]["ResourcedMessage"]))
+            W("Archer returned an unsuccessful content response")
             return None
         return j["RequestedObject"]
 
@@ -543,6 +544,8 @@ class ArcherAPISession:
         except (ValueError, TypeError):
             try:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
+            except ArcherAPIError:
+                raise
             except Exception as e:
                 err = self._get_error_message_from_exception(e)
                 pass
@@ -765,7 +768,7 @@ class ArcherAPISession:
                     data = data_dict["result"]
 
                 except Exception as e:
-                    result_dict["message"] = f"Failed to get page {page_number} of report. Check input parameters are valid. e = {e}"
+                    result_dict["message"] = f"Failed to get saved report page {page_number}: {controlled_error_message(e)}"
                     return result_dict
 
                 # Try to parse current report page from xml to a dictionary
@@ -774,8 +777,8 @@ class ArcherAPISession:
                         raw_dict = {}
                     else:
                         raw_dict = xmltodict.parse(data) or {}
-                except Exception as e:
-                    result_dict["message"] = f"Failed to parse report page {page_number} to dict - e = {e}"
+                except Exception:
+                    result_dict["message"] = f"Archer returned invalid report data on page {page_number}"
                     return result_dict
 
                 # Try to get tickets/records from current report page
@@ -797,16 +800,16 @@ class ArcherAPISession:
                             result_dict["page_count"] = page_number - 1
                         return result_dict
 
-                except Exception as e:
-                    result_dict["message"] = f"Failed to get tickets from report page {page_number} - {e}"
+                except Exception:
+                    result_dict["message"] = f"Archer returned an unexpected record structure on report page {page_number}"
                     return result_dict
 
                 # Try to get field definitions for current report page
                 try:
                     field_defs = raw_dict["Records"]["Metadata"]["FieldDefinitions"]["FieldDefinition"]
 
-                except Exception as e:
-                    result_dict["message"] = f"Failed to get field definitions for report page {page_number} - e = {e}"
+                except Exception:
+                    result_dict["message"] = f"Archer returned incomplete field definitions on report page {page_number}"
                     return result_dict
 
                 # Merge the field definitions with the record/ticket data for the current report page
@@ -829,7 +832,7 @@ class ArcherAPISession:
 
         except Exception as e:
             result_dict["status"] = "failed"
-            result_dict["message"] = f"Failed while getting report page(s) - e = {e}"
+            result_dict["message"] = f"Saved report retrieval failed: {controlled_error_message(e)}"
             return result_dict
 
     def merge_field_defs(self, field_defs, raw_records, max_count, total_count, page_number):
@@ -886,7 +889,7 @@ class ArcherAPISession:
 
                     except Exception as e:
                         err = self._get_error_message_from_exception(e)
-                        W(f"Failed to parse {field}: {err}")
+                        W(f"Failed to parse an Archer report field: {err}")
                         field["@name"] = None
                     new_fields.append(field)
 
@@ -909,8 +912,8 @@ class ArcherAPISession:
             merge_dict["message"] = "Report retrieved"
             return merge_dict
 
-        except Exception as e:
-            merge_dict["message"] = f"Failed to merge field definitions with report page {page_number} ticket data - e = {e}"
+        except Exception:
+            merge_dict["message"] = f"Archer returned data that could not be processed on report page {page_number}"
             return merge_dict
 
     def process_user_multivalue(self, x):

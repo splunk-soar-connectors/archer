@@ -30,6 +30,7 @@ from phantom.base_connector import BaseConnector
 # Imports local to this App
 import archer_consts as consts
 import archer_utils
+from archer_auth import ArcherAPIError, ArcherAuth, controlled_error_message
 
 
 class ArcherConnector(BaseConnector):
@@ -49,7 +50,7 @@ class ArcherConnector(BaseConnector):
         self.file_ = consts.ARCHER_LAST_RECORD_FILE.format(self.get_asset_id())
         self.latest_time = 0
         self.proxy = None
-        self.sessionToken = None
+        self.auth = None
         if isinstance(self.get_app_config(), dict):
             self.latest_time = self.get_app_config().get("past_days", 0)
         if os.path.isfile(self.file_):
@@ -70,10 +71,16 @@ class ArcherConnector(BaseConnector):
             self.debug_print("Resetting the state file with the default format")
             self._state = {"app_version": self.get_app_json().get("app_version")}
 
-        self.sessionToken = self._state.get(consts.ARCHER_SESSION_TOKEN)
-        if self.sessionToken:
-            self.sessionToken = self.decrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
         try:
+            self.auth = ArcherAuth(self.get_config())
+            previous_mode = self._state.get(consts.ARCHER_AUTH_STATE, consts.ARCHER_AUTH_PASSWORD)
+            if self.auth.is_pat or previous_mode != self.auth.mode:
+                self._state.pop(consts.ARCHER_SESSION_TOKEN, None)
+            else:
+                token = self._state.get(consts.ARCHER_SESSION_TOKEN)
+                if token:
+                    self.auth.session_token = self.decrypt_state(token, consts.ARCHER_SESSION_TOKEN)
+            self._state[consts.ARCHER_AUTH_STATE] = self.auth.mode
             self.proxy = self._get_proxy()
         except Exception as e:
             err = self._get_error_message_from_exception(e)
@@ -81,9 +88,10 @@ class ArcherConnector(BaseConnector):
         return phantom.APP_SUCCESS
 
     def finalize(self):
-        self._state[consts.ARCHER_SESSION_TOKEN] = self.sessionToken
-        if self.sessionToken:
-            self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(self.sessionToken, consts.ARCHER_SESSION_TOKEN)
+        if self.auth:
+            self._state.pop(consts.ARCHER_SESSION_TOKEN, None)
+            if not self.auth.is_pat and self.auth.session_token:
+                self._state[consts.ARCHER_SESSION_TOKEN] = self.encrypt_state(self.auth.session_token, consts.ARCHER_SESSION_TOKEN)
         self.save_state(self._state)
         return phantom.APP_SUCCESS
 
@@ -110,27 +118,9 @@ class ArcherConnector(BaseConnector):
         :return: error message
         """
 
-        error_code = None
-        error_msg = consts.ERR_MSG_UNAVAILABLE
-
-        self.error_print("Error occurred.", e)
-
-        try:
-            if hasattr(e, "args"):
-                if len(e.args) > 1:
-                    error_code = e.args[0]
-                    error_msg = e.args[1]
-                elif len(e.args) == 1:
-                    error_msg = e.args[0]
-        except Exception as e:
-            self.error_print(f"Error occurred while fetching exception information. Details: {e!s}")
-
-        if not error_code:
-            error_text = f"Error Message: {error_msg}"
-        else:
-            error_text = f"Error Code: {error_code}. Error Message: {error_msg}"
-
-        return error_text
+        error_message = controlled_error_message(e)
+        self.error_print("Archer operation failed.", error_message)
+        return error_message
 
     def _handle_on_poll(self, action_result, param):
         """Handles 'on_poll' ingest actions"""
@@ -321,25 +311,33 @@ class ArcherConnector(BaseConnector):
         if not self.proxy:
             ep, user, pwd, instance, users_domain = self._get_proxy_args()
             verify = self.get_config().get("verify_ssl", True)
-            self.debug_print(f"New Archer API session at ep:{ep}, user:{user}, verify:{verify}")
+            self.debug_print(f"New Archer API session at ep:{ep}, authentication:{self.auth.mode}, verify:{verify}")
             self.proxy = archer_utils.ArcherAPISession(ep, user, pwd, instance, users_domain, verify, self)
             archer_utils.W = self.debug_print
         return self.proxy
 
     def _handle_test_connectivity(self, action_result, param):
-        """Tests Archer connectivity and App config by attempting to log in."""
-        self.send_progress("Archer login test initiated...")
+        """Validate the selected authentication method against Archer."""
+        self.send_progress("Archer authentication test initiated...")
 
         try:
-            self.proxy.get_token()
+            if self.auth.is_pat:
+                self.send_progress("Testing REST PAT authentication...")
+                self.proxy.validate_pat_rest()
+                self.send_progress("REST PAT authentication... SUCCESS")
+                self.send_progress("Testing SOAP PAT authentication...")
+                self.proxy.asoap.validate_pat()
+                self.send_progress("SOAP PAT authentication... SUCCESS")
+            else:
+                self.proxy.get_token()
         except Exception as e:
             err = self._get_error_message_from_exception(e)
             self.debug_print(f"Exception during archer test: {err}")
-            self.save_progress("Archer login test failed")
+            self.save_progress("Archer authentication test failed")
             self.save_progress(err)
-            self.save_progress("Please provide correct URL and credentials")
+            self.save_progress("Please verify the URL, selected authentication configuration, and Archer permissions")
             return action_result.set_status(phantom.APP_ERROR, "Test Connectivity failed")
-        self.send_progress("Archer login test... SUCCESS")
+        self.send_progress("Archer authentication test... SUCCESS")
         msg = consts.ARCHER_SUCC_CONFIGURATION
         self.save_progress("Test connectivity passed")
 
@@ -507,7 +505,9 @@ class ArcherConnector(BaseConnector):
                 action_result.set_status(phantom.APP_SUCCESS, "Ticket retrieved")
             else:
                 action_result.set_status(phantom.APP_ERROR, "Could not locate Ticket")
-        except:
+        except ArcherAPIError:
+            raise
+        except Exception:
             action_result.set_status(phantom.APP_ERROR, f"Given content_id not found in '{app}' application")
 
         return action_result.get_status()
@@ -666,15 +666,15 @@ class ArcherConnector(BaseConnector):
         container = self.get_container_id()
 
         try:
-            success, message, info = vault.vault_info(vault_id=vault_id, container_id=container)
+            success, _, info = vault.vault_info(vault_id=vault_id, container_id=container)
             if success:
                 file_path = info[0]["path"]
                 file_name = name_of_file if name_of_file else info[0]["name"]
                 with open(file_path, "rb") as file_object:
                     attachment_data = file_object.read()
-                    attachment_bytes = base64.encodebytes(attachment_data)
+                    attachment_bytes = base64.encodebytes(attachment_data).decode("ascii")
             else:
-                return action_result.set_status(phantom.APP_ERROR, message)
+                return action_result.set_status(phantom.APP_ERROR, "Unable to read the attachment from the SOAR vault")
 
             data = {"AttachmentName": file_name, "AttachmentBytes": attachment_bytes}
             try:
@@ -683,13 +683,14 @@ class ArcherConnector(BaseConnector):
                 response = json.loads(response)
             except Exception as e:
                 return action_result.set_status(
-                    phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response if response else str(e))
+                    phantom.APP_ERROR,
+                    consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), self._get_error_message_from_exception(e)),
                 )
             if response["IsSuccessful"]:
                 action_result.add_data({"Attachment_ID": response["RequestedObject"]["Id"]})
                 action_result.set_status(phantom.APP_SUCCESS, "Attachment created successfully")
             else:
-                action_result.set_status(phantom.APP_ERROR, response["ValidationMessages"][0]["ResourcedMessage"])
+                action_result.set_status(phantom.APP_ERROR, "Archer rejected the attachment request. Check required fields and permissions")
         except Exception as e:
             err = self._get_error_message_from_exception(e)
             action_result.set_status(phantom.APP_ERROR, f"Error: {err}")
@@ -794,7 +795,7 @@ class ArcherConnector(BaseConnector):
                 action_result.update_summary({"pages_found": result_dict["page_count"]})
 
         except Exception as e:
-            action_result.set_status(phantom.APP_ERROR, f"Error handling get report action - e = {e}")
+            action_result.set_status(phantom.APP_ERROR, f"Error handling get report action: {self._get_error_message_from_exception(e)}")
 
         return action_result.get_status()
 
@@ -880,7 +881,7 @@ class ArcherConnector(BaseConnector):
             error_message = self._get_error_message_from_exception(e)
             return action_result.set_status(phantom.APP_ERROR, f"Error while parsing users/groups. {error_message}")
 
-        self.debug_print(f"assign_ticket_request: {assign_ticket_request}")
+        self.debug_print("Submitting ticket assignment request to Archer")
 
         # make REST call
         try:
@@ -889,14 +890,13 @@ class ArcherConnector(BaseConnector):
             response = json.loads(response)
         except Exception as e:
             return action_result.set_status(
-                phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response if response else str(e))
+                phantom.APP_ERROR,
+                consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), self._get_error_message_from_exception(e)),
             )
-
-        # Add response to action_result for troubleshooting purposes
-        action_result.add_data(response)
 
         try:
             if response["IsSuccessful"]:
+                action_result.add_data(response)
                 action_result.set_status(phantom.APP_SUCCESS, "Groups/Users successfully assigned")
             else:
                 action_result.set_status(phantom.APP_ERROR, "Action failed. Groups/Users not assigned.")
@@ -995,14 +995,13 @@ class ArcherConnector(BaseConnector):
             response = json.loads(response)
         except Exception as e:
             return action_result.set_status(
-                phantom.APP_ERROR, consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), response if response else str(e))
+                phantom.APP_ERROR,
+                consts.ARCHER_ERR_ACTION_EXECUTION.format(self.get_action_identifier(), self._get_error_message_from_exception(e)),
             )
-
-        # Add response data to action result for troubleshooting purposes
-        action_result.add_data(response)
 
         try:
             if response["IsSuccessful"]:
+                action_result.add_data(response)
                 action_result.set_status(phantom.APP_SUCCESS, "Alert successfully attached to Incident")
             else:
                 action_result.set_status(phantom.APP_ERROR, "Action failed. Alert not attached to Incident.")
@@ -1096,13 +1095,13 @@ if __name__ == "__main__":
             r2 = requests.post(login_url, verify=verify, data=data, headers=headers, timeout=consts.DEFAULT_TIMEOUT)
             session_id = r2.cookies["sessionid"]
         except Exception as e:
-            print("Unable to get session id from the platfrom. Error: " + str(e))
+            print("Unable to authenticate to Splunk SOAR for standalone testing")
             sys.exit(1)
 
     with open(args.input_test_json) as f:
         in_json = f.read()
         in_json = json.loads(in_json)
-        print(json.dumps(in_json, indent=4))
+        print("Loaded standalone connector input")
         connector = ArcherConnector()
         connector.print_progress_message = True
 

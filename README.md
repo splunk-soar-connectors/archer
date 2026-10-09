@@ -1,12 +1,46 @@
 # RSA Archer
 
 Publisher: Splunk <br>
-Connector Version: 4.0.2 <br>
+Connector Version: 4.1.0 <br>
 Product Vendor: RSA <br>
 Product Name: Archer GRC <br>
 Minimum Product Version: 6.2.1
 
 This app implements ticket management actions on RSA Archer GRC
+
+### Authentication
+
+Select an **Authentication type** when configuring the asset:
+
+- **Username and password** is the default for existing assets. Supply the
+  username and password. The app obtains and caches an encrypted Archer session
+  token.
+- **Personal access token** uses an Archer-generated PAT. Generate the token
+  in Archer's Personal Access Tokens page and enter it in the asset's
+  **Personal access token** field. Username and password can be left blank.
+  The app uses the PAT owner's permissions and does not perform password login.
+
+The authentication type determines which credentials are used even when both
+credential sets are populated. The PAT is stored as a secret in the asset, and
+is not copied into connector state. Changing authentication type clears the
+cached login session while retaining ingestion checkpoints.
+
+This customer validation build targets Archer v2025.12.01 under the assumption
+that its existing REST and SOAP endpoints accept
+`Authorization: Archer session-id="<PAT>"`. SOAP requests also supply the PAT
+in their existing `sessionToken` XML parameter. This combination must be
+validated on the target deployment before production use.
+
+In PAT mode, **test connectivity** checks REST application metadata and SOAP
+group lookup separately. An empty application or group result can still be
+successful. The PAT owner needs permission to execute both probe operations;
+successful connectivity does not establish permission for every action.
+
+If a PAT expires or is revoked, replace the asset's PAT and run **test
+connectivity** again. The next execution reads the updated token. The app does
+not automatically rotate PATs or fall back to username/password login. Check
+the PAT owner's permissions if Archer denies an operation. Keep **Verify server
+certificate** enabled when using a trusted server certificate.
 
 When configuring the CEF to Archer mapping (cef_mapping), include the following...
 
@@ -42,10 +76,17 @@ If a field is specified both in the cef_mapping and in the excluded fields list,
 ### Explanation of the **[User's Domain]** asset configuration parameter
 
 - This asset configuration parameter affects [test connectivity] and all the other actions of the application.
-- When the value of this asset parameter is specified, the application will consider the user specified in the asset parameter [username] as the domain user of a given domain, and all the actions will be executed with the domain user session token created while running the action.
-- The user will be considered as a local user when the value of this parameter is not present. And if the local user attempts to change/add any of the field value(fields that expect the username value) with the domain user, then the action will fail because it requires a domain user session token to look up the domain user. And this token is generated only if the test connectivity is successfully run by the domain user
+- With username/password authentication, this parameter selects domain-user
+  login. Leave it blank for local-user login.
+- With PAT authentication, the PAT determines the authenticated identity. The
+  domain parameter remains available to resolve domain users when creating or
+  updating user/group fields. The PAT owner must have the corresponding lookup
+  and record permissions.
 
 ### Steps to update the session time on Archer UI:
+
+These settings apply to login-generated sessions when using username/password
+authentication. PAT expiration is configured separately in Archer.
 
 By default the session timeout in Archer will be 10 minutes, It is recommended to increase the timeout so that a token generated works for longer time.
 Steps to update the session timeout:
@@ -64,8 +105,10 @@ VARIABLE | REQUIRED | TYPE | DESCRIPTION
 -------- | -------- | ---- | -----------
 **endpoint_url** | required | string | API endpoint (e.g., http://host/RSAarcher) |
 **instance_name** | required | string | Instance name (e.g., Default) |
-**username** | required | string | Username |
-**password** | required | password | Password |
+**auth_type** | optional | string | Authentication type |
+**username** | optional | string | Username (required for username/password authentication) |
+**password** | optional | password | Password (required for username/password authentication) |
+**personal_access_token** | optional | password | Personal access token (required for PAT authentication) |
 **verify_ssl** | optional | boolean | Verify server certificate |
 **cef_mapping** | optional | string | CEF to Archer mapping |
 **exclude_fields** | optional | string | Fields to exclude (comma separated) |
