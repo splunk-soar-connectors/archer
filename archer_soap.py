@@ -19,6 +19,7 @@ from bs4 import UnicodeDammit
 from lxml import etree
 
 import archer_consts
+from archer_auth import ArcherAPIError, ArcherPermissionError, request_failure_reason
 
 
 SOAPNS = "http://schemas.xmlsoap.org/soap/envelope/"
@@ -93,10 +94,13 @@ class ArcherSOAP:
         self.verify_cert = verify_cert
         self.users_domain = usersDomain
         self.conn_obj = conn_obj
-        if not self.conn_obj.sessionToken:
+        self.auth = conn_obj.auth
+        if not self.auth.is_pat and not self.auth.session_token:
             self._authenticate()
 
     def _authenticate(self):
+        if self.auth.is_pat:
+            raise ArcherAPIError("Password login is unavailable when PAT authentication is selected")
         doc, body = self._generate_xml_stub()
 
         if self.users_domain:
@@ -113,11 +117,14 @@ class ArcherSOAP:
         sess_root = sess_doc.getroot()
         result = sess_root.xpath(archer_consts.ARCHER_XPATH_AUTH, namespaces=ALL_NS_MAP)
         if result:
-            self.conn_obj.sessionToken = result[0].text
+            self.auth.session_token = result[0].text
+            self.auth.token
             return
-        raise Exception("Failed to authenticate to Archer web services")
+        raise ArcherAPIError("Archer SOAP password authentication failed")
 
     def _domain_user_authenticate(self):
+        if self.auth.is_pat:
+            raise ArcherAPIError("Password login is unavailable when PAT authentication is selected")
         doc, body = self._generate_xml_stub()
 
         n = etree.SubElement(body, "CreateDomainUserSessionFromInstance", nsmap=ARCHER_MAP)
@@ -133,17 +140,16 @@ class ArcherSOAP:
         sess_root = sess_doc.getroot()
         result = sess_root.xpath(archer_consts.ARCHER_XPATH_DOMAIN_USER_AUTH, namespaces=ALL_NS_MAP)
         if result:
-            self.conn_obj.sessionToken = result[0].text
+            self.auth.session_token = result[0].text
+            self.auth.token
             return
-        raise Exception("Failed to authenticate to Archer web services")
+        raise ArcherAPIError("Archer SOAP domain authentication failed")
 
     def find_group(self, groupname):
-        if not self.conn_obj.sessionToken:
-            raise Exception("No session")
         doc, body = self._generate_xml_stub()
         lu = etree.SubElement(body, "LookupGroup", nsmap=ARCHER_MAP)
         to = etree.SubElement(lu, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         u = etree.SubElement(lu, "keyword")
         u.text = groupname
         resp_doc = self._do_request(self.base_uri + "/accesscontrol.asmx", doc)
@@ -166,12 +172,10 @@ class ArcherSOAP:
         return
 
     def find_user(self, username):
-        if not self.conn_obj.sessionToken:
-            raise Exception("No session")
         doc, body = self._generate_xml_stub()
         lu = etree.SubElement(body, "LookupUserId", nsmap=ARCHER_MAP)
         to = etree.SubElement(lu, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         u = etree.SubElement(lu, "username")
         u.text = username
         resp_doc = self._do_request(self.base_uri + "/accesscontrol.asmx", doc)
@@ -182,12 +186,10 @@ class ArcherSOAP:
         return
 
     def find_domain_user(self, username):
-        if not self.conn_obj.sessionToken:
-            raise Exception("No session")
         doc, body = self._generate_xml_stub()
         lu = etree.SubElement(body, "LookupDomainUserId", nsmap=ARCHER_MAP)
         to = etree.SubElement(lu, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         u = etree.SubElement(lu, "username")
         u.text = username
         u = etree.SubElement(lu, "usersDomain")
@@ -204,14 +206,12 @@ class ArcherSOAP:
     def find_records(
         self, mod_id, mod_name, key_id, key_name, value, filter_type="text", max_count=1000, fields=None, comparison="Equals", sort=None, page=1
     ):
-        if not self.conn_obj.sessionToken:
-            raise Exception("No session")
         if fields is None:
             fields = {key_id: key_name}
         doc, body = self._generate_xml_stub()
         se = etree.SubElement(body, "ExecuteSearch", nsmap=ARCHER_MAP)
         to = etree.SubElement(se, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         pn = etree.SubElement(se, "pageNumber")
         pn.text = str(page)
         so = etree.SubElement(se, "searchOptions")
@@ -278,7 +278,7 @@ class ArcherSOAP:
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, "GetRecordById", nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         mi = etree.SubElement(gr, "moduleId")
         mi.text = str(module_id)
         ci = etree.SubElement(gr, "contentId")
@@ -362,7 +362,7 @@ class ArcherSOAP:
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, "UpdateRecord", nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         mi = etree.SubElement(gr, "moduleId")
         mi.text = str(module_id)
         ci = etree.SubElement(gr, "contentId")
@@ -396,7 +396,7 @@ class ArcherSOAP:
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, "CreateRecord", nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         mi = etree.SubElement(gr, "moduleId")
         mi.text = str(moduleid)
         fv = etree.SubElement(gr, "fieldValues")
@@ -429,12 +429,10 @@ class ArcherSOAP:
         return document, body
 
     def get_report(self, guid, page_number):
-        if not self.conn_obj.sessionToken:
-            raise Exception("No session")
         doc, body = self._generate_xml_stub()
         gr = etree.SubElement(body, "SearchRecordsByReport", nsmap=ARCHER_MAP)
         to = etree.SubElement(gr, "sessionToken")
-        to.text = self.conn_obj.sessionToken
+        to.text = self.auth.token
         gi = etree.SubElement(gr, "reportIdOrGuid")
         gi.text = str(guid)
         pn = etree.SubElement(gr, "pageNumber")
@@ -448,41 +446,75 @@ class ArcherSOAP:
         if len(rec_xml) > 0:
             return {"status": "success", "result": rec_xml[0].text}
         else:
-            rec_xml = resp_root.xpath('//*[local-name()="faultstring"]', namespaces=ALL_NS_MAP)
-            return {"status": "failed", "result": rec_xml[0].text if len(rec_xml) > 0 else "Unable to find SearchRecordsByReportResult"}
+            return {"status": "failed", "result": "Archer did not return a saved report result"}
+
+    def validate_pat(self):
+        doc, body = self._generate_xml_stub()
+        lookup = etree.SubElement(body, "LookupGroup", nsmap=ARCHER_MAP)
+        etree.SubElement(lookup, "sessionToken").text = self.auth.token
+        etree.SubElement(lookup, "keyword").text = "__splunk_soar_pat_connectivity_probe__"
+        response = self._do_request(self.base_uri + "/accesscontrol.asmx", doc)
+        if not response.xpath(archer_consts.ARCHER_XPATH_GROUP_OTHER, namespaces=ALL_NS_MAP):
+            raise ArcherAPIError("SOAP PAT validation failed: Archer did not return a LookupGroup result")
 
     def _do_request(self, uri, doc, method="post"):
-        generate_new_token = False
-        if method == "post":
+        if method != "post":
+            raise ValueError("Invalid Method")
+        api = doc.xpath("/soap:Envelope/soap:Body", namespaces=NS_MAP)[0].getchildren()
+        if not api:
+            raise ArcherAPIError("Could not find API node")
+        api_tag = api[0].tag
+        session_tokens = api[0].xpath("./*[local-name()='sessionToken']")
+
+        for attempt in range(2):
             xml = etree.tostring(doc, pretty_print=True)
-            api = doc.xpath("/soap:Envelope/soap:Body", namespaces=NS_MAP)
-            api = api[0].getchildren()
-            if not api:
-                raise Exception("Could not find API node")
-            api_tag = api[0].tag
             headers = {
                 "Content-Type": "text/xml; charset=utf-8",
                 "SOAPAction": f'"http://archer-tech.com/webservices/{api_tag}"',
             }
-            response = requests.post(
-                uri,
-                data=xml,
-                headers=headers,
-                verify=self.verify_cert,
-                stream=True,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-            )
+            headers.update(self.auth.headers("soap"))
             try:
-                response_body = read_bounded_response(response)
-                generate_new_token = any(message.encode() in response_body for message in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG)
-                if not generate_new_token:
-                    response.raise_for_status()
-            finally:
-                response.close()
-            if generate_new_token:
+                response = requests.post(
+                    uri,
+                    data=xml,
+                    headers=headers,
+                    verify=self.verify_cert,
+                    stream=True,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                )
+                try:
+                    response_body = read_bounded_response(response)
+                finally:
+                    response.close()
+            except requests.RequestException as e:
+                status = f" (HTTP {e.response.status_code})" if getattr(e, "response", None) is not None else ""
+                raise ArcherAPIError(f"Archer SOAP {api_tag} request {request_failure_reason(e)}{status}") from None
+
+            invalid_session = any(
+                message.lower().encode() in response_body.lower() for message in archer_consts.ARCHER_INVALID_SESSION_TOKEN_MSG
+            )
+            if response.status_code == 403:
+                raise ArcherPermissionError(archer_consts.ARCHER_PERMISSION_ERROR)
+            if response.status_code == 401 or invalid_session:
+                if self.auth.is_pat or attempt or not session_tokens:
+                    raise self.auth.authentication_error()
+                self.auth.session_token = None
                 self._authenticate()
-                session_token = api[0].getchildren()[0]
-                session_token.text = self.conn_obj.sessionToken
-                return self._do_request(uri, doc, method="post")
-            return parse_untrusted_xml(response_body)
-        raise ValueError("Invalid Method")
+                session_tokens[0].text = self.auth.token
+                continue
+
+            try:
+                response_doc = parse_untrusted_xml(response_body)
+            except (etree.LxmlError, ValueError):
+                raise ArcherAPIError(f"Archer returned invalid SOAP data for {api_tag} (HTTP {response.status_code})") from None
+            faults = response_doc.xpath("//*[local-name()='Fault']")
+            if faults:
+                raise ArcherAPIError(
+                    f"Archer returned a SOAP fault for {api_tag} (HTTP {response.status_code}). Check parameters and permissions"
+                )
+            try:
+                response.raise_for_status()
+            except requests.RequestException as e:
+                status = f" (HTTP {e.response.status_code})" if getattr(e, "response", None) is not None else ""
+                raise ArcherAPIError(f"Archer SOAP {api_tag} request {request_failure_reason(e)}{status}") from None
+            return response_doc

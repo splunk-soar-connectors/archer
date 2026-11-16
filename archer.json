@@ -15,11 +15,11 @@
     "type": "ticketing",
     "license": "Copyright (c) 2016-2026 Splunk Inc.",
     "main_module": "archer_connector.py",
-    "app_version": "4.0.2",
+    "app_version": "4.1.0",
     "latest_tested_versions": [
         "On-premise RSA Archer v6.14"
     ],
-    "utctime_updated": "2026-09-16T21:15:08.923074Z",
+    "utctime_updated": "2026-10-09T05:14:37Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
@@ -41,38 +41,51 @@
             "order": 1,
             "required": true
         },
-        "username": {
-            "description": "Username",
+        "auth_type": {
+            "description": "Authentication type",
             "data_type": "string",
             "order": 2,
-            "required": true
+            "value_list": [
+                "Username and password",
+                "Personal access token"
+            ],
+            "default": "Username and password"
+        },
+        "username": {
+            "description": "Username (required for username/password authentication)",
+            "data_type": "string",
+            "order": 3
         },
         "password": {
-            "description": "Password",
+            "description": "Password (required for username/password authentication)",
             "data_type": "password",
-            "order": 3,
-            "required": true
+            "order": 4
+        },
+        "personal_access_token": {
+            "description": "Personal access token (required for PAT authentication)",
+            "data_type": "password",
+            "order": 5
         },
         "verify_ssl": {
             "description": "Verify server certificate",
             "data_type": "boolean",
-            "order": 4,
+            "order": 6,
             "default": true
         },
         "cef_mapping": {
             "description": "CEF to Archer mapping",
             "data_type": "string",
-            "order": 5
+            "order": 7
         },
         "exclude_fields": {
             "description": "Fields to exclude (comma separated)",
             "data_type": "string",
-            "order": 6
+            "order": 8
         },
         "domain": {
             "description": "User's Domain",
             "data_type": "string",
-            "order": 7
+            "order": 9
         }
     },
     "actions": [

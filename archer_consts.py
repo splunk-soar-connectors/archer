@@ -22,6 +22,14 @@ ARCHER_ACTION_GET_REPORT = "get_report"
 ARCHER_ACTION_ASSIGN_TICKET = "assign_ticket"
 ARCHER_ACTION_ATTACH_ALERT = "attach_alert"
 ARCHER_SESSION_TOKEN = "session_token"
+ARCHER_AUTH_PASSWORD = "Username and password"  # pragma: allowlist secret
+ARCHER_AUTH_PAT = "Personal access token"
+ARCHER_AUTH_STATE = "auth_type"
+ARCHER_PERMISSION_ERROR = "Archer denied access to this operation. Verify the authenticated user's permissions"
+ARCHER_ERR_RESPONSE_FORMAT = "Archer returned data in an unexpected format"
+ARCHER_ERR_INVALID_DATA = "Invalid Archer configuration, action parameters, or response data"
+ARCHER_ERR_LOCAL_RESOURCE = "A local file or resource operation failed"
+ARCHER_ERR_UNEXPECTED = "Archer operation failed. Check the asset configuration and action parameters"
 ARCHER_INVALID_SESSION_TOKEN_MSG = ["Invalid session token", "Unable to validate session"]
 
 ARCHER_SUCC_CONFIGURATION = "Archer configuration test SUCCESS"
@@ -59,4 +67,4 @@ ARCHER_EQUALITY_VALUELIST = ["contains", "equals"]
 ARCHER_XPATH_GROUP = "/soap:Envelope/soap:Body/dummy:LookupGroupResponse/dummy:LookupGroupResult/dummy:Groups/dummy:Group/dummy:Name"
 ARCHER_INVALID_JSON = "Invalid JSON string. Must be a dictionary containing key-value pairs"
 
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 60
