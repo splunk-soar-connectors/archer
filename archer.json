@@ -19,7 +19,7 @@
     "latest_tested_versions": [
         "On-premise RSA Archer v6.14"
     ],
-    "utctime_updated": "2026-10-09T05:14:37Z",
+    "utctime_updated": "2026-11-16T18:01:19.993656Z",
     "product_vendor": "RSA",
     "product_name": "Archer GRC",
     "product_version_regex": ".*",
