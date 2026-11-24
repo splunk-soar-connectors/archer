@@ -537,7 +537,7 @@ class ArcherAPISession:
 
     def find_records(self, app, field_name, value, max_count, comparison=None, sort=None, page=1):
         fid = None
-        err = ""
+        has_search_filter = bool(field_name and value)
 
         try:
             fid = int(field_name)
@@ -546,11 +546,13 @@ class ArcherAPISession:
                 fid = self.get_fieldId_for_app_and_name(app, field_name)
             except ArcherAPIError:
                 raise
-            except Exception as e:
-                err = self._get_error_message_from_exception(e)
-                pass
-        if field_name and value and not fid:
-            raise Exception(f'Failed to find field "{field_name}" in "{app}": {err}')
+            except Exception as error:
+                if has_search_filter:
+                    reason = controlled_error_message(error)
+                    raise ArcherAPIError(f"Archer search field lookup failed. {reason}") from None
+                self._get_error_message_from_exception(error)
+        if has_search_filter and not fid:
+            raise ArcherAPIError("The requested search field was not found in the Archer application")
         mid = self.get_moduleid(app)
         fields = self._get_field_id_map(app)
 
