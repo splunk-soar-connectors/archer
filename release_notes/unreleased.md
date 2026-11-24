@@ -1,3 +1,1 @@
 **Unreleased**
-
-* Report specific Archer search field lookup errors and XML parse locations without exposing raw exception text.

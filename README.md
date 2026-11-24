@@ -1,7 +1,7 @@
 # RSA Archer
 
 Publisher: Splunk <br>
-Connector Version: 4.1.0 <br>
+Connector Version: 4.1.1 <br>
 Product Vendor: RSA <br>
 Product Name: Archer GRC <br>
 Minimum Product Version: 6.2.1
