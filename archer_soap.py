@@ -271,7 +271,11 @@ class ArcherSOAP:
         if not result:
             return []
 
-        search_result = parse_untrusted_xml(result[0].text)
+        try:
+            search_result = parse_untrusted_xml(result[0].text)
+        except etree.XMLSyntaxError as error:
+            line, column = error.position
+            raise ArcherAPIError(f"Archer ExecuteSearch returned invalid result XML at line {line}, column {column}") from None
         return search_result.xpath("/Records/Record")
 
     def get_record(self, content_id, module_id):

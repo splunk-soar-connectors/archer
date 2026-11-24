@@ -22,7 +22,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-import pytest
+import pytest  # pylint: disable=import-error
 import requests
 from lxml import etree
 
@@ -258,6 +258,7 @@ def connector(monkeypatch):
             self.config = {**PAT_CONFIG, "endpoint_url": "https://archer.example", "instance_name": "Default"}
             self.stored_state = {}
             self.messages = []
+            self.action_id = None
 
         def get_asset_id(self):
             return "pat-unit-test"
@@ -324,9 +325,10 @@ def connector(monkeypatch):
 
     phantom = types.ModuleType("phantom")
     app = types.ModuleType("phantom.app")
-    app.APP_SUCCESS, app.APP_ERROR = 0, 1
+    app_error = 1
+    app.APP_SUCCESS, app.APP_ERROR = 0, app_error
     app.ACTION_ID_TEST_ASSET_CONNECTIVITY = "test_asset_connectivity"
-    app.is_fail = lambda status: status == app.APP_ERROR
+    app.is_fail = lambda status: status == app_error
     phantom.app = app
     phantom.vault = SimpleNamespace(vault_info=Mock())
     base = types.ModuleType("phantom.base_connector")
@@ -418,6 +420,47 @@ def test_connectivity_requires_actual_soap_result(monkeypatch):
         api_session().asoap.validate_pat()
 
 
+@pytest.mark.parametrize(
+    "lookup_error, message",
+    [
+        (None, "The requested search field was not found in the Archer application"),
+        (KeyError("private-field-marker"), "Archer search field lookup failed. Archer returned data in an unexpected format"),
+    ],
+)
+def test_list_tickets_reports_field_lookup_error(connector, monkeypatch, lookup_error, message):
+    assert connector.initialize() == 0
+    connector.action_id = "list_tickets"
+    lookup = Mock(return_value=None, side_effect=lookup_error)
+    monkeypatch.setattr(connector.proxy, "get_fieldId_for_app_and_name", lookup)
+
+    params = {"application": "Incidents", "name_field": "private-field-marker", "search_value": "INC-7"}
+    assert connector.handle_action(params) == 1
+    lookup.assert_called_once_with("Incidents", "private-field-marker")
+    assert connector.result.message.endswith(message)
+    assert "private-field-marker" not in connector.result.message
+    assert all("private-field-marker" not in entry for entry in connector.messages)
+
+
+def test_list_tickets_reports_search_xml_location(connector, monkeypatch):
+    connector.config = {**connector.config, **PASSWORD_CONFIG, "auth_type": consts.ARCHER_AUTH_PASSWORD}
+    connector.stored_state = {"session_token": "encrypted:cached-session"}
+    assert connector.initialize() == 0
+    connector.action_id = "list_tickets"
+    monkeypatch.setattr(connector.proxy, "get_moduleid", Mock(return_value=1))
+    monkeypatch.setattr(connector.proxy, "_get_field_id_map", Mock(return_value={2: "Title"}))
+    request = Mock(return_value=soap_response("ExecuteSearch", "<Records><private-record-marker></Records>"))
+    monkeypatch.setattr(requests, "post", request)
+
+    params = {"application": "Incidents", "name_field": "2", "search_value": "INC-7", "max_results": 1}
+    assert connector.handle_action(params) == 1
+    request.assert_called_once()
+    message = "Archer ExecuteSearch returned invalid result XML at line 1, column"
+    assert message in connector.result.message
+    assert any(message in entry for entry in connector.messages)
+    assert "private-record-marker" not in connector.result.message
+    assert all("private-record-marker" not in entry for entry in connector.messages)
+
+
 ACTION_PARAMS = [
     ("test_asset_connectivity", {}),
     ("create_ticket", {"application": "Incidents", "json_string": '{"Title":"example"}'}),
@@ -492,9 +535,9 @@ def test_all_actions_complete_using_pat_on_both_transports(connector, monkeypatc
 
     def request(url, **kwargs):
         assert kwargs["headers"]["Authorization"] == 'Archer session-id="customer-test-pat"'
-        assert kwargs["timeout"] == 30
         calls.append(url)
         if "/ws/" in url:
+            assert kwargs["timeout"] == 30
             operation = etree.fromstring(kwargs["data"]).find(f"{{{SOAPNS}}}Body")[0]
             method = etree.QName(operation).localname
             assert operation.xpath("./*[local-name()='sessionToken']/text()") == ["customer-test-pat"]
@@ -519,6 +562,7 @@ def test_all_actions_complete_using_pat_on_both_transports(connector, monkeypatc
             else:
                 raise AssertionError(f"Unexpected SOAP method: {method}")
             return soap_response(method, result)
+        assert kwargs["timeout"] == consts.DEFAULT_TIMEOUT
         if "json" in kwargs:
             json.dumps(kwargs["json"])
         if url.endswith("/system/application"):
