@@ -22,7 +22,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-import pytest
+import pytest  # pylint: disable=import-error
 import requests
 from lxml import etree
 
@@ -258,6 +258,7 @@ def connector(monkeypatch):
             self.config = {**PAT_CONFIG, "endpoint_url": "https://archer.example", "instance_name": "Default"}
             self.stored_state = {}
             self.messages = []
+            self.action_id = None
 
         def get_asset_id(self):
             return "pat-unit-test"
@@ -324,9 +325,10 @@ def connector(monkeypatch):
 
     phantom = types.ModuleType("phantom")
     app = types.ModuleType("phantom.app")
-    app.APP_SUCCESS, app.APP_ERROR = 0, 1
+    app_error = 1
+    app.APP_SUCCESS, app.APP_ERROR = 0, app_error
     app.ACTION_ID_TEST_ASSET_CONNECTIVITY = "test_asset_connectivity"
-    app.is_fail = lambda status: status == app.APP_ERROR
+    app.is_fail = lambda status: status == app_error
     phantom.app = app
     phantom.vault = SimpleNamespace(vault_info=Mock())
     base = types.ModuleType("phantom.base_connector")
@@ -492,9 +494,9 @@ def test_all_actions_complete_using_pat_on_both_transports(connector, monkeypatc
 
     def request(url, **kwargs):
         assert kwargs["headers"]["Authorization"] == 'Archer session-id="customer-test-pat"'
-        assert kwargs["timeout"] == 30
         calls.append(url)
         if "/ws/" in url:
+            assert kwargs["timeout"] == 30
             operation = etree.fromstring(kwargs["data"]).find(f"{{{SOAPNS}}}Body")[0]
             method = etree.QName(operation).localname
             assert operation.xpath("./*[local-name()='sessionToken']/text()") == ["customer-test-pat"]
@@ -519,6 +521,7 @@ def test_all_actions_complete_using_pat_on_both_transports(connector, monkeypatc
             else:
                 raise AssertionError(f"Unexpected SOAP method: {method}")
             return soap_response(method, result)
+        assert kwargs["timeout"] == consts.DEFAULT_TIMEOUT
         if "json" in kwargs:
             json.dumps(kwargs["json"])
         if url.endswith("/system/application"):
